@@ -1,14 +1,13 @@
 """PlantMind AI — FastAPI application entry point.
 
-Minimal backend skeleton. Only a health check is implemented at this stage.
+Minimal backend skeleton. Only a health check is wired up at this stage.
 """
 
 from fastapi import FastAPI
 
-app = FastAPI(title="PlantMind AI API", version="0.1.0")
+from app.core.config import settings
+from app.routes import health
 
+app = FastAPI(title=settings.project_name, version="0.1.0")
 
-@app.get("/health")
-def health() -> dict[str, str]:
-    """Liveness probe for the API service."""
-    return {"status": "ok", "service": "plantmind-ai-api"}
+app.include_router(health.router)
