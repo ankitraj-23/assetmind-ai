@@ -1,4 +1,4 @@
-"""PlantMind AI — FastAPI application entry point.
+"""AssetMind AI — FastAPI application entry point.
 
 Minimal backend skeleton. Only a health check is wired up at this stage.
 """

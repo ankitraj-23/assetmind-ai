@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-## Project: PlantMind AI
+## Project: AssetMind AI
 
-PlantMind AI is an AI-powered Industrial Knowledge Intelligence platform built for the
+AssetMind AI is an AI-powered Industrial Knowledge Intelligence platform built for the
 ET AI Hackathon 2026 (PS 8 — Unified Asset & Operations Brain). See
 [docs/project-brief.md](docs/project-brief.md) for the full project context.
 

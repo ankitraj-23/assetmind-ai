@@ -1,6 +1,6 @@
-# PlantMind AI — API
+# AssetMind AI — API
 
-Minimal FastAPI backend skeleton for PlantMind AI. At this stage it exposes only a
+Minimal FastAPI backend skeleton for AssetMind AI. At this stage it exposes only a
 health check; RAG, database, and document processing are not yet implemented.
 
 ## Project layout
@@ -38,7 +38,7 @@ uvicorn app.main:app --reload --port 8000
 
 ```bash
 curl http://127.0.0.1:8000/health
-# {"status":"ok","service":"plantmind-ai-api"}
+# {"status":"ok","service":"assetmind-ai-api"}
 ```
 
 Interactive docs are available at http://127.0.0.1:8000/docs.
