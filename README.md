@@ -1,4 +1,4 @@
-# PlantMind AI
+# AssetMind AI
 
 AI-powered Industrial Knowledge Intelligence platform.
 
