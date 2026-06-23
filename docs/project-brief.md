@@ -1,4 +1,4 @@
-# PlantMind AI — Project Brief
+# AssetMind AI — Project Brief
 
 ## PS 8 Summary
 
