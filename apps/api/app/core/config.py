@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     # Local directory where uploaded originals and document metadata are stored.
     storage_dir: str = "storage"
 
+    # Browser origins allowed to call the API (the Next.js dev server by default).
+    # Override with a comma-separated CORS_ORIGINS environment variable.
+    cors_origins: list[str] = ["http://localhost:3000"]
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
