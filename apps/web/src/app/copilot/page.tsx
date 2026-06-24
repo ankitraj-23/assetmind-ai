@@ -126,15 +126,15 @@ export default function CopilotPage() {
                       <span className="flex h-5 w-5 items-center justify-center rounded bg-[var(--color-surface-2)] text-xs text-[var(--color-accent)]">
                         {i + 1}
                       </span>
-                      <span className="text-sm font-medium">
-                        {c.document_id}
-                      </span>
-                      <span className="ml-auto text-xs text-[var(--color-muted)]">
-                        {c.score.toFixed(3)}
+                      <span
+                        className="truncate text-sm font-medium"
+                        title={c.filename ?? c.document_id}
+                      >
+                        {c.filename ?? c.document_id}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-[var(--color-accent-2)]">
-                      chunk #{c.chunk_index}
+                      Chunk {c.chunk_index} · Score {c.score.toFixed(2)}
                     </p>
                     <p className="mt-1 text-xs text-[var(--color-muted)]">
                       “{c.text_preview}”

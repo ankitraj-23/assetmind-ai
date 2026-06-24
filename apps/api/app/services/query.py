@@ -92,6 +92,7 @@ def answer_question(question: str, top_k: int = 5) -> QueryResponse:
             chunk_index=result.chunk_index,
             score=result.score,
             text_preview=_preview(result.text),
+            filename=result.filename,
         )
         for result in results
     ]

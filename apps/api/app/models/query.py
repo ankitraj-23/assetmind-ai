@@ -19,13 +19,19 @@ class QueryRequest(BaseModel):
 
 
 class QueryCitation(BaseModel):
-    """A retrieved chunk cited as evidence for the answer."""
+    """A retrieved chunk cited as evidence for the answer.
+
+    ``filename`` is the human-readable source document name for demo-friendly
+    citations; it is optional and falls back to ``document_id`` in the UI when
+    absent. ``document_id``/``chunk_id`` are retained for internal traceability.
+    """
 
     document_id: str
     chunk_id: str
     chunk_index: int
     score: float
     text_preview: str
+    filename: str | None = None
 
 
 class QueryResponse(BaseModel):
