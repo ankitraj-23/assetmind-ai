@@ -1,47 +1,140 @@
 # AssetMind AI
 
-AI-powered Industrial Knowledge Intelligence platform — ET AI Hackathon 2026, PS 8
-(Unified Asset & Operations Brain). See [docs/project-brief.md](docs/project-brief.md)
-for full context.
+**AssetMind AI** turns scattered industrial documents — maintenance records, inspection reports, OEM manuals, SOPs, and compliance checklists — into an asset-centric operations brain that is queryable, citation-backed, and continuously updated.
 
-## Overview
+> Week 1 establishes the RAG foundation: ingest documents, extract and chunk text, embed the chunks, and answer questions with citations back to the source files.
 
-AssetMind AI turns scattered industrial documents (maintenance records, inspection
-reports, operating notes, PDFs) into an asset-centric "operations brain" that is
-queryable and citation-backed. The Week 1 build establishes the RAG foundation:
-ingest documents, extract and chunk text, embed the chunks, and answer questions with
-citations back to the source files.
+---
 
-## Week 1 capabilities
+## Week 1 Capabilities
 
-**Backend (`apps/api`, FastAPI):**
+### Backend (`apps/api` — FastAPI)
 
-- `POST /documents` — upload a PDF/text file; extract, chunk, and embed it.
-- `GET /documents` — list ingested documents.
-- `GET /documents/{id}/chunks` — view a document's text chunks.
-- `GET /documents/{id}/embeddings` — view embedding metadata + vector previews.
-- `GET /search?q=...` — retrieve the most similar chunks for a query.
-- `POST /query` — citation-backed answer assembled from retrieved chunks.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/documents` | Upload a PDF/text file; extract, chunk, and embed it |
+| `GET` | `/documents` | List all ingested documents |
+| `GET` | `/documents/{id}/chunks` | View a document's text chunks |
+| `GET` | `/documents/{id}/embeddings` | View embedding metadata and vector previews |
+| `GET` | `/search?q=...` | Retrieve most similar chunks for a query |
+| `POST` | `/query` | Citation-backed answer assembled from retrieved chunks |
 
-See [docs/api-contract.md](docs/api-contract.md) for the full endpoint contract.
+See `docs/api-contract.md` for the full endpoint contract.
 
-**Frontend (`apps/web`, Next.js + TypeScript + Tailwind):**
+### Frontend (`apps/web` — Next.js + TypeScript + Tailwind)
 
-- **Upload** page wired to `POST /documents`.
-- **Documents** page wired to `GET /documents`.
-- **Document Detail** page showing chunks and embeddings.
-- **Copilot** page wired to `POST /query` with filename-based citations.
-- **Dashboard / Assets / RCA / Compliance** pages as mock demo views.
+- **Upload page** — wired to `POST /documents`
+- **Documents page** — wired to `GET /documents`
+- **Document Detail page** — shows chunks and embeddings for a document
+- **Copilot page** — wired to `POST /query` with filename-based citations
+- **Dashboard / Assets / RCA / Compliance** — mock demo views
 
-## Repository structure
+---
 
-- `apps/api/` — FastAPI backend (document ingestion + RAG endpoints).
-- `apps/web/` — Next.js frontend.
-- `docs/` — project brief, API contract, and demo flow.
-- `sample-data/` — small synthetic industrial sample data for demos.
-- `infra/` — deployment and infrastructure notes.
+## Repository Structure
 
-## Backend setup & run
+```
+apps/
+  api/          FastAPI backend (document ingestion + RAG endpoints)
+  web/          Next.js frontend
+
+data/
+  raw/          Original downloaded datasets (gitignored large files)
+  documents/    Cleaned CSV + generated PDFs used for ingestion
+  benchmark/    Benchmark Q&A pairs for evaluation
+  asset_registry.py   Single source of truth for all plant asset tags
+  generate_pdfs.py    Script to regenerate all synthetic PDFs
+  analysis.ipynb      Dataset cleaning and exploration notebook
+
+docs/           Project brief, API contract, and demo flow
+sample-data/    Small synthetic industrial sample data for quick demos
+infra/          Deployment and infrastructure notes
+```
+
+---
+
+## Dataset
+
+AssetMind AI uses a curated industrial dataset assembled from two sources:
+
+### 1. Work Orders — `data/documents/work_orders_clean.csv`
+
+**Source:** [Industrial Maintenance Synthetic Dataset — jvachier (Kaggle)](https://www.kaggle.com/datasets/jvachier/industrial-maintenance-synthetic-dataset)
+
+The original dataset contains 1 million synthetic maintenance work orders across 37 industrial equipment types. The `WorkOrderDescription` and `OperationDescription` columns contain full English sentences describing failures and corrective actions — exactly what the RAG pipeline needs to chunk, embed, and retrieve.
+
+**Cleaning steps** (see `data/analysis.ipynb`):
+
+1. Normalise `Equipment_ID` — strip whitespace, uppercase, remove leading/trailing spaces
+2. Normalise `OrderType` — strip spaces, map dirty variants (`pdm`, `DPM`, `PMD`, `PPDM`) to canonical `CM / PM / PDM`
+3. Filter `Equipment_ID` to standard industrial tag format using regex: `P-101`, `TK-482`, `HX-305`, etc. — drops 638K rows with garbage IDs like `dp-017`, `P119`, `SC0-18`
+4. Select 8 demo assets (see Asset Registry below)
+5. Sample 60 rows per asset, keep only text columns, drop numeric sensor columns
+
+**Output:** 465 rows across 8 assets, saved to `data/documents/work_orders_clean.csv`
+
+**Why not Kaggle/UCI numeric datasets:** Datasets like AI4I 2020 contain sensor readings (`Air temp [K]: 298.1`). The RAG pipeline embeds text and retrieves by semantic similarity — there is no text to retrieve from a float column. The jvachier dataset has rich sentence-level descriptions that produce meaningful citations.
+
+### 2. Sensor Tags — `data/raw/sensor_tags.csv`
+
+Also from the jvachier dataset. Contains sensor tag names, descriptions, units, and `Equipment_ID` — the same tag format as the work orders. Used in **Week 2** to build knowledge graph edges between assets and their sensor readings. Not ingested in Week 1.
+
+### 3. Synthetic PDFs — `data/documents/`
+
+Four PDF documents generated by `data/generate_pdfs.py` using `fpdf2`. All asset tags inside the PDFs are pulled from the Asset Registry, ensuring entity extraction finds consistent `P-101`-style tags across every document type.
+
+| File | Contents | Covers |
+|------|----------|--------|
+| `pump_oem_manual.pdf` | Startup procedure, maintenance schedule, failure modes, spare parts, OISD-137 vibration standard | P-101, P-102, P-201 |
+| `sop_pump_startup.pdf` | 10-step pre-start checklist, startup sequence, shutdown, emergency stop, LOTO safety | P-101, P-102, P-201 |
+| `inspection_report_q1_2025.pdf` | Per-asset findings with actual readings, risk levels, and recommendations | All 8 assets |
+| `compliance_checklist_2025.pdf` | Regulatory status per asset — Factory Act, OISD-116, OISD-137, PESO, ISO 9001 | All 8 assets |
+
+To regenerate all PDFs from scratch:
+```bash
+pip install fpdf2
+python data/generate_pdfs.py
+```
+
+### Asset Registry — `data/asset_registry.py`
+
+The single source of truth for all plant asset tags. Every CSV row, every PDF, and every benchmark question references these exact tags. This is what makes the knowledge graph edges connect across document types.
+
+| Tag | Name | Type |
+|-----|------|------|
+| `P-101` | Cooling Water Pump | centrifugal_pump |
+| `P-102` | Feed Transfer Pump | centrifugal_pump |
+| `P-201` | Condensate Extraction Pump | centrifugal_pump |
+| `TK-482` | Feed Storage Tank | tank |
+| `M-017` | Boiler Feed Motor | motor |
+| `HX-305` | Shell and Tube Heat Exchanger | heat_exchanger |
+| `R-201` | Process Reactor | reactor |
+| `BLR-118` | Package Boiler | boiler |
+
+### Benchmark Questions — `data/benchmark/questions.json`
+
+12 Q&A pairs written against the actual document content. Used to evaluate citation accuracy, retrieval quality, and answer correctness on the evaluation page.
+
+| ID | Question | Source |
+|----|----------|--------|
+| Q01 | Vibration limit for P-101 per OISD-137? | OEM manual |
+| Q02 | Part number for P-101 mechanical seal? | OEM manual |
+| Q03 | Bearing specs for P-102? | OEM manual |
+| Q04 | What causes cavitation in P-201? | OEM manual |
+| Q05 | Pre-start checks before starting P-101? | SOP-PUMP-07 |
+| Q06 | What to do if P-102 vibration exceeds 4.5 mm/s? | SOP-PUMP-07 |
+| Q07 | Current vibration reading for P-101? | Inspection report |
+| Q08 | Which asset has CRITICAL risk in Q1 2025? | Inspection report |
+| Q09 | Compliance issue with TK-482? | Inspection report |
+| Q10 | Which assets are non-compliant in 2025? | Compliance checklist |
+| Q11 | Which regulations apply to BLR-118? | Compliance checklist |
+| Q12 | What action was taken for P-101 vibration alarm? | Work orders CSV |
+
+Questions span all 4 document types so evaluation scores reflect retrieval across heterogeneous sources.
+
+---
+
+## Backend Setup and Run
 
 ```bash
 cd apps/api
@@ -51,10 +144,12 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-- Health check: `curl http://127.0.0.1:8000/health`
-- Interactive docs: http://127.0.0.1:8000/docs
+- Health check: `http://127.0.0.1:8000/health`
+- Interactive docs: `http://127.0.0.1:8000/docs`
 
-## Frontend setup & run
+---
+
+## Frontend Setup and Run
 
 ```bash
 cd apps/web
@@ -62,28 +157,29 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. Set `NEXT_PUBLIC_API_BASE_URL` if the backend is not on
-`http://localhost:8000`.
+Open `http://localhost:3000`. Set `NEXT_PUBLIC_API_BASE_URL` if the backend is not on `http://localhost:8000`.
 
-## Demo flow
+---
+
+## Demo Flow
 
 **Upload → Documents → Document Detail → Copilot**
 
-1. Start the backend and frontend (above).
-2. **Upload** `sample-data/demo_plant/pump_p101_note.txt`.
-3. Open **Documents** and confirm it appears.
-4. Open the **Document Detail** to view its chunks and embeddings.
+1. Start backend and frontend (commands above)
+2. Upload `sample-data/demo_plant/pump_p101_note.txt`
+3. Open **Documents** and confirm it appears
+4. Open **Document Detail** to view chunks and embeddings
 5. On the **Copilot** page, ask: *"Why is Pump P-101 vibrating?"*
-6. Confirm the answer cites `pump_p101_note.txt` by filename.
+6. Confirm the answer cites `pump_p101_note.txt` by filename
 
-A step-by-step runbook is in [docs/demo-flow.md](docs/demo-flow.md).
+A step-by-step runbook is in `docs/demo-flow.md`.
+
+---
 
 ## Notes
 
-- **Local storage is gitignored.** Uploaded originals and ingestion metadata are
-  written to local `storage/` directories that are excluded from version control —
-  nothing is committed.
-- **Deterministic local placeholders.** The current embeddings (`local-hashing-v1`,
-  384-dim) and the query answer are deterministic local placeholders with no external
-  model calls. They are designed to be swapped for real embedding/RAG models later
-  without changing the API contract.
+**Local storage is gitignored.** Uploaded originals and ingestion metadata are written to local `storage/` directories excluded from version control.
+
+**Deterministic local placeholders.** Current embeddings (`local-hashing-v1`, 384-dim) and query answers are deterministic local placeholders with no external model calls. Designed to be swapped for real embedding/LLM models without changing the API contract.
+
+**Raw dataset files are gitignored.** `data/raw/maintenance.csv` and `data/raw/sensor_tags.csv` are too large for version control. Download them from the [jvachier Kaggle dataset](https://www.kaggle.com/datasets/jvachier/industrial-maintenance-synthetic-dataset) and place them in `data/raw/`. Then run `data/analysis.ipynb` to regenerate `work_orders_clean.csv`.

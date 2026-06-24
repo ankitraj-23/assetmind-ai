@@ -1,0 +1,98 @@
+[
+  {
+    "id": "Q01",
+    "question": "What is the maximum allowable vibration velocity for P-101 per OISD-137?",
+    "expected_answer": "4.5 mm/s RMS. Alarm setpoint is 3.5 mm/s and trip setpoint is 7.0 mm/s.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-101",
+    "category": "equipment_spec"
+  },
+  {
+    "id": "Q02",
+    "question": "What is the part number for the mechanical seal cartridge used in P-101, P-102, and P-201?",
+    "expected_answer": "MS-45-CR. It is an annual consumable and must be replaced during annual maintenance.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-101",
+    "category": "spare_parts"
+  },
+  {
+    "id": "Q03",
+    "question": "What are the drive end and non-drive end bearing specifications for P-102?",
+    "expected_answer": "Drive end bearing: 6309-2RS. Non-drive end bearing: 6206-2RS.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-102",
+    "category": "spare_parts"
+  },
+  {
+    "id": "Q04",
+    "question": "What causes cavitation in P-201 and how should it be resolved?",
+    "expected_answer": "Cavitation occurs when suction pressure drops below NPSHr of 3.2 m. Resolution: check suction strainer differential pressure, verify vessel level, and reduce flow rate if required.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-201",
+    "category": "failure_mode"
+  },
+  {
+    "id": "Q05",
+    "question": "What checks are required before starting P-101 after maintenance?",
+    "expected_answer": "Confirm work order is closed, verify suction valves fully open, check seal flush pressure between 0.8 and 1.2 bar, confirm oil level at sight glass, check coupling guard is fitted, set discharge valve to 25 percent open, and manually rotate shaft to confirm free rotation.",
+    "source_doc": "sop_pump_startup.pdf",
+    "asset_tag": "P-101",
+    "category": "procedure"
+  },
+  {
+    "id": "Q06",
+    "question": "What should a technician do if P-102 vibration exceeds 4.5 mm/s during startup?",
+    "expected_answer": "Shut down immediately and raise a maintenance work order in the CMMS system within 30 minutes. Do not attempt to restart until root cause is identified.",
+    "source_doc": "sop_pump_startup.pdf",
+    "asset_tag": "P-102",
+    "category": "procedure"
+  },
+  {
+    "id": "Q07",
+    "question": "What is the current vibration reading for P-101 and is it within acceptable limits?",
+    "expected_answer": "P-101 vibration reading is 6.2 mm/s RMS as of 15 March 2025. This exceeds the OISD-137 limit of 4.5 mm/s and is non-compliant. Risk level is HIGH.",
+    "source_doc": "inspection_report_q1_2025.pdf",
+    "asset_tag": "P-101",
+    "category": "inspection_finding"
+  },
+  {
+    "id": "Q08",
+    "question": "Which asset has a CRITICAL risk rating in the Q1 2025 inspection and why?",
+    "expected_answer": "BLR-118 (Package Boiler). Its pressure test certificate expired on 01 February 2025. Operating without a valid certificate violates Factories Act Section 31 and PESO regulations and exposes the facility to a shutdown notice.",
+    "source_doc": "inspection_report_q1_2025.pdf",
+    "asset_tag": "BLR-118",
+    "category": "compliance"
+  },
+  {
+    "id": "Q09",
+    "question": "What is the compliance issue with TK-482 and what is the deadline to resolve it?",
+    "expected_answer": "Level transmitter LT-482-01 calibration is overdue by 45 days. Last calibration was October 2024. Per Factory Act Schedule VIII, calibration is required every 6 months. Must be completed by 30 March 2025.",
+    "source_doc": "inspection_report_q1_2025.pdf",
+    "asset_tag": "TK-482",
+    "category": "compliance"
+  },
+  {
+    "id": "Q10",
+    "question": "Which assets are non-compliant in the 2025 compliance checklist?",
+    "expected_answer": "Three assets are non-compliant: BLR-118 (pressure test certificate expired), P-101 (vibration reading of 6.2 mm/s exceeds OISD-137 limit of 4.5 mm/s), and TK-482 (level transmitter calibration overdue by 45 days).",
+    "source_doc": "compliance_checklist_2025.pdf",
+    "asset_tag": "BLR-118, P-101, TK-482",
+    "category": "compliance"
+  },
+  {
+    "id": "Q11",
+    "question": "Which regulations require BLR-118 to hold a valid pressure test certificate?",
+    "expected_answer": "Factories Act Section 31 and PESO (Petroleum and Explosives Safety Organisation) regulations both require a valid pressure test certificate for boiler operation.",
+    "source_doc": "compliance_checklist_2025.pdf",
+    "asset_tag": "BLR-118",
+    "category": "regulatory"
+  },
+  {
+    "id": "Q12",
+    "question": "What action was taken to fix the high vibration alarm on P-101?",
+    "expected_answer": "Pump was isolated and casing drained. Bearing housing was disassembled and drive end bearing 22316E was replaced. Coupling was realigned to within 0.05 mm TIR. Functional test was performed at duty point.",
+    "source_doc": "work_orders_clean.csv",
+    "asset_tag": "P-101",
+    "category": "maintenance_action"
+  }
+]
