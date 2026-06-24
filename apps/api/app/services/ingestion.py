@@ -18,6 +18,7 @@ from pypdf.errors import PdfReadError
 
 from app.core.config import settings
 from app.models.document import Document
+from app.services import chunking
 
 _EXTENSION_CONTENT_TYPES = {
     ".pdf": "application/pdf",
@@ -119,6 +120,9 @@ async def ingest_upload(upload: UploadFile) -> Document:
     text = _extract_text(dest, ext)
     char_count = len(text)
 
+    chunks = chunking.chunk_text(doc_id, text)
+    chunking.save_chunks(doc_id, chunks)
+
     document = Document(
         id=doc_id,
         filename=sanitized,
@@ -128,6 +132,7 @@ async def ingest_upload(upload: UploadFile) -> Document:
         status="extracted" if char_count > 0 else "empty",
         storage_path=str(dest),
         created_at=datetime.now(timezone.utc).isoformat(),
+        chunk_count=len(chunks),
     )
     _append_metadata(document)
     return document

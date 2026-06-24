@@ -14,3 +14,4 @@ class Document(BaseModel):
     status: str
     storage_path: str
     created_at: str
+    chunk_count: int = 0
