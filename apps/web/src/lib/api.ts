@@ -22,6 +22,39 @@ export interface ApiDocument {
   chunk_count: number;
 }
 
+/** Mirrors app.models.chunk.Chunk */
+export interface ApiChunk {
+  id: string;
+  document_id: string;
+  chunk_index: number;
+  text: string;
+  char_start: number;
+  char_end: number;
+}
+
+/** Mirrors app.models.chunk.DocumentChunks */
+export interface ApiDocumentChunks {
+  document_id: string;
+  chunks: ApiChunk[];
+}
+
+/** Mirrors app.models.embedding.EmbeddingPreview */
+export interface ApiEmbeddingPreview {
+  chunk_id: string;
+  document_id: string;
+  chunk_index: number;
+  dimension: number;
+  preview: number[];
+}
+
+/** Mirrors app.models.embedding.DocumentEmbeddings */
+export interface ApiDocumentEmbeddings {
+  document_id: string;
+  embedding_model: string;
+  dimension: number;
+  embeddings: ApiEmbeddingPreview[];
+}
+
 /** Mirrors app.models.query.QueryCitation */
 export interface ApiCitation {
   document_id: string;
@@ -70,6 +103,28 @@ export async function listDocuments(): Promise<ApiDocument[]> {
   const res = await fetch(`${API_BASE_URL}/documents`);
   await ensureOk(res, "List documents");
   return res.json() as Promise<ApiDocument[]>;
+}
+
+/** GET /documents/{id}/chunks — ordered text chunks for one document. */
+export async function getDocumentChunks(
+  documentId: string,
+): Promise<ApiDocumentChunks> {
+  const res = await fetch(
+    `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/chunks`,
+  );
+  await ensureOk(res, "Load chunks");
+  return res.json() as Promise<ApiDocumentChunks>;
+}
+
+/** GET /documents/{id}/embeddings — embedding metadata with vector previews. */
+export async function getDocumentEmbeddings(
+  documentId: string,
+): Promise<ApiDocumentEmbeddings> {
+  const res = await fetch(
+    `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/embeddings`,
+  );
+  await ensureOk(res, "Load embeddings");
+  return res.json() as Promise<ApiDocumentEmbeddings>;
 }
 
 /** POST /query — ask a question and get a citation-backed answer. */

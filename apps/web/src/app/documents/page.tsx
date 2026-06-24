@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import { listDocuments, type ApiDocument } from "@/lib/api";
 
 export default function DocumentsPage() {
+  const router = useRouter();
   const [docs, setDocs] = useState<ApiDocument[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,7 +73,8 @@ export default function DocumentsPage() {
                 {docs.map((d) => (
                   <tr
                     key={d.id}
-                    className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]"
+                    onClick={() => router.push(`/documents/${d.id}`)}
+                    className="cursor-pointer border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]"
                   >
                     <td className="px-4 py-3 font-medium">{d.filename}</td>
                     <td className="px-4 py-3">
