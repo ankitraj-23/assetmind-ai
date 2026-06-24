@@ -19,3 +19,7 @@ __pycache__/
 *.log
 
 sample-data/private/
+
+# Local document ingestion storage (uploaded originals + metadata)
+storage/
+apps/api/storage/
