@@ -4,11 +4,17 @@ from pydantic import BaseModel
 
 
 class Citation(BaseModel):
-    """Minimal provenance for a retrieved chunk, for downstream RAG citations."""
+    """Minimal provenance for a retrieved chunk, for downstream RAG citations.
+
+    ``filename`` is the human-readable source document name, surfaced for
+    demo-friendly citations. It is optional so older/partial data without a
+    resolvable document still produces a valid citation.
+    """
 
     document_id: str
     chunk_id: str
     chunk_index: int
+    filename: str | None = None
 
 
 class SearchResult(BaseModel):
@@ -19,6 +25,7 @@ class SearchResult(BaseModel):
     chunk_index: int
     score: float
     text: str
+    filename: str | None = None
     citation: Citation
 
 

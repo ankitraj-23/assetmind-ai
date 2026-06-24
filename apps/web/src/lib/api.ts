@@ -62,6 +62,8 @@ export interface ApiCitation {
   chunk_index: number;
   score: number;
   text_preview: string;
+  /** Human-readable source filename; falls back to document_id when absent. */
+  filename?: string | null;
 }
 
 /** Mirrors app.models.query.QueryResponse */

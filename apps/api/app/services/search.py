@@ -63,10 +63,12 @@ def search(query: str, top_k: int = 5) -> list[SearchResult]:
                     chunk_index=record.chunk_index,
                     score=round(score, 6),
                     text=text,
+                    filename=document.filename,
                     citation=Citation(
                         document_id=record.document_id,
                         chunk_id=record.chunk_id,
                         chunk_index=record.chunk_index,
+                        filename=document.filename,
                     ),
                 )
             )
