@@ -1,0 +1,50 @@
+Maintenance Note — Pump P-101 (Boiler Feed Water Pump, Unit 1)
+
+Date: 2026-06-18
+Author: Rotating Equipment Team
+Asset: P-101 (centrifugal boiler feed water pump)
+Area: Demo Plant — Utilities
+
+Summary
+-------
+Pump P-101 has been running with elevated vibration over the past two weeks.
+Operators reported increased noise from the drive end during the last shift,
+and the control room logged an overall vibration reading of 7.8 mm/s RMS on
+the outboard bearing, up from a baseline of 2.9 mm/s RMS recorded after the
+last overhaul. The pump remains in service but is being monitored closely.
+
+Observations
+------------
+- High vibration concentrated at the drive-end (outboard) bearing housing.
+- Vibration spectrum shows a dominant 1x running-speed peak with rising
+  harmonics, consistent with shaft misalignment between the pump and motor.
+- Early signs of bearing wear: a low-amplitude high-frequency component was
+  detected on the outboard bearing, suggesting degrading rolling elements.
+- Bearing housing temperature trending upward (68 C vs. 54 C baseline).
+- No abnormal seal leakage observed since the recent maintenance work.
+
+Recent Maintenance History
+---------------------------
+- 2026-06-05: Mechanical seal replaced on P-101 following minor process-side
+  weep. Coupling was disturbed during the seal change. Laser alignment was
+  noted as "to be re-verified" but the follow-up check was not recorded.
+
+Probable Cause
+--------------
+The vibration signature (dominant 1x peak, rising temperature, recent coupling
+disturbance) points to shaft misalignment introduced during the 2026-06-05
+mechanical seal replacement. Continued operation in a misaligned condition is
+accelerating bearing wear on the drive end.
+
+Inspection Recommendation
+-------------------------
+1. Perform a laser shaft alignment check between P-101 pump and motor and
+   correct to within tolerance.
+2. Inspect and trend the outboard (drive-end) bearing; replace if wear
+   indicators confirm degradation.
+3. Re-baseline vibration after alignment correction and confirm the 1x peak
+   has dropped.
+4. Update the maintenance record to close out the deferred alignment
+   verification from the seal replacement job.
+
+Priority: HIGH — risk of bearing failure if misalignment is not corrected.
