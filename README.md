@@ -86,4 +86,4 @@ A step-by-step runbook is in [docs/demo-flow.md](docs/demo-flow.md).
 - **Deterministic local placeholders.** The current embeddings (`local-hashing-v1`,
   384-dim) and the query answer are deterministic local placeholders with no external
   model calls. They are designed to be swapped for real embedding/RAG models later
-  without changing the API contract.
+  without changing the API contract .
