@@ -1,12 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { Card, PageHeader } from "@/components/ui";
-import { copilotAnswer } from "@/lib/mock-data";
+import { Card, PageHeader, Badge } from "@/components/ui";
+import { askQuestion, type ApiQueryResponse } from "@/lib/api";
 
 export default function CopilotPage() {
   const [question, setQuestion] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">(
+    "idle",
+  );
+  const [result, setResult] = useState<ApiQueryResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleAsk(e: React.FormEvent) {
+    e.preventDefault();
+    if (!question.trim()) return;
+    setStatus("loading");
+    setError(null);
+    try {
+      const res = await askQuestion(question.trim());
+      setResult(res);
+      setStatus("done");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Query failed.");
+      setStatus("error");
+    }
+  }
 
   return (
     <div>
@@ -16,13 +35,7 @@ export default function CopilotPage() {
       />
 
       <Card>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setSubmitted(true);
-          }}
-          className="flex gap-3"
-        >
+        <form onSubmit={handleAsk} className="flex gap-3">
           <input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
@@ -31,9 +44,10 @@ export default function CopilotPage() {
           />
           <button
             type="submit"
-            className="rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-[var(--color-base)] hover:opacity-90"
+            disabled={status === "loading" || !question.trim()}
+            className="rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-[var(--color-base)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Ask
+            {status === "loading" ? "Asking…" : "Ask"}
           </button>
         </form>
 
@@ -55,24 +69,39 @@ export default function CopilotPage() {
         </div>
       </Card>
 
-      {(submitted || true) && (
+      {status === "error" && error && (
+        <Card className="mt-6">
+          <p className="text-sm text-red-400">{error}</p>
+        </Card>
+      )}
+
+      {status === "done" && result && (
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <p className="mb-2 text-xs uppercase tracking-wide text-[var(--color-muted)]">
               Question
             </p>
-            <p className="mb-5 text-sm font-medium">
-              {submitted && question ? question : copilotAnswer.question}
-            </p>
+            <p className="mb-5 text-sm font-medium">{result.question}</p>
+
+            <div className="mb-4 flex items-center gap-3 text-xs">
+              <Badge tone="ok">confidence: {result.confidence}</Badge>
+              <span className="text-[var(--color-muted)]">
+                {result.retrieved_count} chunk
+                {result.retrieved_count === 1 ? "" : "s"} retrieved
+              </span>
+            </div>
 
             <p className="mb-2 text-xs uppercase tracking-wide text-[var(--color-muted)]">
               Answer
             </p>
             <p className="text-sm leading-relaxed">
-              {copilotAnswer.answer}{" "}
-              {copilotAnswer.citations.map((c) => (
-                <sup key={c.id} className="ml-0.5 text-[var(--color-accent)]">
-                  [{c.id}]
+              {result.answer}{" "}
+              {result.citations.map((c, i) => (
+                <sup
+                  key={c.chunk_id}
+                  className="ml-0.5 text-[var(--color-accent)]"
+                >
+                  [{i + 1}]
                 </sup>
               ))}
             </p>
@@ -82,23 +111,38 @@ export default function CopilotPage() {
             <p className="mb-3 text-xs uppercase tracking-wide text-[var(--color-muted)]">
               Citations
             </p>
-            <ul className="space-y-3">
-              {copilotAnswer.citations.map((c) => (
-                <li
-                  key={c.id}
-                  className="rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] p-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-5 w-5 items-center justify-center rounded bg-[var(--color-surface-2)] text-xs text-[var(--color-accent)]">
-                      {c.id}
-                    </span>
-                    <span className="text-sm font-medium">{c.doc}</span>
-                  </div>
-                  <p className="mt-1 text-xs text-[var(--color-accent-2)]">{c.section}</p>
-                  <p className="mt-1 text-xs text-[var(--color-muted)]">“{c.snippet}”</p>
-                </li>
-              ))}
-            </ul>
+            {result.citations.length === 0 ? (
+              <p className="text-xs text-[var(--color-muted)]">
+                No citations returned.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {result.citations.map((c, i) => (
+                  <li
+                    key={c.chunk_id}
+                    className="rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] p-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center rounded bg-[var(--color-surface-2)] text-xs text-[var(--color-accent)]">
+                        {i + 1}
+                      </span>
+                      <span className="text-sm font-medium">
+                        {c.document_id}
+                      </span>
+                      <span className="ml-auto text-xs text-[var(--color-muted)]">
+                        {c.score.toFixed(3)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-[var(--color-accent-2)]">
+                      chunk #{c.chunk_index}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--color-muted)]">
+                      “{c.text_preview}”
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         </div>
       )}

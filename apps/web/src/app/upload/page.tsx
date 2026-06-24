@@ -1,10 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { Card, PageHeader, SectionTitle } from "@/components/ui";
+import { Card, PageHeader, SectionTitle, Badge } from "@/components/ui";
+import { uploadDocument, type ApiDocument } from "@/lib/api";
 
 export default function UploadPage() {
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">(
+    "idle",
+  );
+  const [result, setResult] = useState<ApiDocument | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleUpload() {
+    if (!file) return;
+    setStatus("uploading");
+    setError(null);
+    setResult(null);
+    try {
+      const doc = await uploadDocument(file);
+      setResult(doc);
+      setStatus("done");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed.");
+      setStatus("error");
+    }
+  }
 
   return (
     <div>
@@ -23,7 +44,7 @@ export default function UploadPage() {
           >
             <span className="text-3xl text-[var(--color-accent)]">↥</span>
             <p className="mt-3 text-sm font-medium">
-              {fileName ?? "Drag & drop a file here, or click to browse"}
+              {file?.name ?? "Drag & drop a file here, or click to browse"}
             </p>
             <p className="mt-1 text-xs text-[var(--color-muted)]">
               Supported: .pdf, .txt
@@ -33,7 +54,12 @@ export default function UploadPage() {
               type="file"
               accept=".pdf,.txt"
               className="hidden"
-              onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+              onChange={(e) => {
+                setFile(e.target.files?.[0] ?? null);
+                setStatus("idle");
+                setResult(null);
+                setError(null);
+              }}
             />
           </label>
 
@@ -63,14 +89,43 @@ export default function UploadPage() {
 
           <button
             type="button"
-            disabled={!fileName}
+            disabled={!file || status === "uploading"}
+            onClick={handleUpload}
             className="mt-5 rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-[var(--color-base)] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Index Document
+            {status === "uploading" ? "Indexing…" : "Index Document"}
           </button>
-          <p className="mt-2 text-xs text-[var(--color-muted)]">
-            Demo only — file is not sent to the backend yet.
-          </p>
+
+          {status === "error" && error && (
+            <p className="mt-3 text-sm text-red-400">{error}</p>
+          )}
+
+          {status === "done" && result && (
+            <div className="mt-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Badge tone="ok">{result.status}</Badge>
+                <span className="text-sm font-medium">{result.filename}</span>
+              </div>
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                <div className="flex justify-between">
+                  <dt className="text-[var(--color-muted)]">Characters</dt>
+                  <dd>{result.text_char_count.toLocaleString()}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-[var(--color-muted)]">Chunks</dt>
+                  <dd>{result.chunk_count}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-[var(--color-muted)]">Type</dt>
+                  <dd>{result.content_type}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-[var(--color-muted)]">Size</dt>
+                  <dd>{(result.size_bytes / 1024).toFixed(1)} KB</dd>
+                </div>
+              </dl>
+            </div>
+          )}
         </Card>
 
         <Card>
