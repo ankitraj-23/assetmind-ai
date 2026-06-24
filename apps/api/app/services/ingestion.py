@@ -18,7 +18,7 @@ from pypdf.errors import PdfReadError
 
 from app.core.config import settings
 from app.models.document import Document
-from app.services import chunking
+from app.services import chunking, embeddings
 
 _EXTENSION_CONTENT_TYPES = {
     ".pdf": "application/pdf",
@@ -122,6 +122,9 @@ async def ingest_upload(upload: UploadFile) -> Document:
 
     chunks = chunking.chunk_text(doc_id, text)
     chunking.save_chunks(doc_id, chunks)
+
+    chunk_embeddings = embeddings.embed_chunks(doc_id, chunks)
+    embeddings.save_embeddings(doc_id, chunk_embeddings)
 
     document = Document(
         id=doc_id,
