@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     service_name: str = "assetmind-ai-api"
     environment: str = "development"
 
+    # Local directory where uploaded originals and document metadata are stored.
+    storage_dir: str = "storage"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
