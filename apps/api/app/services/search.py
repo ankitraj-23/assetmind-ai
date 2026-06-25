@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import math
 
+from app.core import config
 from app.models.search import Citation, SearchResult
 from app.services import chunking, embeddings, ingestion
 
@@ -48,6 +49,9 @@ def search(query: str, top_k: int = 5) -> list[SearchResult]:
     if not any(query_vector):
         return []
 
+    if config.use_postgres():
+        return _search_postgres(query_vector, top_k)
+
     scored: list[SearchResult] = []
     for document in ingestion.list_documents():
         chunk_text = {chunk.id: chunk.text for chunk in chunking.get_chunks(document.id)}
@@ -72,6 +76,44 @@ def search(query: str, top_k: int = 5) -> list[SearchResult]:
                     ),
                 )
             )
+
+    scored.sort(key=lambda r: (-r.score, r.document_id, r.chunk_index))
+    return scored[:top_k]
+
+
+def _search_postgres(query_vector: list[float], top_k: int) -> list[SearchResult]:
+    """Score every embedded chunk in Postgres with the existing cosine logic.
+
+    Embeddings (and the document metadata needed for citations) are loaded from
+    the database, then ranked in-process with :func:`cosine_similarity` so the
+    ``SearchResult`` shape and ordering match the JSON backend exactly.
+    """
+    from app.db import repository as repo
+
+    scored: list[SearchResult] = []
+    for record in repo.get_all_chunks_with_embeddings():
+        vector = record.get("embedding")
+        if not vector:
+            continue
+        document = record.get("document") or {}
+        filename = document.get("filename")
+        score = cosine_similarity(query_vector, vector)
+        scored.append(
+            SearchResult(
+                document_id=record["document_id"],
+                chunk_id=record["id"],
+                chunk_index=record["chunk_index"],
+                score=round(score, 6),
+                text=record["text"],
+                filename=filename,
+                citation=Citation(
+                    document_id=record["document_id"],
+                    chunk_id=record["id"],
+                    chunk_index=record["chunk_index"],
+                    filename=filename,
+                ),
+            )
+        )
 
     scored.sort(key=lambda r: (-r.score, r.document_id, r.chunk_index))
     return scored[:top_k]

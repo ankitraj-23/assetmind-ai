@@ -16,8 +16,11 @@ from fastapi import HTTPException, UploadFile
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
+from app.core import config
 from app.core.config import settings
+from app.models.chunk import Chunk
 from app.models.document import Document
+from app.models.embedding import ChunkEmbedding
 from app.services import chunking, embeddings
 
 _EXTENSION_CONTENT_TYPES = {
@@ -100,6 +103,71 @@ def _append_metadata(document: Document) -> None:
     _metadata_path().write_text(json.dumps(records, indent=2), encoding="utf-8")
 
 
+def _document_from_record(record: dict) -> Document:
+    """Map a repository document dict onto the API ``Document`` schema."""
+    return Document(
+        id=record["id"],
+        filename=record.get("filename") or record.get("original_filename") or "",
+        content_type=record.get("content_type") or "",
+        size_bytes=record.get("size_bytes") or 0,
+        text_char_count=record.get("text_char_count") or 0,
+        status=record.get("status") or "",
+        storage_path=record.get("storage_path") or "",
+        created_at=record.get("created_at") or "",
+        chunk_count=record.get("chunk_count") or 0,
+    )
+
+
+def _persist_postgres(
+    document: Document,
+    chunks: list[Chunk],
+    chunk_embeddings: list[ChunkEmbedding],
+) -> None:
+    """Write document metadata, chunks, and embeddings to Postgres atomically.
+
+    The raw upload is still saved to local storage by the caller; only the
+    derived metadata/chunks/embeddings live in the database.
+    """
+    # Imported lazily so JSON mode never touches the database layer.
+    from app.db import repository as repo
+    from app.db.session import session_scope
+
+    embeddings_by_chunk = {emb.chunk_id: emb for emb in chunk_embeddings}
+
+    with session_scope() as session:
+        repo.create_document(
+            session=session,
+            id=document.id,
+            original_filename=document.filename,
+            content_type=document.content_type,
+            size_bytes=document.size_bytes,
+            text_char_count=document.text_char_count,
+            status=document.status,
+            storage_path=document.storage_path,
+            stored_filename=Path(document.storage_path).name,
+            source_type="upload",
+            chunk_count=document.chunk_count,
+        )
+        for chunk in chunks:
+            repo.create_document_chunk(
+                session=session,
+                id=chunk.id,
+                document_id=document.id,
+                chunk_index=chunk.chunk_index,
+                text=chunk.text,
+                char_start=chunk.char_start,
+                char_end=chunk.char_end,
+            )
+            emb = embeddings_by_chunk.get(chunk.id)
+            if emb is not None:
+                repo.store_chunk_embedding(
+                    session=session,
+                    chunk_id=chunk.id,
+                    vector=emb.vector,
+                    embedding_model=emb.model,
+                )
+
+
 async def ingest_upload(upload: UploadFile) -> Document:
     """Save an uploaded file, extract its text, and record metadata."""
     sanitized = _sanitize_filename(upload.filename)
@@ -121,10 +189,7 @@ async def ingest_upload(upload: UploadFile) -> Document:
     char_count = len(text)
 
     chunks = chunking.chunk_text(doc_id, text)
-    chunking.save_chunks(doc_id, chunks)
-
     chunk_embeddings = embeddings.embed_chunks(doc_id, chunks)
-    embeddings.save_embeddings(doc_id, chunk_embeddings)
 
     document = Document(
         id=doc_id,
@@ -137,10 +202,21 @@ async def ingest_upload(upload: UploadFile) -> Document:
         created_at=datetime.now(timezone.utc).isoformat(),
         chunk_count=len(chunks),
     )
-    _append_metadata(document)
+
+    if config.use_postgres():
+        # Raw file already saved above; metadata/chunks/embeddings go to Postgres.
+        _persist_postgres(document, chunks, chunk_embeddings)
+    else:
+        chunking.save_chunks(doc_id, chunks)
+        embeddings.save_embeddings(doc_id, chunk_embeddings)
+        _append_metadata(document)
     return document
 
 
 def list_documents() -> list[Document]:
-    """Return all documents recorded in local metadata storage."""
+    """Return all documents from the active persistence backend."""
+    if config.use_postgres():
+        from app.db import repository as repo
+
+        return [_document_from_record(record) for record in repo.list_documents()]
     return [Document(**record) for record in _load_metadata()]

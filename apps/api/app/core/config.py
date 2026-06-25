@@ -37,3 +37,13 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def use_postgres() -> bool:
+    """Return True when the Postgres persistence backend is selected.
+
+    Case/whitespace-insensitive so ``PERSISTENCE_BACKEND=Postgres`` works. When
+    this is False the API uses the default JSON/filesystem pipeline and never
+    touches the database.
+    """
+    return settings.persistence_backend.strip().lower() == "postgres"

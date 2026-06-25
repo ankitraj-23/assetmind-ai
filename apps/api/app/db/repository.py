@@ -50,6 +50,7 @@ __all__ = [
     "create_document_page",
     "create_document_chunk",
     "list_document_chunks",
+    "list_chunk_embeddings_for_document",
     "get_all_chunks_with_embeddings",
     "store_chunk_embedding",
     "store_extracted_entity",
@@ -385,6 +386,46 @@ def list_document_chunks(
             .all()
         )
         return [_chunk_to_dict(row) for row in rows]
+
+
+def list_chunk_embeddings_for_document(
+    document_id: str, session: Session | None = None
+) -> list[dict[str, Any]]:
+    """Return the embedded chunks of one document, ordered by ``chunk_index``.
+
+    Only chunks whose ``embedding`` is populated are returned. Each dict carries
+    the embedding vector (as a list of floats) plus the identifiers needed to
+    rebuild the existing :class:`ChunkEmbedding` API shape.
+    """
+
+    with _unit_of_work(session) as active:
+        rows = (
+            active.execute(
+                select(DocumentChunk)
+                .where(DocumentChunk.document_id == document_id)
+                .where(DocumentChunk.embedding.isnot(None))
+                .order_by(DocumentChunk.chunk_index.asc())
+            )
+            .scalars()
+            .all()
+        )
+        results: list[dict[str, Any]] = []
+        for chunk in rows:
+            embedding = chunk.embedding
+            results.append(
+                {
+                    "chunk_id": chunk.id,
+                    "document_id": chunk.document_id,
+                    "chunk_index": chunk.chunk_index,
+                    "embedding_model": chunk.embedding_model,
+                    "embedding": (
+                        [float(value) for value in embedding]
+                        if embedding is not None
+                        else None
+                    ),
+                }
+            )
+        return results
 
 
 def get_all_chunks_with_embeddings(
