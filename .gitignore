@@ -30,3 +30,5 @@ node_modules/
 .next/
 
 data/raw/sensor_tags.csv
+*.tsbuildinfo
+.snapshot-meta/
