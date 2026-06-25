@@ -118,6 +118,53 @@ def _document_from_record(record: dict) -> Document:
     )
 
 
+def _persist_chunk_entities(session, document_id: str, chunk: Chunk) -> None:
+    """Extract equipment tags from one chunk and persist the asset graph.
+
+    For each unique tag in the chunk this writes an ``extracted_entities`` row,
+    upserts the corresponding ``assets`` row, and links them with an
+    ``asset_mentions`` row. All writes share the caller's ``session`` so they
+    commit (or roll back) together with the chunk/embedding writes.
+    """
+    from app.db import repository as repo
+    from app.services import entity_extraction
+
+    tags = entity_extraction.extract_equipment_tags(
+        chunk.text,
+        document_id=document_id,
+        chunk_id=chunk.id,
+    )
+    for tag in tags:
+        entity = repo.store_extracted_entity(
+            session=session,
+            entity_type=tag.entity_type,
+            raw_value=tag.raw_value,
+            normalized_value=tag.normalized_value,
+            confidence=tag.confidence,
+            document_id=document_id,
+            chunk_id=chunk.id,
+            page_number=tag.page_number,
+            char_start=tag.char_start,
+            char_end=tag.char_end,
+            extraction_method=tag.extraction_method,
+        )
+        asset = repo.upsert_asset_from_tag(
+            tag.normalized_value,
+            asset_type=tag.asset_type,
+            display_name=tag.normalized_value,
+            session=session,
+        )
+        repo.create_asset_mention(
+            session=session,
+            asset_id=asset["id"],
+            entity_id=entity["id"],
+            document_id=document_id,
+            chunk_id=chunk.id,
+            page_number=tag.page_number,
+            confidence=tag.confidence,
+        )
+
+
 def _persist_postgres(
     document: Document,
     chunks: list[Chunk],
@@ -126,7 +173,8 @@ def _persist_postgres(
     """Write document metadata, chunks, and embeddings to Postgres atomically.
 
     The raw upload is still saved to local storage by the caller; only the
-    derived metadata/chunks/embeddings live in the database.
+    derived metadata/chunks/embeddings (and extracted equipment assets) live in
+    the database.
     """
     # Imported lazily so JSON mode never touches the database layer.
     from app.db import repository as repo
@@ -166,6 +214,8 @@ def _persist_postgres(
                     vector=emb.vector,
                     embedding_model=emb.model,
                 )
+            # Deterministic equipment-tag extraction -> assets + mentions.
+            _persist_chunk_entities(session, document.id, chunk)
 
 
 async def ingest_upload(upload: UploadFile) -> Document:
