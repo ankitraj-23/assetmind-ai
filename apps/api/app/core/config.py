@@ -18,6 +18,17 @@ class Settings(BaseSettings):
     # Local directory where uploaded originals and document metadata are stored.
     storage_dir: str = "storage"
 
+    # Persistence backend selector. Defaults to the existing local JSON/filesystem
+    # pipeline; "postgres" is reserved for the upcoming database-backed path.
+    # Nothing connects to a database while this is "json".
+    persistence_backend: str = "json"
+
+    # Optional Postgres connection string (e.g.
+    # "postgresql+psycopg://assetmind:assetmind@localhost:5432/assetmind").
+    # Left unset by default so the API boots with zero database configuration.
+    # No connection is opened at import time.
+    database_url: str | None = None
+
     # Browser origins allowed to call the API (the Next.js dev server by default).
     # Override with a comma-separated CORS_ORIGINS environment variable.
     cors_origins: list[str] = ["http://localhost:3000"]
