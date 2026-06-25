@@ -1,0 +1,65 @@
+"""Asset registry routes — read-only views over extracted equipment assets.
+
+Assets are produced by deterministic equipment-tag extraction during ingestion
+and only exist when ``PERSISTENCE_BACKEND=postgres``. In JSON mode no assets are
+persisted, so these endpoints return safe, empty responses and never touch a
+database.
+"""
+
+from typing import Any
+
+from fastapi import APIRouter, HTTPException
+
+from app.core import config
+
+router = APIRouter(prefix="/assets", tags=["assets"])
+
+
+@router.get("")
+def list_assets() -> list[dict[str, Any]]:
+    """List extracted equipment assets (empty in JSON mode)."""
+    if not config.use_postgres():
+        return []
+    # Imported lazily so JSON mode never touches the database layer.
+    from app.db import repository as repo
+
+    return repo.list_assets()
+
+
+@router.get("/{tag}")
+def get_asset(tag: str) -> dict[str, Any]:
+    """Return one asset by tag (case-insensitive).
+
+    Responds with 404 when the asset is unknown, or when running in JSON mode
+    where assets are not persisted.
+    """
+    if not config.use_postgres():
+        raise HTTPException(
+            status_code=404,
+            detail="Assets are only available when PERSISTENCE_BACKEND=postgres.",
+        )
+    from app.db import repository as repo
+
+    record = repo.get_asset_by_tag(tag)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Asset not found.")
+    return record
+
+
+@router.get("/{tag}/mentions")
+def get_asset_mentions(tag: str) -> dict[str, Any]:
+    """Return evidence-rich mentions of an asset (case-insensitive tag).
+
+    Each mention carries the source document/chunk text plus a ``citation``
+    object matching the existing search citation style, so the backend can show
+    where an asset is discussed with the same provenance rendering as search.
+
+    In JSON mode no assets are persisted, so this returns an empty, DB-free
+    response (``count`` 0) rather than a 404.
+    """
+    if not config.use_postgres():
+        return {"tag": tag, "count": 0, "mentions": []}
+    from app.db import repository as repo
+
+    mentions = repo.list_asset_mentions_by_tag(tag)
+    return {"tag": tag, "count": len(mentions), "mentions": mentions}

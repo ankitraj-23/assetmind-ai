@@ -27,6 +27,7 @@ import math
 import re
 from pathlib import Path
 
+from app.core import config
 from app.core.config import settings
 from app.models.chunk import Chunk
 from app.models.embedding import ChunkEmbedding
@@ -113,5 +114,22 @@ def save_embeddings(document_id: str, embeddings: list[ChunkEmbedding]) -> None:
 
 def get_embeddings(document_id: str) -> list[ChunkEmbedding]:
     """Return the persisted embeddings for a document, or an empty list."""
+    if config.use_postgres():
+        from app.db import repository as repo
+
+        embeddings_list: list[ChunkEmbedding] = []
+        for record in repo.list_chunk_embeddings_for_document(document_id):
+            vector = record["embedding"] or []
+            embeddings_list.append(
+                ChunkEmbedding(
+                    chunk_id=record["chunk_id"],
+                    document_id=record["document_id"],
+                    chunk_index=record["chunk_index"],
+                    model=record["embedding_model"] or EMBEDDING_MODEL,
+                    dimension=len(vector) if vector else EMBEDDING_DIMENSION,
+                    vector=vector,
+                )
+            )
+        return embeddings_list
     records = _load_all().get(document_id, [])
     return [ChunkEmbedding(**record) for record in records]
