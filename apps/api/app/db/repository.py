@@ -59,6 +59,7 @@ __all__ = [
     "list_assets",
     "get_asset_by_tag",
     "create_asset_mention",
+    "list_asset_mentions_by_tag",
 ]
 
 
@@ -671,3 +672,87 @@ def create_asset_mention(
         active.flush()
         active.refresh(mention)
         return _asset_mention_to_dict(mention)
+
+
+def list_asset_mentions_by_tag(
+    tag: str, session: Session | None = None
+) -> list[dict[str, Any]]:
+    """Return evidence-rich mentions of an asset, newest source document first.
+
+    The tag is normalized case-insensitively (matching
+    :func:`get_asset_by_tag`). When the asset is unknown or has no mentions an
+    empty list is returned. Each mention joins the asset, its supporting entity,
+    and the source document/chunk, and carries a ``citation`` object whose shape
+    matches the existing search :class:`app.models.search.Citation` style so the
+    backend can render asset evidence with the same citation rendering as search.
+
+    Results are ordered by source document ``created_at`` descending, then by
+    chunk ``chunk_index`` ascending, then by mention ``created_at`` descending,
+    so the most recently ingested evidence appears first.
+    """
+
+    normalized_tag = tag.strip().upper()
+    if not normalized_tag:
+        return []
+
+    with _unit_of_work(session) as active:
+        asset = active.execute(
+            select(Asset).where(Asset.tag == normalized_tag)
+        ).scalar_one_or_none()
+        if asset is None:
+            return []
+
+        rows = active.execute(
+            select(AssetMention, ExtractedEntity, Document, DocumentChunk)
+            .outerjoin(
+                ExtractedEntity, AssetMention.entity_id == ExtractedEntity.id
+            )
+            .outerjoin(Document, AssetMention.document_id == Document.id)
+            .outerjoin(DocumentChunk, AssetMention.chunk_id == DocumentChunk.id)
+            .where(AssetMention.asset_id == asset.id)
+            .order_by(
+                Document.created_at.desc().nullslast(),
+                DocumentChunk.chunk_index.asc().nullslast(),
+                AssetMention.created_at.desc(),
+            )
+        ).all()
+
+        mentions: list[dict[str, Any]] = []
+        for mention, entity, document, chunk in rows:
+            page_number = mention.page_number
+            if page_number is None and entity is not None:
+                page_number = entity.page_number
+            mentions.append(
+                {
+                    "id": mention.id,
+                    "asset_id": asset.id,
+                    "tag": asset.tag,
+                    "asset_type": asset.asset_type,
+                    "entity_id": mention.entity_id,
+                    "raw_value": entity.raw_value if entity is not None else None,
+                    "normalized_value": (
+                        entity.normalized_value if entity is not None else None
+                    ),
+                    "document_id": mention.document_id,
+                    "filename": (
+                        document.original_filename if document is not None else None
+                    ),
+                    "chunk_id": mention.chunk_id,
+                    "chunk_index": chunk.chunk_index if chunk is not None else None,
+                    "text": chunk.text if chunk is not None else None,
+                    "page_number": page_number,
+                    "confidence": mention.confidence,
+                    "citation": {
+                        "document_id": mention.document_id,
+                        "chunk_id": mention.chunk_id,
+                        "chunk_index": chunk.chunk_index if chunk is not None else None,
+                        "filename": (
+                            document.original_filename
+                            if document is not None
+                            else None
+                        ),
+                    },
+                    "created_at": _iso(mention.created_at),
+                }
+            )
+        return mentions

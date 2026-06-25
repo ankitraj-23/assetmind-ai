@@ -44,3 +44,22 @@ def get_asset(tag: str) -> dict[str, Any]:
     if record is None:
         raise HTTPException(status_code=404, detail="Asset not found.")
     return record
+
+
+@router.get("/{tag}/mentions")
+def get_asset_mentions(tag: str) -> dict[str, Any]:
+    """Return evidence-rich mentions of an asset (case-insensitive tag).
+
+    Each mention carries the source document/chunk text plus a ``citation``
+    object matching the existing search citation style, so the backend can show
+    where an asset is discussed with the same provenance rendering as search.
+
+    In JSON mode no assets are persisted, so this returns an empty, DB-free
+    response (``count`` 0) rather than a 404.
+    """
+    if not config.use_postgres():
+        return {"tag": tag, "count": 0, "mentions": []}
+    from app.db import repository as repo
+
+    mentions = repo.list_asset_mentions_by_tag(tag)
+    return {"tag": tag, "count": len(mentions), "mentions": mentions}
