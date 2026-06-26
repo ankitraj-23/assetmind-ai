@@ -1,115 +1,219 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Card, PageHeader, RiskBadge, SectionTitle, Badge } from "@/components/ui";
-import { assetDetail } from "@/lib/mock-data";
+import { Card, PageHeader, Badge } from "@/components/ui";
+import {
+  getAsset,
+  getAssetMentions,
+  type ApiAsset,
+  type ApiAssetMentionsResponse,
+} from "@/lib/api";
 
 export default function AssetDetailPage() {
-  // Demo shell: always renders the Pump P-101 reference asset regardless of [id].
-  const a = assetDetail;
+  const params = useParams<{ id: string }>();
+  const tag = decodeURIComponent(params.id);
+
+  const [asset, setAsset] = useState<ApiAsset | null>(null);
+  const [mentions, setMentions] = useState<ApiAssetMentionsResponse | null>(
+    null,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    Promise.all([getAsset(tag), getAssetMentions(tag)])
+      .then(([assetData, mentionsData]) => {
+        if (!active) return;
+        setAsset(assetData);
+        setMentions(mentionsData);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(
+          err instanceof Error ? err.message : "Could not load asset.",
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [tag]);
+
+  if (error) {
+    return (
+      <div>
+        <PageHeader
+          title="Asset"
+          action={
+            <Link
+              href="/assets"
+              className="text-sm text-[var(--color-accent)] hover:underline"
+            >
+              ← Back to assets
+            </Link>
+          }
+        />
+        <Card>
+          <p className="px-1 py-6 text-center text-sm text-red-400">
+            {error}
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!asset) {
+    return (
+      <div>
+        <PageHeader
+          title="Asset"
+          action={
+            <Link
+              href="/assets"
+              className="text-sm text-[var(--color-accent)] hover:underline"
+            >
+              ← Back to assets
+            </Link>
+          }
+        />
+        <Card>
+          <p className="px-1 py-6 text-center text-sm text-[var(--color-muted)]">
+            Loading asset…
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>
       <PageHeader
-        title={a.name}
-        subtitle={`${a.type} · ${a.area}`}
+        title={asset.tag}
+        subtitle={`${asset.asset_type.replace("_", " ")} · ${asset.display_name}`}
         action={
-          <Link href="/assets" className="text-sm text-[var(--color-accent)] hover:underline">
+          <Link
+            href="/assets"
+            className="text-sm text-[var(--color-accent)] hover:underline"
+          >
             ← Back to assets
           </Link>
         }
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Overview */}
         <Card className="lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <SectionTitle title="Overview" />
-            <RiskBadge risk={a.risk} />
-          </div>
-          <p className="text-sm leading-relaxed text-[var(--color-muted)]">
-            {a.summary}
-          </p>
-          <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+          <h2 className="mb-4 text-lg font-semibold tracking-tight">
+            Overview
+          </h2>
+          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
             <div>
-              <dt className="text-xs text-[var(--color-muted)]">Asset ID</dt>
-              <dd className="mt-0.5 font-medium">{a.id}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-[var(--color-muted)]">Manufacturer</dt>
-              <dd className="mt-0.5 font-medium">{a.manufacturer}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-[var(--color-muted)]">Installed</dt>
-              <dd className="mt-0.5 font-medium">{a.installed}</dd>
+              <dt className="text-xs text-[var(--color-muted)]">Asset Tag</dt>
+              <dd className="mt-0.5 font-medium">{asset.tag}</dd>
             </div>
             <div>
               <dt className="text-xs text-[var(--color-muted)]">Type</dt>
-              <dd className="mt-0.5 font-medium">{a.type}</dd>
+              <dd className="mt-0.5 font-medium capitalize">
+                {asset.asset_type.replace("_", " ")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-[var(--color-muted)]">
+                Display Name
+              </dt>
+              <dd className="mt-0.5 font-medium">{asset.display_name}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-[var(--color-muted)]">
+                Discovered
+              </dt>
+              <dd className="mt-0.5 font-medium">
+                {asset.created_at.slice(0, 10)}
+              </dd>
             </div>
           </dl>
         </Card>
 
+        {/* Mention count summary */}
         <Card>
-          <SectionTitle title="Risk Signals" />
-          <ul className="space-y-3">
-            {a.risks.map((r) => (
-              <li
-                key={r.label}
-                className="flex items-start justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] px-3 py-2.5"
-              >
-                <div>
-                  <p className="text-sm font-medium">{r.label}</p>
-                  <p className="text-xs text-[var(--color-muted)]">{r.note}</p>
-                </div>
-                <RiskBadge risk={r.level} />
-              </li>
-            ))}
-          </ul>
+          <h2 className="mb-4 text-lg font-semibold tracking-tight">
+            Evidence Summary
+          </h2>
+          {mentions === null ? (
+            <p className="text-sm text-[var(--color-muted)]">Loading…</p>
+          ) : (
+            <div className="text-center">
+              <p className="text-4xl font-semibold tracking-tight">
+                {mentions.count}
+              </p>
+              <p className="mt-1 text-sm text-[var(--color-muted)]">
+                mention{mentions.count === 1 ? "" : "s"} found
+              </p>
+            </div>
+          )}
         </Card>
+      </div>
 
+      {/* Evidence mentions */}
+      <div className="mt-6">
         <Card>
-          <SectionTitle title="Related Documents" />
-          <ul className="space-y-2">
-            {a.relatedDocuments.map((d) => (
-              <li
-                key={d.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] px-3 py-2.5 text-sm"
-              >
-                <span>{d.name}</span>
-                <Badge>{d.type}</Badge>
-              </li>
-            ))}
-          </ul>
-        </Card>
+          <h2 className="mb-4 text-lg font-semibold tracking-tight">
+            Evidence Mentions
+          </h2>
 
-        <Card>
-          <SectionTitle title="Linked SOPs" />
-          <ul className="space-y-2">
-            {a.sops.map((s) => (
-              <li
-                key={s.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] px-3 py-2.5 text-sm"
-              >
-                <span>{s.title}</span>
-                <span className="text-xs text-[var(--color-muted)]">{s.ref}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+          {mentions === null ? (
+            <p className="py-6 text-center text-sm text-[var(--color-muted)]">
+              Loading mentions…
+            </p>
+          ) : mentions.mentions.length === 0 ? (
+            <p className="py-6 text-center text-sm text-[var(--color-muted)]">
+              No evidence mentions found for this asset.
+            </p>
+          ) : (
+            <ul className="space-y-4">
+              {mentions.mentions.map((m, i) => (
+                <li
+                  key={m.id}
+                  className="rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] p-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded bg-[var(--color-surface-2)] text-xs font-medium text-[var(--color-accent)]">
+                      {i + 1}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {m.filename ?? m.document_id}
+                    </span>
+                    <span className="text-xs text-[var(--color-muted)]">
+                      — chunk {m.chunk_index ?? "?"}
+                    </span>
+                  </div>
 
-        <Card>
-          <SectionTitle title="Failure History" />
-          <ul className="space-y-3">
-            {a.failureHistory.map((f) => (
-              <li key={f.date} className="text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{f.event}</span>
-                  <span className="text-xs text-[var(--color-muted)]">{f.date}</span>
-                </div>
-                <p className="text-xs text-[var(--color-muted)]">
-                  Cause: {f.cause} · Downtime: {f.downtime}
-                </p>
-              </li>
-            ))}
-          </ul>
+                  {m.text && (
+                    <p className="mt-2 rounded-md bg-[var(--color-surface-2)] px-3 py-2 text-sm leading-relaxed text-[var(--color-muted)]">
+                      &ldquo;{m.text}&rdquo;
+                    </p>
+                  )}
+
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-muted)]">
+                    <span>
+                      <strong className="text-[var(--color-accent-2)]">
+                        Citation:
+                      </strong>{" "}
+                      doc {m.citation.document_id?.slice(0, 8) ?? "—"}…
+                    </span>
+                    <span>chunk_id: {m.citation.chunk_id?.slice(0, 12) ?? "—"}…</span>
+                    <span>chunk_index: {m.citation.chunk_index ?? "—"}</span>
+                    {m.confidence !== null && (
+                      <Badge>confidence: {m.confidence.toFixed(2)}</Badge>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
     </div>
