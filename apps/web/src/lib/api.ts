@@ -7,7 +7,7 @@
  */
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 /** Mirrors app.models.document.Document */
 export interface ApiDocument {
@@ -142,3 +142,81 @@ export async function askQuestion(
   await ensureOk(res, "Query");
   return res.json() as Promise<ApiQueryResponse>;
 }
+
+// ---------------------------------------------------------------------------
+// Assets
+// ---------------------------------------------------------------------------
+
+/** Mirrors the backend asset dict returned by GET /assets and GET /assets/{tag}. */
+export interface ApiAsset {
+  id: string;
+  tag: string;
+  asset_type: string;
+  display_name: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Citation object nested inside each asset mention. */
+export interface ApiAssetMentionCitation {
+  document_id: string;
+  chunk_id: string;
+  chunk_index: number | null;
+  filename: string | null;
+}
+
+/** A single evidence mention returned by GET /assets/{tag}/mentions. */
+export interface ApiAssetMention {
+  id: string;
+  asset_id: string;
+  tag: string;
+  asset_type: string;
+  entity_id: string | null;
+  raw_value: string | null;
+  normalized_value: string | null;
+  document_id: string;
+  filename: string | null;
+  chunk_id: string;
+  chunk_index: number | null;
+  text: string | null;
+  page_number: number | null;
+  confidence: number | null;
+  citation: ApiAssetMentionCitation;
+  created_at: string;
+}
+
+/** Response shape of GET /assets/{tag}/mentions. */
+export interface ApiAssetMentionsResponse {
+  tag: string;
+  count: number;
+  mentions: ApiAssetMention[];
+}
+
+/** GET /assets — list all extracted equipment assets. */
+export async function listAssets(): Promise<ApiAsset[]> {
+  const res = await fetch(`${API_BASE_URL}/assets`);
+  await ensureOk(res, "List assets");
+  return res.json() as Promise<ApiAsset[]>;
+}
+
+/** GET /assets/{tag} — get a single asset by its tag (e.g. "P-101"). */
+export async function getAsset(tag: string): Promise<ApiAsset> {
+  const res = await fetch(
+    `${API_BASE_URL}/assets/${encodeURIComponent(tag)}`,
+  );
+  await ensureOk(res, "Load asset");
+  return res.json() as Promise<ApiAsset>;
+}
+
+/** GET /assets/{tag}/mentions — evidence-rich mentions with citation data. */
+export async function getAssetMentions(
+  tag: string,
+): Promise<ApiAssetMentionsResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/assets/${encodeURIComponent(tag)}/mentions`,
+  );
+  await ensureOk(res, "Load asset mentions");
+  return res.json() as Promise<ApiAssetMentionsResponse>;
+}
+

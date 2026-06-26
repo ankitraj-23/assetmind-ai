@@ -1,26 +1,34 @@
-.env
-.env.local
-.env.*.local
+# Large raw source file — download from Kaggle, do not commit
+data/raw/maintenance.csv
 
-node_modules/
-.next/
-dist/
-build/
-
-.venv/
-venv/
+# Python
 __pycache__/
 *.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
 
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# OS
 .DS_Store
-.vscode/
-.idea/
+Thumbs.db
 
-*.log
-
-sample-data/private/
-
-# Local document ingestion storage (uploaded originals + metadata)
-storage/
+# Local backend storage (uploaded files, not committed)
 apps/api/storage/
+
+# Node
+node_modules/
+.next/
+
+data/raw/sensor_tags.csv
 *.tsbuildinfo
+.snapshot-meta/

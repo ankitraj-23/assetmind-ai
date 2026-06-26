@@ -1,0 +1,24 @@
+# Local development services for AssetMind AI.
+# Stage 1 provides only the Postgres (pgvector) database. Backend and frontend
+# are run locally and are intentionally not defined here yet.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: assetmind-db
+    environment:
+      POSTGRES_DB: assetmind
+      POSTGRES_USER: assetmind
+      POSTGRES_PASSWORD: assetmind
+    ports:
+      - "5432:5432"
+    volumes:
+      - assetmind_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assetmind -d assetmind"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  assetmind_pgdata:
