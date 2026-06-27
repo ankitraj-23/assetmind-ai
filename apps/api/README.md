@@ -42,3 +42,74 @@ curl http://127.0.0.1:8000/health
 ```
 
 Interactive docs are available at http://127.0.0.1:8000/docs.
+
+## Week 1 RAG backend
+
+The Gemini-backed RAG API is exposed under `/rag/*` and uses PostgreSQL +
+pgvector. It is separate from the existing local JSON `/documents`, `/search`,
+and `/query` demo pipeline.
+
+Required environment variables for RAG:
+
+```powershell
+$env:PERSISTENCE_BACKEND="postgres"
+$env:DATABASE_URL="postgresql+psycopg://assetmind:assetmind@localhost:5432/assetmind"
+$env:GEMINI_API_KEY="your_real_key"
+```
+
+Optional model overrides:
+
+```powershell
+$env:GEMINI_EMBEDDING_MODEL="gemini-embedding-2"
+$env:GEMINI_GENERATION_MODEL="gemini-3.5-flash"
+```
+
+Start Postgres from the repo root:
+
+```powershell
+cd C:\Users\vishk\Projects\assetmind-ai
+docker compose up -d db
+```
+
+Run migrations from `apps/api`:
+
+```powershell
+cd C:\Users\vishk\Projects\assetmind-ai\apps\api
+alembic upgrade head
+```
+
+Ingest the Week 1 dataset after setting `GEMINI_API_KEY`:
+
+```powershell
+cd C:\Users\vishk\Projects\assetmind-ai\apps\api
+python -m scripts.ingest_week1_dataset
+```
+
+Start the backend:
+
+```powershell
+uvicorn app.main:app --reload --port 8000
+```
+
+Query the RAG API:
+
+```powershell
+curl.exe -X POST http://localhost:8000/rag/query `
+  -H "Content-Type: application/json" `
+  -d "{\"question\":\"What is the maximum allowable vibration velocity for P-101 per OISD-137?\",\"top_k\":5}"
+```
+
+Retrieval-only debug endpoint:
+
+```powershell
+curl.exe "http://localhost:8000/rag/search?q=P-101%20vibration%20limit&top_k=5"
+```
+
+Run source-hit benchmark evaluation:
+
+```powershell
+python -m scripts.eval_rag
+```
+
+If `GEMINI_API_KEY` is missing, only the Gemini-dependent RAG scripts/endpoints
+return an error. Normal backend startup remains available.
