@@ -21,6 +21,13 @@
 
 See `docs/api-contract.md` for the full endpoint contract.
 
+### Week 2 Backend — Knowledge Graph (`apps/api`)
+
+Read-only asset knowledge-graph layer (Postgres mode): per-asset documents, classified
+timeline, facts, a derived asset→document/chunk/entity graph (+ summary), a deterministic
+risk summary, and a dashboard v2 summary. See `docs/week2-knowledge-graph.md` and the
+Week 2 section of `docs/api-contract.md`; run/verify steps are in `apps/api/README.md`.
+
 ### Frontend (`apps/web` — Next.js + TypeScript + Tailwind)
 
 - **Upload page** — wired to `POST /documents`
