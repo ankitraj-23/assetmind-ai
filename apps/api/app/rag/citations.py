@@ -15,13 +15,17 @@ def snippet(text: str, limit: int = SNIPPET_CHARS) -> str:
 
 
 def citation_from_chunk(chunk: RetrievedChunk) -> RAGCitation:
+    raw_text = chunk.raw_text or chunk.content
     return RAGCitation(
         file_name=chunk.file_name,
-        page=chunk.page_number,
-        row=chunk.row_number,
+        page=chunk.page_start or chunk.page_number,
+        row=chunk.row_start or chunk.row_index or chunk.row_number,
+        section_title=chunk.section_title,
+        parent_chunk_id=chunk.parent_chunk_id,
+        retrieval_unit_id=chunk.retrieval_unit_id,
         chunk_id=chunk.chunk_id,
         source_path=chunk.source_path,
-        snippet=snippet(chunk.content),
+        snippet=snippet(raw_text),
     )
 
 

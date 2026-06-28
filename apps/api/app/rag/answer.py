@@ -48,14 +48,24 @@ def _confidence(chunks: list[RetrievedChunk]) -> float:
 def _context(chunks: list[RetrievedChunk]) -> str:
     blocks: list[str] = []
     for index, chunk in enumerate(chunks, start=1):
-        location = f"page {chunk.page_number}" if chunk.page_number else ""
-        if chunk.row_number:
-            location = f"row {chunk.row_number}"
+        location = f"page {chunk.page_start or chunk.page_number}" if (chunk.page_start or chunk.page_number) else ""
+        if chunk.row_start or chunk.row_number:
+            row_start = chunk.row_start or chunk.row_number
+            row_end = chunk.row_end or row_start
+            location = f"rows {row_start}-{row_end}" if row_end != row_start else f"row {row_start}"
+        summary = chunk.retrieval_summary or ""
+        raw_text = chunk.raw_text or chunk.content
         blocks.append(
             "\n".join(
                 [
-                    f"[{index}] file={chunk.file_name} {location} chunk_id={chunk.chunk_id}",
-                    chunk.content,
+                    (
+                        f"[{index}] file={chunk.file_name} {location} "
+                        f"section={chunk.section_title or 'n/a'} "
+                        f"parent_chunk_id={chunk.parent_chunk_id or chunk.chunk_id}"
+                    ),
+                    f"Retrieval summary label (not evidence): {summary}",
+                    "Raw parent chunk evidence:",
+                    raw_text,
                 ]
             )
         )
@@ -70,6 +80,8 @@ If the context does not contain enough evidence, answer exactly:
 
 Rules:
 - Do not use outside knowledge.
+- Use only the text under "Raw parent chunk evidence" as evidence.
+- Retrieval summary labels are search hints only; do not cite them as evidence.
 - Keep the answer concise and factual.
 - Mention source numbers like [1] or [2] beside supported claims.
 

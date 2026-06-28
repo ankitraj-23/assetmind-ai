@@ -94,8 +94,13 @@ def main() -> int:
     questions = _load_questions(questions_path)
     total = len(questions)
     source_hits = 0
+    citation_hits = 0
     latencies: list[float] = []
     confidences: list[float] = []
+    print(
+        "Note: retrieval is summary-indexed; generated answers use raw parent chunks.",
+        flush=True,
+    )
 
     for index, item in enumerate(questions, start=1):
         if index > 1 and args.request_delay > 0:
@@ -135,7 +140,9 @@ def main() -> int:
 
         retrieved_docs = {chunk.file_name for chunk in retrieved}
         hit = _source_hit(expected_source, cited_docs | retrieved_docs)
+        citation_hit = _source_hit(expected_source, cited_docs) if cited_docs else False
         source_hits += int(hit)
+        citation_hits += int(citation_hit)
         top_cited_doc = next(iter(cited_docs), None)
         if top_cited_doc is None and retrieved:
             top_cited_doc = retrieved[0].file_name
@@ -143,18 +150,22 @@ def main() -> int:
         print(f"  expected_source : {expected_source or 'n/a'}")
         print(f"  top_cited_doc   : {top_cited_doc or 'none'}")
         print(f"  source_hit      : {hit}")
+        print(f"  citation_hit    : {citation_hit if cited_docs else 'n/a'}")
         print(f"  confidence      : {confidence:.2f}")
         print(f"  latency_seconds : {latency:.3f}", flush=True)
 
     avg_latency = sum(latencies) / total if total else 0.0
     avg_confidence = sum(confidences) / total if total else 0.0
     hit_rate = source_hits / total if total else 0.0
+    citation_hit_rate = citation_hits / total if total else 0.0
 
     print("")
     print("Summary")
     print(f"  total_questions    : {total}")
     print(f"  source_hit_count   : {source_hits}")
     print(f"  source_hit_rate    : {hit_rate:.2%}")
+    print(f"  citation_hit_count : {citation_hits}")
+    print(f"  citation_hit_rate  : {citation_hit_rate:.2%}")
     print(f"  average_latency    : {avg_latency:.3f}s")
     print(f"  average_confidence : {avg_confidence:.2f}")
     return 0

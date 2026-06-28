@@ -39,11 +39,16 @@ def main() -> int:
         print(f"Ingestion failed: {exc}", file=sys.stderr)
         return 1
 
-    print("Week 1 dataset ingestion complete")
+    print("Week 1 parent-child RAG dataset ingestion complete")
     print(f"  path                : {Path(args.path)}")
     print(f"  documents_ingested  : {result.documents_ingested}")
-    print(f"  chunks_created      : {result.chunks_created}")
+    print(f"  elements_extracted  : {result.elements_extracted}")
+    print(f"  parent_chunks       : {result.parent_chunks_created}")
+    print(f"  retrieval_summaries : {result.retrieval_summaries_created}")
     print(f"  embeddings_created  : {result.embeddings_created}")
+    print(f"  template_summaries  : {result.template_summaries_count}")
+    print(f"  llm_summaries       : {result.llm_summaries_count}")
+    print(f"  fallback_summaries  : {result.fallback_summaries_count}")
     if result.skipped:
         print("  skipped:")
         for item in result.skipped:

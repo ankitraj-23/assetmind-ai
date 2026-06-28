@@ -45,9 +45,48 @@ Interactive docs are available at http://127.0.0.1:8000/docs.
 
 ## Week 1 RAG backend
 
+Strategy name:
+
+```text
+Summary-indexed, layout-aware parent-child RAG over normalized document elements
+```
+
 The Gemini-backed RAG API is exposed under `/rag/*` and uses PostgreSQL +
 pgvector. It is separate from the existing local JSON `/documents`, `/search`,
 and `/query` demo pipeline.
+
+Ingestion flow:
+
+```text
+Document
+-> normalized DocumentElements
+-> layout-aware parent chunks
+-> retrieval summaries
+-> Gemini embeddings for summaries
+-> PostgreSQL + pgvector storage
+```
+
+Retrieval/query flow:
+
+```text
+Question
+-> Gemini query embedding
+-> vector search over retrieval summary embeddings
+-> fetch linked raw parent chunks
+-> Gemini answer generation using raw parent chunk evidence
+-> answer + citations + confidence
+```
+
+Only retrieval summaries are embedded. They are generated to make search better:
+they include asset tags, procedures, thresholds, dates, statuses, actions, and
+likely query synonyms. The final LLM answer is grounded in raw parent chunks,
+not in generated summaries, so citations point back to original source text.
+
+The current database uses the existing `document_chunks` table for parent
+chunks. Raw parent text is stored in `document_chunks.text`; retrieval summary
+text, retrieval IDs, strategy, element metadata, and source metadata are stored
+in the JSON metadata column; the vector column stores the summary embedding.
+This keeps the schema backward-compatible and avoids a migration.
 
 Required environment variables for RAG:
 
@@ -111,5 +150,22 @@ Run source-hit benchmark evaluation:
 python -m scripts.eval_rag
 ```
 
+Run answer-generation benchmark evaluation when Gemini quota allows:
+
+```powershell
+python -m scripts.eval_rag --generate-answers
+```
+
 If `GEMINI_API_KEY` is missing, only the Gemini-dependent RAG scripts/endpoints
 return an error. Normal backend startup remains available.
+
+Known limitations:
+
+- OCR/scanned PDF extraction is not implemented in Week 1.
+- Image support is schema-ready only (`image_caption` / `ocr_text` elements can
+  be added later).
+- Retrieval summary quality depends on `GEMINI_API_KEY` for unstructured chunks;
+  deterministic passthrough summaries are used as a fallback.
+- Final answers still require retrieved raw text evidence. If raw parent chunks
+  do not support an answer, `/rag/query` returns the insufficient-evidence
+  response.
