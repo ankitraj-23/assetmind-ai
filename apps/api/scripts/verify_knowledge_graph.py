@@ -98,6 +98,35 @@ def main() -> int:
     for edge in graph.get("edges", [])[:5]:
         print(f"    - {_compact(edge, ('source', 'relation_type', 'target'))}")
 
+    # Graph summary --------------------------------------------------------
+    gsummary = repo.get_asset_graph_summary_by_tag(SAMPLE_TAG) or {}
+    print("  graph summary:")
+    print(f"    document_count: {gsummary.get('document_count')}")
+    print(f"    chunk_count   : {gsummary.get('chunk_count')}")
+    print(f"    entity_count  : {gsummary.get('entity_count')}")
+    print(f"    edge_count    : {gsummary.get('edge_count')}")
+    print(f"    relation_type_counts: {gsummary.get('relation_type_counts')}")
+    print("    top_documents:")
+    for doc in gsummary.get("top_documents", [])[:5]:
+        print(f"      - {_compact(doc, ('filename', 'mention_count'))}")
+
+    # Filtered graphs ------------------------------------------------------
+    no_chunks = repo.get_asset_graph_by_tag(SAMPLE_TAG, include_chunks=False) or {}
+    nc_counts = no_chunks.get("counts", {})
+    print(
+        f"  filtered (include_chunks=false) nodes/edges: "
+        f"{nc_counts.get('nodes', 0)}/{nc_counts.get('edges', 0)}"
+    )
+
+    mentioned = (
+        repo.get_asset_graph_by_tag(SAMPLE_TAG, relation_type="mentioned_in") or {}
+    )
+    m_counts = mentioned.get("counts", {})
+    print(
+        f"  filtered (relation_type=mentioned_in) nodes/edges: "
+        f"{m_counts.get('nodes', 0)}/{m_counts.get('edges', 0)}"
+    )
+
     print(f"\n{SAMPLE_TAG} knowledge graph inspection: OK")
     return 0
 

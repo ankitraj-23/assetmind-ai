@@ -67,6 +67,7 @@ __all__ = [
     "get_asset_facts_by_tag",
     "list_asset_timeline_by_tag",
     "get_asset_graph_by_tag",
+    "get_asset_graph_summary_by_tag",
     "get_dashboard_summary",
 ]
 
@@ -1086,7 +1087,11 @@ def list_asset_timeline_by_tag(
 
 
 def get_asset_graph_by_tag(
-    tag: str, session: Session | None = None
+    tag: str,
+    session: Session | None = None,
+    *,
+    include_chunks: bool = True,
+    relation_type: str | None = None,
 ) -> dict[str, Any] | None:
     """Build a derived knowledge graph for an asset from its mentions.
 
@@ -1095,6 +1100,13 @@ def get_asset_graph_by_tag(
     nodes, and edges from the asset to each related node. Node IDs are stable and
     namespaced (``asset:<tag>``, ``document:<id>``, ``chunk:<id>``,
     ``entity:<id>``). Returns ``None`` when the asset is unknown.
+
+    Filtering:
+
+    * ``include_chunks=False`` drops chunk nodes and ``supported_by_chunk``
+      edges while keeping asset, document, and entity nodes/edges.
+    * ``relation_type`` keeps only edges of that relation; nodes left without an
+      incident edge are pruned, except the asset node which is always returned.
     """
 
     normalized_tag = tag.strip().upper()
@@ -1135,14 +1147,16 @@ def get_asset_graph_by_tag(
         }
         edges: dict[str, dict[str, Any]] = {}
 
-        def _add_edge(target_id: str, relation_type: str) -> None:
-            key = f"{asset_node_id}|{relation_type}|{target_id}"
+        def _add_edge(target_id: str, relation: str) -> None:
+            if relation_type is not None and relation != relation_type:
+                return
+            key = f"{asset_node_id}|{relation}|{target_id}"
             if key not in edges:
                 edges[key] = {
                     "id": key,
                     "source": asset_node_id,
                     "target": target_id,
-                    "relation_type": relation_type,
+                    "relation_type": relation,
                 }
 
         for mention, entity, document, chunk in rows:
@@ -1156,7 +1170,7 @@ def get_asset_graph_by_tag(
                         "document_id": document.id,
                     }
                 _add_edge(node_id, "mentioned_in")
-            if chunk is not None:
+            if include_chunks and chunk is not None:
                 node_id = f"chunk:{chunk.id}"
                 if node_id not in nodes:
                     nodes[node_id] = {
@@ -1180,13 +1194,113 @@ def get_asset_graph_by_tag(
                     }
                 _add_edge(node_id, "has_entity")
 
-        node_list = list(nodes.values())
+        # Prune nodes left without an incident edge (the asset node is always
+        # kept). This matters when ``relation_type`` removes the only edges that
+        # referenced a document/entity node.
+        connected = {asset_node_id}
+        for edge in edges.values():
+            connected.add(edge["source"])
+            connected.add(edge["target"])
+        node_list = [node for node in nodes.values() if node["id"] in connected]
         edge_list = list(edges.values())
         return {
             "asset": _asset_to_dict(asset),
             "nodes": node_list,
             "edges": edge_list,
             "counts": {"nodes": len(node_list), "edges": len(edge_list)},
+        }
+
+
+def get_asset_graph_summary_by_tag(
+    tag: str, session: Session | None = None, *, top_documents_limit: int = 5
+) -> dict[str, Any] | None:
+    """Return aggregate counts for an asset's derived knowledge graph.
+
+    Counts are derived from ``asset_mentions`` (distinct documents, chunks, and
+    entities), so they match :func:`get_asset_graph_by_tag` regardless of whether
+    ``knowledge_edges`` rows have been backfilled. ``relation_type_counts`` and
+    ``edge_count`` mirror the derived graph edges. ``top_documents`` lists the
+    documents with the most mentions, newest first as a tiebreaker. Returns
+    ``None`` when the asset is unknown.
+    """
+
+    normalized_tag = tag.strip().upper()
+    if not normalized_tag:
+        return None
+
+    with _unit_of_work(session) as active:
+        asset = active.execute(
+            select(Asset).where(Asset.tag == normalized_tag)
+        ).scalar_one_or_none()
+        if asset is None:
+            return None
+
+        document_count = int(
+            active.execute(
+                select(func.count(func.distinct(AssetMention.document_id)))
+                .where(AssetMention.asset_id == asset.id)
+                .where(AssetMention.document_id.is_not(None))
+            ).scalar_one()
+            or 0
+        )
+        chunk_count = int(
+            active.execute(
+                select(func.count(func.distinct(AssetMention.chunk_id)))
+                .where(AssetMention.asset_id == asset.id)
+                .where(AssetMention.chunk_id.is_not(None))
+            ).scalar_one()
+            or 0
+        )
+        entity_count = int(
+            active.execute(
+                select(func.count(func.distinct(AssetMention.entity_id)))
+                .where(AssetMention.asset_id == asset.id)
+                .where(AssetMention.entity_id.is_not(None))
+            ).scalar_one()
+            or 0
+        )
+
+        relation_type_counts = {
+            "mentioned_in": document_count,
+            "supported_by_chunk": chunk_count,
+            "has_entity": entity_count,
+        }
+
+        top_rows = active.execute(
+            select(
+                Document.id,
+                Document.original_filename,
+                func.count(AssetMention.id).label("mention_count"),
+            )
+            .join(AssetMention, AssetMention.document_id == Document.id)
+            .where(AssetMention.asset_id == asset.id)
+            .group_by(Document.id, Document.original_filename, Document.created_at)
+            .order_by(
+                func.count(AssetMention.id).desc(),
+                Document.created_at.desc(),
+                Document.id.desc(),
+            )
+            .limit(top_documents_limit)
+        ).all()
+
+        top_documents = [
+            {
+                "document_id": row.id,
+                "filename": row.original_filename,
+                "mention_count": int(row.mention_count),
+            }
+            for row in top_rows
+        ]
+
+        return {
+            "asset": _asset_to_dict(asset),
+            "asset_tag": asset.tag,
+            "document_count": document_count,
+            "chunk_count": chunk_count,
+            "entity_count": entity_count,
+            "edge_count": document_count + chunk_count + entity_count,
+            "relation_type_counts": relation_type_counts,
+            "top_documents": top_documents,
         }
 
 

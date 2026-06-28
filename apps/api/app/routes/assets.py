@@ -8,7 +8,7 @@ database.
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from app.core import config
 
@@ -127,12 +127,48 @@ def get_asset_facts(tag: str) -> dict[str, Any]:
     return facts
 
 
-@router.get("/{tag}/graph")
-def get_asset_graph(tag: str) -> dict[str, Any]:
-    """Return a derived knowledge graph for an asset (case-insensitive tag).
+# Declared before ``/{tag}/graph`` so the extra ``/summary`` segment is matched
+# explicitly and never shadowed by the broader graph (or ``/{tag}``) route.
+@router.get("/{tag}/graph/summary")
+def get_asset_graph_summary(tag: str) -> dict[str, Any]:
+    """Return aggregate counts for an asset's derived knowledge graph.
 
     Responds with 404 when the asset is unknown. In JSON mode no asset mentions
-    are persisted, so this returns a safe, empty, DB-free graph response.
+    are persisted, so this returns a safe, empty, DB-free response.
+    """
+    if not config.use_postgres():
+        return {
+            "asset": None,
+            "asset_tag": tag,
+            "document_count": 0,
+            "chunk_count": 0,
+            "entity_count": 0,
+            "edge_count": 0,
+            "relation_type_counts": {},
+            "top_documents": [],
+            "mode": "json",
+            "message": "Asset graph summary is available in Postgres mode.",
+        }
+    from app.db import repository as repo
+
+    summary = repo.get_asset_graph_summary_by_tag(tag)
+    if summary is None:
+        raise HTTPException(status_code=404, detail="Asset not found.")
+    return summary
+
+
+@router.get("/{tag}/graph")
+def get_asset_graph(
+    tag: str,
+    include_chunks: bool = True,
+    relation_type: str | None = Query(default=None),
+) -> dict[str, Any]:
+    """Return a derived knowledge graph for an asset (case-insensitive tag).
+
+    Optional query params filter the graph: ``include_chunks=false`` drops chunk
+    nodes/edges, and ``relation_type`` keeps only edges of that relation. Responds
+    with 404 when the asset is unknown. In JSON mode no asset mentions are
+    persisted, so this returns a safe, empty, DB-free graph response.
     """
     if not config.use_postgres():
         return {
@@ -145,7 +181,9 @@ def get_asset_graph(tag: str) -> dict[str, Any]:
         }
     from app.db import repository as repo
 
-    graph = repo.get_asset_graph_by_tag(tag)
+    graph = repo.get_asset_graph_by_tag(
+        tag, include_chunks=include_chunks, relation_type=relation_type
+    )
     if graph is None:
         raise HTTPException(status_code=404, detail="Asset not found.")
     return graph
