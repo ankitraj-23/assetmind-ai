@@ -27,6 +27,13 @@ def get_dashboard_summary() -> dict[str, Any]:
             "asset_mentions": 0,
             "knowledge_edges": 0,
             "recent_documents": [],
+            "high_risk_assets": 0,
+            "medium_risk_assets": 0,
+            "low_risk_assets": 0,
+            "open_compliance_gaps": 0,
+            "repeated_failure_patterns": 0,
+            "top_assets_by_mentions": [],
+            "risk_summary": [],
             "mode": "json",
             "message": "Live dashboard summary is available in Postgres mode.",
         }

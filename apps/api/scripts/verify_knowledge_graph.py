@@ -62,6 +62,30 @@ def main() -> int:
     ):
         print(f"  {key:20s}: {summary.get(key)}")
 
+    # Dashboard v2 fields --------------------------------------------------
+    print("Dashboard v2:")
+    for key in (
+        "high_risk_assets",
+        "medium_risk_assets",
+        "low_risk_assets",
+        "open_compliance_gaps",
+        "repeated_failure_patterns",
+    ):
+        print(f"  {key:26s}: {summary.get(key)}")
+    print("  top_assets_by_mentions:")
+    for item in summary.get("top_assets_by_mentions", [])[:5]:
+        print(f"    - {_compact(item, ('asset_tag', 'mention_count'))}")
+
+    # Asset risk summary ---------------------------------------------------
+    risk = repo.get_asset_risk_summary(limit=10)
+    print(f"\nAsset risk summary: {risk.get('count')} risky assets (top 5)")
+    for item in risk.get("assets", [])[:5]:
+        print(
+            f"  - {_compact(item, ('asset_tag', 'risk_score', 'risk_level'))}"
+        )
+        for reason in item.get("risk_reasons", []):
+            print(f"      · {reason}")
+
     # First 10 assets ------------------------------------------------------
     assets = repo.list_assets()
     print(f"\nAssets discovered: {len(assets)} (showing first 10)")
@@ -87,6 +111,11 @@ def main() -> int:
     print(f"  mention_count   : {facts.get('mention_count')}")
     print(f"  related documents: {len(documents)}")
     print(f"  timeline events : {len(events)}")
+    print("  sample timeline events (type/severity):")
+    for event in events[:5]:
+        print(
+            f"    - {_compact(event, ('event_type', 'severity', 'reason_tags'))}"
+        )
     print(
         f"  graph nodes/edges: {counts.get('nodes', 0)}/{counts.get('edges', 0)}"
     )

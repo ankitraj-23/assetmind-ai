@@ -68,8 +68,146 @@ __all__ = [
     "list_asset_timeline_by_tag",
     "get_asset_graph_by_tag",
     "get_asset_graph_summary_by_tag",
+    "get_asset_risk_summary",
     "get_dashboard_summary",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Text heuristics (risk scoring + timeline classification)
+# ---------------------------------------------------------------------------
+
+# Deduplicated, explainable risk reasons. Kept as named constants so callers
+# (e.g. the dashboard) can count specific reasons without coupling to wording.
+_RISK_REASON_REPEATED = "Repeated or recurring failure pattern in evidence"
+_RISK_REASON_COMPLIANCE = "Overdue item or compliance gap in evidence"
+_RISK_REASON_DEGRADATION = "Mechanical degradation symptom in evidence"
+_RISK_REASON_ABNORMAL = "Abnormal reading or alarm in evidence"
+_RISK_REASON_OPEN_ACTION = "Open action or follow-up pending in evidence"
+
+# (keywords, weight, reason). Matching is a case-insensitive substring test over
+# the combined filename + chunk text evidence for an asset.
+_RISK_RULES: tuple[tuple[tuple[str, ...], int, str], ...] = (
+    (
+        ("repeated failure", "repeated issue", "recurring", "repeatedly"),
+        2,
+        _RISK_REASON_REPEATED,
+    ),
+    (
+        (
+            "overdue",
+            "expired",
+            "compliance gap",
+            "missing certificate",
+            "not recorded",
+        ),
+        2,
+        _RISK_REASON_COMPLIANCE,
+    ),
+    (
+        (
+            "high vibration",
+            "leakage",
+            "overheating",
+            "cavitation",
+            "corrosion",
+            "bearing wear",
+            "misalignment",
+            "fouling",
+        ),
+        1,
+        _RISK_REASON_DEGRADATION,
+    ),
+    (
+        ("abnormal", "alarm", "exceeds", "threshold", "high priority"),
+        1,
+        _RISK_REASON_ABNORMAL,
+    ),
+    (
+        ("open action", "recheck", "follow-up", "follow up", "pending", "not closed"),
+        1,
+        _RISK_REASON_OPEN_ACTION,
+    ),
+)
+
+# Ordered timeline categories: the first matching category names the event type,
+# while every matched keyword is surfaced in ``reason_tags``.
+_TIMELINE_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("inspection", ("inspection", "vibration reading", "reading", "calibration", "test")),
+    ("work_order", ("work order", "maintenance", "repair", "replaced", "action taken")),
+    ("procedure", ("sop", "procedure", "startup", "shutdown", "checklist")),
+    (
+        "compliance",
+        ("compliance", "audit", "certificate", "oisd", "factory act", "peso", "iso"),
+    ),
+    (
+        "failure",
+        ("failure", "vibration", "leakage", "overheating", "cavitation", "alarm", "abnormal"),
+    ),
+)
+
+_TIMELINE_SEVERITY_HIGH = (
+    "high priority",
+    "alarm",
+    "exceeds",
+    "overdue",
+    "expired",
+    "abnormal",
+    "shutdown",
+)
+_TIMELINE_SEVERITY_MEDIUM = (
+    "vibration",
+    "leakage",
+    "follow-up",
+    "follow up",
+    "recheck",
+    "pending",
+    "inspection",
+)
+
+
+def _risk_level(score: int) -> str:
+    """Map a numeric risk score to a coarse ``high``/``medium``/``low`` level."""
+
+    if score >= 5:
+        return "high"
+    if score >= 3:
+        return "medium"
+    return "low"
+
+
+def _classify_timeline_event(
+    filename: str | None, text: str | None
+) -> tuple[str, str, list[str]]:
+    """Classify a timeline event from filename/text heuristics.
+
+    Returns ``(event_type, severity, reason_tags)``. ``event_type`` is the first
+    matching category (falling back to ``evidence_mention``); ``reason_tags`` are
+    the deduplicated keywords that matched across all categories.
+    """
+
+    haystack = " ".join(part.lower() for part in (filename, text) if part)
+
+    event_type = "evidence_mention"
+    reason_tags: list[str] = []
+    for category, keywords in _TIMELINE_CATEGORIES:
+        matched = [kw for kw in keywords if kw in haystack]
+        if not matched:
+            continue
+        if event_type == "evidence_mention":
+            event_type = category
+        for kw in matched:
+            if kw not in reason_tags:
+                reason_tags.append(kw)
+
+    if any(kw in haystack for kw in _TIMELINE_SEVERITY_HIGH):
+        severity = "high"
+    elif any(kw in haystack for kw in _TIMELINE_SEVERITY_MEDIUM):
+        severity = "medium"
+    else:
+        severity = "low"
+
+    return event_type, severity, reason_tags
 
 
 # ---------------------------------------------------------------------------
@@ -1018,11 +1156,17 @@ def get_asset_facts_by_tag(
 def list_asset_timeline_by_tag(
     tag: str, session: Session | None = None
 ) -> list[dict[str, Any]]:
-    """Derive simple timeline events for an asset from its mentions.
+    """Derive classified timeline events for an asset from its mentions.
 
-    Each mention with a backing document becomes a ``mention`` event, ordered by
-    document ``created_at`` descending (newest first). The tag is normalized
+    Each mention with a backing document becomes an event ordered by document
+    ``created_at`` descending (newest first). The tag is normalized
     case-insensitively; an unknown asset yields an empty list.
+
+    ``event_type`` is classified from filename/text heuristics (one of
+    ``inspection``, ``work_order``, ``procedure``, ``compliance``, ``failure``,
+    or the ``evidence_mention`` fallback) and each event also carries a
+    ``severity`` (``high``/``medium``/``low``) and ``reason_tags`` list. All
+    pre-existing fields are preserved for frontend compatibility.
     """
 
     normalized_tag = tag.strip().upper()
@@ -1056,6 +1200,9 @@ def list_asset_timeline_by_tag(
             event_date = _iso(
                 document.created_at if document is not None else mention.created_at
             )
+            event_type, severity, reason_tags = _classify_timeline_event(
+                filename, text
+            )
             title = (
                 f"{asset.tag} mentioned in {filename}"
                 if filename
@@ -1065,7 +1212,9 @@ def list_asset_timeline_by_tag(
                 {
                     "id": mention.id,
                     "asset_tag": asset.tag,
-                    "event_type": "mention",
+                    "event_type": event_type,
+                    "severity": severity,
+                    "reason_tags": reason_tags,
                     "title": title,
                     "date": event_date,
                     "document_id": mention.document_id,
@@ -1304,8 +1453,133 @@ def get_asset_graph_summary_by_tag(
         }
 
 
+def _compute_asset_risk(active: Session) -> list[dict[str, Any]]:
+    """Score every mentioned asset with deterministic text heuristics.
+
+    Returns the full ranked list (sorted by ``risk_score`` desc, ``mention_count``
+    desc, ``asset_tag`` asc). Scoring runs over the combined filename + chunk text
+    evidence for each asset using :data:`_RISK_RULES`; reasons are deduplicated
+    and evidence snippets are capped at three per asset. Shared by
+    :func:`get_asset_risk_summary` and :func:`get_dashboard_summary`.
+    """
+
+    rows = active.execute(
+        select(Asset, AssetMention, Document, DocumentChunk)
+        .join(AssetMention, AssetMention.asset_id == Asset.id)
+        .outerjoin(Document, AssetMention.document_id == Document.id)
+        .outerjoin(DocumentChunk, AssetMention.chunk_id == DocumentChunk.id)
+        .order_by(
+            Document.created_at.desc().nullslast(),
+            DocumentChunk.chunk_index.asc().nullslast(),
+            AssetMention.created_at.desc(),
+        )
+    ).all()
+
+    grouped: dict[str, dict[str, Any]] = {}
+    for asset, mention, document, chunk in rows:
+        bucket = grouped.get(asset.id)
+        if bucket is None:
+            bucket = {
+                "asset": asset,
+                "mention_count": 0,
+                "documents": set(),
+                "evidence": [],
+                "haystack_parts": [],
+                "last_seen": None,
+            }
+            grouped[asset.id] = bucket
+
+        bucket["mention_count"] += 1
+
+        filename = document.original_filename if document is not None else None
+        text = chunk.text if chunk is not None else None
+        if document is not None:
+            bucket["documents"].add(document.id)
+        if filename:
+            bucket["haystack_parts"].append(filename.lower())
+        if text:
+            bucket["haystack_parts"].append(text.lower())
+
+        event_dt = (
+            document.created_at
+            if document is not None and document.created_at is not None
+            else mention.created_at
+        )
+        if event_dt is not None and (
+            bucket["last_seen"] is None or event_dt > bucket["last_seen"]
+        ):
+            bucket["last_seen"] = event_dt
+
+        # Rows are already newest-first, so the first three chunk-backed mentions
+        # are the most recent evidence snippets.
+        if text and len(bucket["evidence"]) < 3:
+            bucket["evidence"].append(
+                {
+                    "document_id": mention.document_id,
+                    "filename": filename,
+                    "chunk_id": mention.chunk_id,
+                    "chunk_index": chunk.chunk_index if chunk is not None else None,
+                    "text_preview": _text_preview(text),
+                }
+            )
+
+    results: list[dict[str, Any]] = []
+    for bucket in grouped.values():
+        haystack = " ".join(bucket["haystack_parts"])
+        score = 0
+        reasons: list[str] = []
+        for keywords, weight, reason in _RISK_RULES:
+            if any(kw in haystack for kw in keywords):
+                score += weight
+                if reason not in reasons:
+                    reasons.append(reason)
+
+        asset = bucket["asset"]
+        results.append(
+            {
+                "asset": _asset_to_dict(asset),
+                "asset_tag": asset.tag,
+                "risk_score": score,
+                "risk_level": _risk_level(score),
+                "risk_reasons": reasons,
+                "evidence": bucket["evidence"],
+                "mention_count": bucket["mention_count"],
+                "document_count": len(bucket["documents"]),
+                "last_seen": _iso(bucket["last_seen"]),
+            }
+        )
+
+    results.sort(
+        key=lambda r: (-r["risk_score"], -r["mention_count"], r["asset_tag"])
+    )
+    return results
+
+
+def get_asset_risk_summary(
+    limit: int = 10, session: Session | None = None
+) -> dict[str, Any]:
+    """Return the top risky assets ranked by deterministic text heuristics.
+
+    Each asset carries its risk score/level, deduplicated risk reasons, up to
+    three evidence snippets, mention/document counts, and a ``last_seen``
+    timestamp. Assets are sorted by ``risk_score`` desc, ``mention_count`` desc,
+    then ``asset_tag`` asc, and the top ``limit`` are returned.
+    """
+
+    with _unit_of_work(session) as active:
+        results = _compute_asset_risk(active)
+        top = results if limit is None else results[: max(0, limit)]
+        return {"count": len(top), "assets": top}
+
+
 def get_dashboard_summary(session: Session | None = None) -> dict[str, Any]:
-    """Return live counts for the dashboard plus the most recent documents."""
+    """Return live counts for the dashboard plus the most recent documents.
+
+    In addition to the raw entity counts and recent documents, this surfaces a
+    derived risk view (v2): high/medium/low asset counts, estimated open
+    compliance gaps and repeated-failure patterns from text heuristics, the top
+    assets by mention count, and the top five risky assets.
+    """
 
     with _unit_of_work(session) as active:
         def _count(model: Any) -> int:
@@ -1324,6 +1598,37 @@ def get_dashboard_summary(session: Session | None = None) -> dict[str, Any]:
             .all()
         )
 
+        risk_list = _compute_asset_risk(active)
+        high_risk = sum(1 for r in risk_list if r["risk_level"] == "high")
+        medium_risk = sum(1 for r in risk_list if r["risk_level"] == "medium")
+        low_risk = sum(1 for r in risk_list if r["risk_level"] == "low")
+        open_compliance_gaps = sum(
+            1 for r in risk_list if _RISK_REASON_COMPLIANCE in r["risk_reasons"]
+        )
+        repeated_failure_patterns = sum(
+            1 for r in risk_list if _RISK_REASON_REPEATED in r["risk_reasons"]
+        )
+
+        top_mention_rows = active.execute(
+            select(
+                Asset.tag,
+                Asset.asset_type,
+                func.count(AssetMention.id).label("mention_count"),
+            )
+            .join(AssetMention, AssetMention.asset_id == Asset.id)
+            .group_by(Asset.id, Asset.tag, Asset.asset_type)
+            .order_by(func.count(AssetMention.id).desc(), Asset.tag.asc())
+            .limit(5)
+        ).all()
+        top_assets_by_mentions = [
+            {
+                "asset_tag": row.tag,
+                "asset_type": row.asset_type,
+                "mention_count": int(row.mention_count),
+            }
+            for row in top_mention_rows
+        ]
+
         return {
             "documents_indexed": _count(Document),
             "chunks_created": _count(DocumentChunk),
@@ -1332,4 +1637,11 @@ def get_dashboard_summary(session: Session | None = None) -> dict[str, Any]:
             "asset_mentions": _count(AssetMention),
             "knowledge_edges": _count(KnowledgeEdge),
             "recent_documents": [_document_to_dict(row) for row in recent_rows],
+            "high_risk_assets": high_risk,
+            "medium_risk_assets": medium_risk,
+            "low_risk_assets": low_risk,
+            "open_compliance_gaps": open_compliance_gaps,
+            "repeated_failure_patterns": repeated_failure_patterns,
+            "top_assets_by_mentions": top_assets_by_mentions,
+            "risk_summary": risk_list[:5],
         }

@@ -26,6 +26,29 @@ def list_assets() -> list[dict[str, Any]]:
     return repo.list_assets()
 
 
+# Declared before ``/{tag}`` so the literal ``risk-summary`` segment is matched
+# explicitly and never interpreted as an asset tag.
+@router.get("/risk-summary")
+def get_asset_risk_summary(limit: int = Query(default=10)) -> dict[str, Any]:
+    """Return the top risky assets ranked by deterministic text heuristics.
+
+    In JSON mode no asset mentions are persisted, so this returns a safe, empty,
+    DB-free response rather than touching a database.
+    """
+    if not config.use_postgres():
+        return {
+            "count": 0,
+            "assets": [],
+            "mode": "json",
+            "message": "Asset risk summary is available in Postgres mode.",
+        }
+    from app.db import repository as repo
+
+    result = repo.get_asset_risk_summary(limit=limit)
+    result["mode"] = "postgres"
+    return result
+
+
 @router.get("/{tag}")
 def get_asset(tag: str) -> dict[str, Any]:
     """Return one asset by tag (case-insensitive).
