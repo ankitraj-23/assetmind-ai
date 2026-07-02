@@ -83,16 +83,25 @@ def _resolve_type(sanitized_name: str, content_type: str | None) -> tuple[str, s
 # ── PDF / TXT text extraction ─────────────────────────────────────────────────
 
 def _extract_text(path: Path, ext: str) -> str:
+    """Extract text from a PDF or plain-text file.
+
+    PDF pages are joined with ``[Page N]`` markers so downstream code can
+    recover the source page number from any text chunk.
+    """
     if ext == ".pdf":
         try:
             reader = PdfReader(str(path))
-            pages = [page.extract_text() or "" for page in reader.pages]
+            page_blocks: list[str] = []
+            for i, page in enumerate(reader.pages, start=1):
+                page_text = page.extract_text() or ""
+                if page_text.strip():
+                    page_blocks.append(f"[Page {i}]\n{page_text}")
         except (PdfReadError, OSError, ValueError) as exc:
             raise HTTPException(
                 status_code=422,
                 detail=f"Failed to read PDF: {exc}",
             ) from exc
-        return "\n".join(pages).strip()
+        return "\n\n".join(page_blocks).strip()
     return path.read_text(encoding="utf-8", errors="replace").strip()
 
 
@@ -556,9 +565,27 @@ async def ingest_upload(upload: UploadFile) -> Document:
 
     text = _extract_text(dest, ext)
     char_count = len(text)
+    source_type = ext.lstrip(".")
 
     chunks = chunking.chunk_text(doc_id, text)
     chunk_embeddings = embeddings.embed_chunks(doc_id, chunks)
+
+    # Extract structured facts from each chunk's text and record page numbers
+    # derived from the [Page N] markers embedded by _extract_text for PDFs.
+    from app.services import fact_extraction
+
+    chunk_facts: dict[str, dict] = {}
+    for chunk in chunks:
+        facts = fact_extraction.extract_facts_from_text(chunk.text)
+        page_number = fact_extraction.page_number_from_text(chunk.text)
+        chunk_facts[chunk.id] = {
+            "chunk_id": chunk.id,
+            "document_id": doc_id,
+            "page_number": page_number,
+            "source_type": source_type,
+            "filename": sanitized,
+            "facts": facts,
+        }
 
     document = Document(
         id=doc_id,
@@ -577,6 +604,7 @@ async def ingest_upload(upload: UploadFile) -> Document:
     else:
         chunking.save_chunks(doc_id, chunks)
         embeddings.save_embeddings(doc_id, chunk_embeddings)
+        _save_chunk_facts(chunk_facts)
         _append_metadata(document)
     return document
 
