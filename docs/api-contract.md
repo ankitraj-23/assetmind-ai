@@ -1,17 +1,18 @@
-# AssetMind AI — API Contract (Week 1)
+# AssetMind AI — API Contract (Week 1 + Week 2 Ingestion & Retrieval)
 
 Backend: FastAPI, served at `http://127.0.0.1:8000` (interactive docs at `/docs`).
 
-This document describes the endpoints available in the Week 1 RAG foundation. All
-embeddings and the query answer are **deterministic local placeholders** (no external
-model calls) and are designed to be swapped for real models later without changing
-these contracts.
+This document describes the endpoints available in the Week 1 RAG foundation and the
+Week 2 ingestion/retrieval additions (CSV/XLSX support, structured fact extraction,
+asset-scoped retrieval, and query intent detection). All embeddings and the query answer
+are **deterministic local placeholders** (no external model calls) and are designed to
+be swapped for real models later without changing these contracts.
 
 ## Endpoint summary
 
 | Method | Path                                | Purpose                                            |
 | ------ | ----------------------------------- | -------------------------------------------------- |
-| POST   | `/documents`                        | Upload a PDF/text file; extract text and store it. |
+| POST   | `/documents`                        | Upload a PDF, text, CSV, or XLSX file; extract text and store it. |
 | GET    | `/documents`                        | List ingested documents.                           |
 | GET    | `/documents/{document_id}/chunks`   | Return ordered text chunks for a document.         |
 | GET    | `/documents/{document_id}/embeddings` | Return embedding metadata + short vector previews. |
@@ -24,8 +25,18 @@ A health check is also available at `GET /health`.
 
 ## POST /documents
 
-Upload a PDF or text file. The backend extracts text, chunks it, computes embeddings,
-and stores metadata locally.
+Upload a document. The backend extracts text, chunks it, computes embeddings, and stores
+metadata locally. Structured industrial facts are also extracted and persisted alongside
+each chunk.
+
+**Supported file types (Week 2 additions marked):**
+
+| Extension | Content-Type | Notes |
+| --------- | ------------ | ----- |
+| `.pdf` | `application/pdf` | Page numbers tracked via `[Page N]` markers |
+| `.txt` | `text/plain` | Full text chunked as-is |
+| `.csv` *(Week 2)* | `text/csv` | Each row becomes one chunk; fact extraction per row |
+| `.xlsx` *(Week 2)* | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | All sheets ingested; `sheet_name` stored in each fact entry |
 
 - **Request:** `multipart/form-data` with a single `file` field.
 - **Status:** `201 Created`
@@ -137,14 +148,24 @@ generated answer.
 Answer a natural-language question from retrieved context. The answer is produced by a
 temporary deterministic generator and is returned with citations to the source chunks.
 
+Week 2 additions: `asset_tag` scoping on the request; `page_number` on each citation;
+`query_intent` and `related_assets` on the response.
+
 - **Request (`QueryRequest`):**
 
 ```json
 {
   "question": "Why is Pump P-101 vibrating?",
-  "top_k": 5
+  "top_k": 5,
+  "asset_tag": "P-101"
 }
 ```
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `question` | string | yes | Natural-language question |
+| `top_k` | integer | no (default `5`) | Max chunks to retrieve (`1`–`50`) |
+| `asset_tag` | string \| null | no | Equipment tag to scope retrieval (e.g. `"P-101"`). Chunks mentioning this tag receive a similarity boost; the tag is excluded from `related_assets`. |
 
 - **Errors:** `400` if `question` is empty.
 - **Response (`QueryResponse`):**
@@ -153,7 +174,7 @@ temporary deterministic generator and is returned with citations to the source c
 {
   "question": "Why is Pump P-101 vibrating?",
   "answer": "string",
-  "confidence": "string",
+  "confidence": "high",
   "citations": [
     {
       "document_id": "string",
@@ -161,15 +182,37 @@ temporary deterministic generator and is returned with citations to the source c
       "chunk_index": 0,
       "score": 0.87,
       "text_preview": "string",
-      "filename": "pump_p101_note.txt"
+      "filename": "pump_p101_inspection.pdf",
+      "page_number": 3
     }
   ],
-  "retrieved_count": 3
+  "retrieved_count": 3,
+  "query_intent": "failure_rca",
+  "related_assets": ["HX-305", "BLR-118"]
 }
 ```
 
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `answer` | string | Extractive answer (placeholder until LLM is wired in) |
+| `confidence` | `"high"` \| `"medium"` \| `"low"` | Based on top citation score |
+| `citations[].page_number` | integer \| null | PDF page where the chunk was found; `null` for CSV/XLSX/TXT |
+| `query_intent` | string | Detected intent: `procedure`, `failure_rca`, `maintenance_history`, `inspection`, `compliance`, or `general` |
+| `related_assets` | list[string] | Other equipment tags found in the retrieved chunks (excludes `asset_tag`) |
+
 `filename` is included on citations so the UI can show a human-readable source; it falls
 back to `document_id` when absent.
+
+### Query intent classes
+
+| Intent | Triggered by | Source preference |
+| ------ | ------------ | ----------------- |
+| `procedure` | "how to", "steps", "startup", "SOP" | `sop`, `manual`, `oem`, `startup` filenames |
+| `failure_rca` | "why is/was", "root cause", "fault", "vibrating" | `inspection`, `work_order`, `near_miss` filenames |
+| `maintenance_history` | "history", "last maintenance", "work orders" | `work_order`, `maintenance` filenames |
+| `inspection` | "inspection", "reading", "Q1–Q4", "quarterly" | `inspection`, `report` filenames |
+| `compliance` | "compliance", "OISD", "PESO", "ISO", "certificate" | `compliance`, `checklist`, `certificate` filenames |
+| `general` | (catch-all) | no source priority |
 
 ---
 

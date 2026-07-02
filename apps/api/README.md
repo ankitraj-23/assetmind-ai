@@ -1,7 +1,7 @@
 # AssetMind AI — API
 
-Minimal FastAPI backend skeleton for AssetMind AI. At this stage it exposes only a
-health check; RAG, database, and document processing are not yet implemented.
+FastAPI backend for AssetMind AI. Implements document ingestion (PDF, TXT, CSV, XLSX),
+vector search, RAG query answering, and an asset knowledge-graph layer.
 
 ## Project layout
 
@@ -42,6 +42,45 @@ curl http://127.0.0.1:8000/health
 ```
 
 Interactive docs are available at http://127.0.0.1:8000/docs.
+
+## Week 2 — Ingestion & Asset-Scoped Retrieval
+
+This branch (`feature/week2-ingestion-asset-retrieval`) adds:
+
+- **CSV and XLSX ingestion** — `POST /documents` now accepts `.csv` and `.xlsx` files.
+  Each spreadsheet row (or cell) becomes a chunk. For XLSX, all sheets are ingested and
+  the `sheet_name` is recorded in the facts store.
+- **Structured fact extraction** — regex-based extraction of 8 industrial fact types
+  from chunk text: `equipment_tag`, `asset_type`, `failure_mode`, `maintenance_action`,
+  `inspection_reading`, `sop_reference`, `compliance_reference`, `spare_part`,
+  `risk_phrase`, `open_action`. Facts are persisted in `storage/facts.json` (JSON mode).
+- **Asset-scoped retrieval** — `POST /query` accepts an optional `asset_tag` field.
+  Chunks mentioning the tag receive a `+0.15` similarity boost so they rank above
+  equally-similar but unrelated chunks.
+- **Query intent detection** — six deterministic intent classes (`procedure`,
+  `failure_rca`, `maintenance_history`, `inspection`, `compliance`, `general`).
+  Source documents matching the intent receive a `+0.08` score boost.
+- **Citation deduplication & source diversity** — no chunk_id appears twice in
+  results; at most 3 chunks come from any single document.
+- **`related_assets`** — `QueryResponse` now includes a list of other equipment tags
+  found in the retrieved chunks (excluding the queried `asset_tag`).
+- **`page_number`** on citations — PDF chunks carry a page number extracted from
+  `[Page N]` markers embedded during ingestion.
+
+### Verify ingestion & retrieval
+
+```bash
+cd apps/api
+# 1. Verify CSV/XLSX/TXT ingestion and fact extraction
+PERSISTENCE_BACKEND=json .venv/Scripts/python -m scripts.verify_ingestion
+
+# 2. Verify asset-scoped search, intent detection, and full query pipeline
+PERSISTENCE_BACKEND=json .venv/Scripts/python -m scripts.verify_asset_scoped_retrieval
+```
+
+Both scripts print `ALL CHECKS PASSED` on success and exit non-zero on any failure.
+
+---
 
 ## Week 2 — Knowledge Graph
 
