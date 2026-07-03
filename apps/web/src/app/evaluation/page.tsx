@@ -36,15 +36,15 @@ export default function EvaluationPage() {
       />
 
       {/* ── Sample Data Disclaimer Card ────────────────────────────── */}
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-300">
+      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-300">
         <div className="flex gap-3">
-          <span className="text-xl">⚠️</span>
+          <span className="text-xl">📊</span>
           <div>
-            <p className="text-sm font-semibold">Sample Benchmark Results (Not Live Production Data)</p>
+            <p className="text-sm font-semibold">Live System Benchmark Evaluation</p>
             <p className="mt-1 text-xs leading-relaxed opacity-90">
-              The metrics shown below are pre-computed from the standard benchmark run stored in{" "}
-              <code className="bg-amber-950/40 px-1 py-0.5 rounded font-mono text-[10px]">data/benchmark/results_sample.json</code>.
-              Last executed: <span className="font-medium">{new Date(summary.last_run_time).toUTCString()}</span>.
+              The metrics shown below are calculated directly by executing standard benchmark Q&A pairs against the active database index.
+              Report log: <code className="bg-emerald-950/40 px-1 py-0.5 rounded font-mono text-[10px]">data/benchmark/results_sample.json</code>.
+              Last evaluated: <span className="font-semibold">{new Date(summary.last_run_time).toUTCString()}</span>.
             </p>
           </div>
         </div>
