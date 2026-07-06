@@ -1,0 +1,38 @@
+{
+  "pump_oem_manual.pdf": [
+    { "entity_type": "equipment_tag", "value": "P-101" },
+    { "entity_type": "equipment_tag", "value": "P-102" },
+    { "entity_type": "equipment_tag", "value": "P-201" }
+  ],
+  "sop_pump_startup.pdf": [
+    { "entity_type": "equipment_tag", "value": "P-101" },
+    { "entity_type": "equipment_tag", "value": "P-102" }
+  ],
+  "inspection_report_q1_2025.pdf": [
+    { "entity_type": "equipment_tag", "value": "P-101" },
+    { "entity_type": "equipment_tag", "value": "BLR-118" },
+    { "entity_type": "equipment_tag", "value": "TK-482" },
+    { "entity_type": "equipment_tag", "value": "HX-302" }
+  ],
+  "compliance_checklist_2025.pdf": [
+    { "entity_type": "equipment_tag", "value": "BLR-118" },
+    { "entity_type": "equipment_tag", "value": "P-101" },
+    { "entity_type": "equipment_tag", "value": "TK-482" }
+  ],
+  "work_orders_clean.csv": [
+    { "entity_type": "equipment_tag", "value": "P-101" },
+    { "entity_type": "equipment_tag", "value": "P-102" },
+    { "entity_type": "equipment_tag", "value": "V-101" }
+  ],
+  "compressor_datasheet.xlsx": [
+    { "entity_type": "equipment_tag", "value": "C-220" }
+  ],
+  "sop_compressor_operations.pdf": [
+    { "entity_type": "equipment_tag", "value": "C-220" }
+  ],
+  "rca_findings_2025.csv": [
+    { "entity_type": "equipment_tag", "value": "P-101" },
+    { "entity_type": "equipment_tag", "value": "P-102" },
+    { "entity_type": "equipment_tag", "value": "C-220" }
+  ]
+}

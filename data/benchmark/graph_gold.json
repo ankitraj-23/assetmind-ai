@@ -1,0 +1,22 @@
+[
+  { "source": "asset:P-101", "relation_type": "mentioned_in", "target": "document:pump_oem_manual.pdf" },
+  { "source": "asset:P-102", "relation_type": "mentioned_in", "target": "document:pump_oem_manual.pdf" },
+  { "source": "asset:P-201", "relation_type": "mentioned_in", "target": "document:pump_oem_manual.pdf" },
+  { "source": "asset:P-101", "relation_type": "mentioned_in", "target": "document:sop_pump_startup.pdf" },
+  { "source": "asset:P-102", "relation_type": "mentioned_in", "target": "document:sop_pump_startup.pdf" },
+  { "source": "asset:P-101", "relation_type": "mentioned_in", "target": "document:inspection_report_q1_2025.pdf" },
+  { "source": "asset:BLR-118", "relation_type": "mentioned_in", "target": "document:inspection_report_q1_2025.pdf" },
+  { "source": "asset:TK-482", "relation_type": "mentioned_in", "target": "document:inspection_report_q1_2025.pdf" },
+  { "source": "asset:HX-302", "relation_type": "mentioned_in", "target": "document:inspection_report_q1_2025.pdf" },
+  { "source": "asset:BLR-118", "relation_type": "mentioned_in", "target": "document:compliance_checklist_2025.pdf" },
+  { "source": "asset:P-101", "relation_type": "mentioned_in", "target": "document:compliance_checklist_2025.pdf" },
+  { "source": "asset:TK-482", "relation_type": "mentioned_in", "target": "document:compliance_checklist_2025.pdf" },
+  { "source": "asset:P-101", "relation_type": "mentioned_in", "target": "document:work_orders_clean.csv" },
+  { "source": "asset:P-102", "relation_type": "mentioned_in", "target": "document:work_orders_clean.csv" },
+  { "source": "asset:V-101", "relation_type": "mentioned_in", "target": "document:work_orders_clean.csv" },
+  { "source": "asset:C-220", "relation_type": "mentioned_in", "target": "document:compressor_datasheet.xlsx" },
+  { "source": "asset:C-220", "relation_type": "mentioned_in", "target": "document:sop_compressor_operations.pdf" },
+  { "source": "asset:P-101", "relation_type": "mentioned_in", "target": "document:rca_findings_2025.csv" },
+  { "source": "asset:P-102", "relation_type": "mentioned_in", "target": "document:rca_findings_2025.csv" },
+  { "source": "asset:C-220", "relation_type": "mentioned_in", "target": "document:rca_findings_2025.csv" }
+]

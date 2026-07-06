@@ -11,6 +11,7 @@ const nav = [
   { href: "/copilot", label: "Copilot", icon: "✦" },
   { href: "/rca", label: "RCA", icon: "◎" },
   { href: "/compliance", label: "Compliance", icon: "✓" },
+  { href: "/evaluation", label: "Evaluation", icon: "📊" },
 ];
 
 export default function Sidebar() {
