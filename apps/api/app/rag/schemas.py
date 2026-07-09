@@ -10,6 +10,7 @@ ElementType = Literal[
     "heading",
     "paragraph",
     "list_item",
+    "image",
     "table_row",
     "table_block",
     "image_caption",
@@ -28,7 +29,47 @@ SourceType = Literal[
     "unknown",
 ]
 Modality = Literal["text", "table", "image", "ocr"]
-SummaryStrategy = Literal["llm", "template", "passthrough", "vision_future"]
+SummaryStrategy = Literal[
+    "llm",
+    "template",
+    "passthrough",
+    "vision_future",
+    "visual_llm",
+    "visual_template",
+    "parent_llm",
+    "manual_parent_llm",
+    "parent_template",
+    "parent_passthrough",
+]
+
+
+class AtomicElementSummary(BaseModel):
+    """Summary for one atomic visual element before parent summarization."""
+
+    element_id: str
+    element_type: ElementType
+    summary_text: str
+    summary_strategy: SummaryStrategy
+    asset_tags: list[str] = Field(default_factory=list)
+    metadata: dict = Field(default_factory=dict)
+
+
+class VisualElementEvidence(BaseModel):
+    """Original visual element evidence retained for answer generation."""
+
+    element_id: str
+    element_type: ElementType
+    text: str
+    source_type: SourceType
+    file_name: str
+    source_path: str
+    page_number: int | None = None
+    row_index: int | None = None
+    section_title: str | None = None
+    bbox: dict | None = None
+    asset_tags: list[str] = Field(default_factory=list)
+    modality: Modality = "image"
+    metadata: dict = Field(default_factory=dict)
 
 
 class DocumentElement(BaseModel):
@@ -47,6 +88,19 @@ class DocumentElement(BaseModel):
     bbox: dict | None = None
     asset_tags: list[str] = Field(default_factory=list)
     modality: Modality = "text"
+    element_summary: str | None = None
+    summary_strategy: SummaryStrategy | None = None
+    metadata: dict = Field(default_factory=dict)
+
+
+class ParentChunkSummary(BaseModel):
+    """Retrieval summary plus metadata generated for one parent chunk."""
+
+    parent_chunk_id: str
+    summary_text: str
+    answerable_questions: list[str] = Field(default_factory=list)
+    asset_tags: list[str] = Field(default_factory=list)
+    summary_strategy: SummaryStrategy
     metadata: dict = Field(default_factory=dict)
 
 
@@ -80,6 +134,9 @@ class ParentChunk(BaseModel):
     element_ids: list[str] = Field(default_factory=list)
     asset_tags: list[str] = Field(default_factory=list)
     modality: Modality = "text"
+    element_summaries: list[AtomicElementSummary] = Field(default_factory=list)
+    visual_elements: list[VisualElementEvidence] = Field(default_factory=list)
+    parent_summary: ParentChunkSummary | None = None
     metadata: dict = Field(default_factory=dict)
 
     @property
@@ -120,6 +177,7 @@ class RetrievalUnit(BaseModel):
     row_start: int | None = None
     row_end: int | None = None
     section_title: str | None = None
+    answerable_questions: list[str] = Field(default_factory=list)
     summary_strategy: SummaryStrategy
     metadata: dict = Field(default_factory=dict)
 
@@ -136,6 +194,7 @@ class RetrievedChunk(BaseModel):
     content: str
     raw_text: str | None = None
     retrieval_summary: str | None = None
+    answerable_questions: list[str] = Field(default_factory=list)
     summary_strategy: SummaryStrategy | None = None
     score: float
     distance: float | None = None
@@ -152,6 +211,8 @@ class RetrievedChunk(BaseModel):
     section_title: str | None = None
     asset_tags: list[str] = Field(default_factory=list)
     modality: Modality | None = None
+    element_summaries: list[dict] = Field(default_factory=list)
+    visual_elements: list[dict] = Field(default_factory=list)
     chunk_index: int
     metadata: dict = Field(default_factory=dict)
 
@@ -194,6 +255,7 @@ class RAGIngestRequest(BaseModel):
 class RAGIngestResponse(BaseModel):
     documents_ingested: int
     elements_extracted: int = 0
+    atomic_summaries_created: int = 0
     chunks_created: int
     parent_chunks_created: int = 0
     retrieval_summaries_created: int = 0

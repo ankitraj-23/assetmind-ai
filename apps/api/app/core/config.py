@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     gemini_embedding_model: str = "gemini-embedding-2"
     gemini_generation_model: str = "gemini-3.5-flash"
+    rag_visual_storage_dir: str = "storage/extracted_visuals"
 
     # Browser origins allowed to call the API (the Next.js dev server by default).
     # Override with a comma-separated CORS_ORIGINS environment variable.

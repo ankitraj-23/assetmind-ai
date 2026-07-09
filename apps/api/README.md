@@ -60,9 +60,10 @@ Ingestion flow:
 ```text
 Document
 -> normalized DocumentElements
+-> atomic visual summaries for non-CSV/non-Markdown sources (no question metadata)
 -> layout-aware parent chunks
--> retrieval summaries
--> Gemini embeddings for summaries
+-> parent summaries with asset_tags + answerable_questions metadata
+-> Gemini embeddings for parent summaries
 -> PostgreSQL + pgvector storage
 ```
 
@@ -71,21 +72,48 @@ Retrieval/query flow:
 ```text
 Question
 -> Gemini query embedding
--> vector search over retrieval summary embeddings
+-> vector search over parent summary embeddings
 -> fetch linked raw parent chunks
 -> Gemini answer generation using raw parent chunk evidence
 -> answer + citations + confidence
 ```
 
-Only retrieval summaries are embedded. They are generated to make search better:
-they include asset tags, procedures, thresholds, dates, statuses, actions, and
-likely query synonyms. The final LLM answer is grounded in raw parent chunks,
-not in generated summaries, so citations point back to original source text.
+CSV rows are extracted as text elements, with each non-empty cell rendered as
+`'Column name': value.` and no atomic visual summaries. Atomic visual elements
+from non-CSV/non-Markdown sources are summarized before parent summarization.
+Those atomic summaries do not carry generated questions. Parent summaries are
+then generated from text elements plus atomic visual summaries, and parent
+summary metadata includes asset tags plus answerable questions for the parent
+chunk. The original visual element evidence is retained separately on the
+parent chunk. Only parent summaries are embedded. The final LLM answer is
+grounded in raw parent chunks plus original visual element evidence, not in
+generated summaries, so citations point back to original sources.
+
+For CSV files, each row becomes its own parent chunk so each work-order record
+can be summarized, embedded, retrieved, and cited independently.
+
+PDF visual extraction currently supports:
+
+- embedded PDF images
+- table regions detected by PyMuPDF
+- significant vector drawing regions rendered from the page
+
+Direct image files (`.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tif`, `.tiff`)
+are ingested as visual elements and copied into
+`storage/extracted_visuals/<document_id>/` for visual summarization and
+answer-time Gemini vision evidence.
+
+Extracted visuals are saved under `storage/extracted_visuals/<document_id>/` by
+default. Override with `RAG_VISUAL_STORAGE_DIR` when needed. Simple divider
+lines and tiny drawing artifacts are filtered out. Visual summaries are used for
+indexing/parent summaries; the original extracted visual files are attached to
+Gemini during final answer generation when retrieved.
 
 The current database uses the existing `document_chunks` table for parent
 chunks. Raw parent text is stored in `document_chunks.text`; retrieval summary
-text, retrieval IDs, strategy, element metadata, and source metadata are stored
-in the JSON metadata column; the vector column stores the summary embedding.
+text, retrieval IDs, parent summary metadata, atomic element summaries, strategy,
+element metadata, and source metadata are stored in the JSON metadata column;
+the vector column stores the parent summary embedding.
 This keeps the schema backward-compatible and avoids a migration.
 
 Required environment variables for RAG:
@@ -101,6 +129,7 @@ Optional model overrides:
 ```powershell
 $env:GEMINI_EMBEDDING_MODEL="gemini-embedding-2"
 $env:GEMINI_GENERATION_MODEL="gemini-3.5-flash"
+$env:RAG_VISUAL_STORAGE_DIR="storage/extracted_visuals"
 ```
 
 Start Postgres from the repo root:
@@ -122,6 +151,14 @@ Ingest the Week 1 dataset after setting `GEMINI_API_KEY`:
 ```powershell
 cd C:\Users\vishk\Projects\assetmind-ai\apps\api
 python -m scripts.ingest_week1_dataset
+```
+
+Ingest with externally generated parent summaries and replace previous
+embeddings:
+
+```powershell
+cd C:\Users\vishk\Projects\assetmind-ai\apps\api
+.\.venv\Scripts\python.exe -m scripts.ingest_week1_dataset --force-reingest --parent-summaries .\storage\manual_summary_exports\parent_summaries_completed.jsonl
 ```
 
 Start the backend:
@@ -159,13 +196,11 @@ python -m scripts.eval_rag --generate-answers
 If `GEMINI_API_KEY` is missing, only the Gemini-dependent RAG scripts/endpoints
 return an error. Normal backend startup remains available.
 
-Known limitations:
-
 - OCR/scanned PDF extraction is not implemented in Week 1.
-- Image support is schema-ready only (`image_caption` / `ocr_text` elements can
-  be added later).
-- Retrieval summary quality depends on `GEMINI_API_KEY` for unstructured chunks;
-  deterministic passthrough summaries are used as a fallback.
+- Chart/graph extraction is heuristic: embedded images and significant vector
+  regions are captured as atomic regions when possible.
+- Parent summary quality depends on `GEMINI_API_KEY`; deterministic passthrough
+  parent summaries are used as a fallback.
 - Final answers still require retrieved raw text evidence. If raw parent chunks
   do not support an answer, `/rag/query` returns the insufficient-evidence
   response.

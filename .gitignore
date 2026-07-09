@@ -25,6 +25,9 @@ Thumbs.db
 # Local backend storage (uploaded files, not committed)
 apps/api/storage/
 
+# Local database dumps
+*.dump
+
 # Node
 node_modules/
 .next/

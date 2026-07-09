@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from app.core.config import settings
 from app.rag import citations
 from app.rag.embeddings import MissingGeminiApiKeyError
@@ -10,6 +12,7 @@ from app.rag.schemas import RAGQueryResponse, RetrievedChunk
 
 INSUFFICIENT_ANSWER = "I could not find enough evidence in the uploaded documents."
 MIN_CONTEXT_SCORE = 0.15
+MAX_VISUALS_PER_ANSWER = 8
 
 
 def _api_key() -> str:
@@ -55,20 +58,32 @@ def _context(chunks: list[RetrievedChunk]) -> str:
             location = f"rows {row_start}-{row_end}" if row_end != row_start else f"row {row_start}"
         summary = chunk.retrieval_summary or ""
         raw_text = chunk.raw_text or chunk.content
-        blocks.append(
-            "\n".join(
-                [
+        lines = [
+            (
+                f"[{index}] file={chunk.file_name} {location} "
+                f"section={chunk.section_title or 'n/a'} "
+                f"parent_chunk_id={chunk.parent_chunk_id or chunk.chunk_id}"
+            ),
+            f"Retrieval summary label (not evidence): {summary}",
+            "Raw parent chunk evidence:",
+            raw_text,
+        ]
+        if chunk.visual_elements:
+            lines.extend(["Original visual element evidence:"])
+            for element in chunk.visual_elements:
+                metadata = dict(element.get("metadata") or {})
+                lines.append(
                     (
-                        f"[{index}] file={chunk.file_name} {location} "
-                        f"section={chunk.section_title or 'n/a'} "
-                        f"parent_chunk_id={chunk.parent_chunk_id or chunk.chunk_id}"
-                    ),
-                    f"Retrieval summary label (not evidence): {summary}",
-                    "Raw parent chunk evidence:",
-                    raw_text,
-                ]
-            )
-        )
+                        f"- element_id={element.get('element_id')} "
+                        f"type={element.get('element_type')} "
+                        f"modality={element.get('modality')} "
+                        f"page={element.get('page_number') or 'n/a'} "
+                        f"bbox={element.get('bbox') or 'n/a'} "
+                        f"visual_path={metadata.get('visual_path') or 'n/a'} "
+                        f"text_or_reference={element.get('text') or ''}"
+                    ).strip()
+                )
+        blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
 
 
@@ -80,7 +95,7 @@ If the context does not contain enough evidence, answer exactly:
 
 Rules:
 - Do not use outside knowledge.
-- Use only the text under "Raw parent chunk evidence" as evidence.
+- Use only "Raw parent chunk evidence" and "Original visual element evidence" as evidence.
 - Retrieval summary labels are search hints only; do not cite them as evidence.
 - Keep the answer concise and factual.
 - Mention source numbers like [1] or [2] beside supported claims.
@@ -92,12 +107,58 @@ Context:
 {_context(chunks)}
 """.strip()
     client = _client()
+    contents = _gemini_contents(prompt, chunks)
     response = client.models.generate_content(
         model=_generation_model(),
-        contents=prompt,
+        contents=contents,
     )
     text = getattr(response, "text", "") or ""
     return text.strip() or INSUFFICIENT_ANSWER
+
+
+def _gemini_contents(prompt: str, chunks: list[RetrievedChunk]) -> object:
+    visual_parts = _visual_parts(chunks)
+    if not visual_parts:
+        return prompt
+
+    contents: list[object] = [prompt]
+    for label, image_part in visual_parts:
+        contents.append(label)
+        contents.append(image_part)
+    return contents
+
+
+def _visual_parts(chunks: list[RetrievedChunk]) -> list[tuple[str, object]]:
+    try:
+        from google.genai import types
+    except ImportError:
+        return []
+
+    parts: list[tuple[str, object]] = []
+    for chunk_index, chunk in enumerate(chunks, start=1):
+        for element in chunk.visual_elements:
+            if len(parts) >= MAX_VISUALS_PER_ANSWER:
+                return parts
+            metadata = dict(element.get("metadata") or {})
+            visual_path = str(metadata.get("visual_path") or element.get("visual_path") or "").strip()
+            if not visual_path:
+                continue
+            path = Path(visual_path)
+            if not path.exists() or not path.is_file():
+                continue
+            mime_type = str(metadata.get("mime_type") or element.get("mime_type") or "image/png")
+            label = (
+                f"Image for source [{chunk_index}], visual element "
+                f"{element.get('element_id') or 'unknown'} "
+                f"from {chunk.file_name} page {element.get('page_number') or chunk.page_start or 'n/a'}."
+            )
+            parts.append(
+                (
+                    label,
+                    types.Part.from_bytes(data=path.read_bytes(), mime_type=mime_type),
+                )
+            )
+    return parts
 
 
 def answer_question(question: str, top_k: int = 5) -> RAGQueryResponse:
