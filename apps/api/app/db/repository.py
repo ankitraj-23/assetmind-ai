@@ -888,6 +888,7 @@ def create_asset_mention(
     page_number: int | None = None,
     confidence: float | None = None,
     id: str | None = None,
+    create_knowledge_edges: bool = True,
     session: Session | None = None,
 ) -> dict[str, Any]:
     """Link an asset to its supporting entity/document/chunk/page evidence.
@@ -902,6 +903,13 @@ def create_asset_mention(
 
     All edge writes share the same active session/transaction as the mention,
     and :func:`upsert_knowledge_edge` guarantees no duplicate edges.
+
+    Set ``create_knowledge_edges=False`` to persist only the ``asset_mentions``
+    row and skip the three per-mention edge upserts. This avoids the
+    SELECT-then-INSERT round-trip storm that makes bulk tabular ingestion slow
+    against a remote database; the deferred edges can be materialised later with
+    :mod:`scripts.backfill_knowledge_edges` (the derived asset graph/dashboard
+    views read from ``asset_mentions``, so they stay correct in the meantime).
     """
 
     with _unit_of_work(session) as active:
@@ -917,6 +925,9 @@ def create_asset_mention(
         active.add(mention)
         active.flush()
         active.refresh(mention)
+
+        if not create_knowledge_edges:
+            return _asset_mention_to_dict(mention)
 
         if document_id is not None:
             upsert_knowledge_edge(

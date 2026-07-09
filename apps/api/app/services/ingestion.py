@@ -11,6 +11,7 @@ Supported formats
 from __future__ import annotations
 
 import json
+import logging
 import re
 import uuid
 from datetime import datetime, timezone
@@ -26,6 +27,21 @@ from app.models.chunk import Chunk
 from app.models.document import Document
 from app.models.embedding import ChunkEmbedding
 from app.services import chunking, embeddings
+
+logger = logging.getLogger(__name__)
+
+
+def _progress(message: str) -> None:
+    """Emit a user-visible ingestion progress line.
+
+    The project has no logging configuration, so uvicorn/script consumers would
+    never see ``logger.info`` output. Printing to stdout (flushed) makes bulk
+    ingestion progress visible in both the API console and the seeding scripts,
+    matching the print-based convention used across ``scripts/``.
+    """
+    print(message, flush=True)
+    logger.info(message)
+
 
 # ── supported file types ─────────────────────────────────────────────────────
 
@@ -346,6 +362,172 @@ def _persist_postgres(
             _persist_chunk_entities(session, document.id, chunk)
 
 
+def _persist_postgres_bulk(
+    document: Document,
+    chunks: list[Chunk],
+    chunk_embeddings: list[ChunkEmbedding],
+) -> None:
+    """Persist a tabular document (CSV/XLSX) with a few batched flushes.
+
+    The generic :func:`_persist_postgres` path flushes and refreshes once per
+    chunk/entity/mention, which is ~10 round-trips per row — prohibitively slow
+    for a many-row spreadsheet against a remote database. This bulk path builds
+    the ORM rows in memory and flushes them a table at a time, cutting a whole
+    document down to a handful of round-trips.
+
+    Knowledge edges are intentionally *not* created here; the derived
+    graph/dashboard views read from ``asset_mentions`` and stay correct, and the
+    edges can be materialised afterwards with
+    :mod:`scripts.backfill_knowledge_edges`.
+    """
+    from uuid import uuid4
+
+    from sqlalchemy import select
+
+    from app.db import models as m
+    from app.db import repository as repo
+    from app.db.session import session_scope
+    from app.services import entity_extraction
+
+    embeddings_by_chunk = {emb.chunk_id: emb for emb in chunk_embeddings}
+
+    _progress(
+        f"  Bulk-persisting '{document.filename}': {len(chunks)} chunk(s), "
+        f"knowledge edges deferred to backfill…"
+    )
+
+    with session_scope() as session:
+        repo.create_document(
+            session=session,
+            id=document.id,
+            original_filename=document.filename,
+            content_type=document.content_type,
+            size_bytes=document.size_bytes,
+            text_char_count=document.text_char_count,
+            status=document.status,
+            storage_path=document.storage_path,
+            stored_filename=Path(document.storage_path).name,
+            source_type="upload",
+            chunk_count=document.chunk_count,
+        )
+
+        # 1) Chunks (+ embeddings inline) — one batched insert.
+        for chunk in chunks:
+            emb = embeddings_by_chunk.get(chunk.id)
+            session.add(
+                m.DocumentChunk(
+                    id=chunk.id,
+                    document_id=document.id,
+                    chunk_index=chunk.chunk_index,
+                    text=chunk.text,
+                    char_start=chunk.char_start,
+                    char_end=chunk.char_end,
+                    embedding=list(emb.vector) if emb is not None else None,
+                    embedding_model=emb.model if emb is not None else None,
+                )
+            )
+        session.flush()
+
+        # Extract equipment tags for every chunk up front.
+        tagged_chunks = [
+            (
+                chunk,
+                entity_extraction.extract_equipment_tags(
+                    chunk.text, document_id=document.id, chunk_id=chunk.id
+                ),
+            )
+            for chunk in chunks
+        ]
+
+        # 2) Assets — resolve all referenced tags in one SELECT, insert only the
+        # tags that do not yet exist (deduplicated across the whole document).
+        wanted_tags = {
+            tag.normalized_value.strip().upper()
+            for _chunk, tags in tagged_chunks
+            for tag in tags
+        }
+        tag_to_asset_id: dict[str, str] = {}
+        if wanted_tags:
+            for asset in (
+                session.execute(
+                    select(m.Asset).where(m.Asset.tag.in_(wanted_tags))
+                )
+                .scalars()
+                .all()
+            ):
+                tag_to_asset_id[asset.tag] = asset.id
+
+        new_assets: list[m.Asset] = []
+        for _chunk, tags in tagged_chunks:
+            for tag in tags:
+                norm_tag = tag.normalized_value.strip().upper()
+                if norm_tag and norm_tag not in tag_to_asset_id:
+                    asset_id = uuid4().hex
+                    tag_to_asset_id[norm_tag] = asset_id
+                    new_assets.append(
+                        m.Asset(
+                            id=asset_id,
+                            tag=norm_tag,
+                            asset_type=tag.asset_type,
+                            display_name=tag.normalized_value,
+                        )
+                    )
+        if new_assets:
+            session.add_all(new_assets)
+            session.flush()
+
+        # 3) Entities, then 4) mentions — batched inserts. Entities flush before
+        # mentions so the mention -> entity foreign key is satisfied.
+        entities: list[m.ExtractedEntity] = []
+        pending: list[tuple] = []  # (chunk, extracted_tag, entity_id)
+        for chunk, tags in tagged_chunks:
+            for tag in tags:
+                norm_tag = tag.normalized_value.strip().upper()
+                if not norm_tag:
+                    continue
+                entity_id = uuid4().hex
+                entities.append(
+                    m.ExtractedEntity(
+                        id=entity_id,
+                        entity_type=tag.entity_type,
+                        raw_value=tag.raw_value,
+                        normalized_value=tag.normalized_value,
+                        confidence=tag.confidence,
+                        document_id=document.id,
+                        chunk_id=chunk.id,
+                        page_number=tag.page_number,
+                        char_start=tag.char_start,
+                        char_end=tag.char_end,
+                        extraction_method=tag.extraction_method,
+                    )
+                )
+                pending.append((chunk, tag, entity_id))
+        if entities:
+            session.add_all(entities)
+            session.flush()
+
+        mentions = [
+            m.AssetMention(
+                id=uuid4().hex,
+                asset_id=tag_to_asset_id[tag.normalized_value.strip().upper()],
+                entity_id=entity_id,
+                document_id=document.id,
+                chunk_id=chunk.id,
+                page_number=tag.page_number,
+                confidence=tag.confidence,
+            )
+            for chunk, tag, entity_id in pending
+        ]
+        if mentions:
+            session.add_all(mentions)
+            session.flush()
+
+    _progress(
+        f"  Bulk-persisted '{document.filename}': {len(chunks)} chunk(s), "
+        f"{len(mentions)} asset mention(s) persisted."
+    )
+
+
 # ── CSV ingestion ─────────────────────────────────────────────────────────────
 
 async def ingest_csv(upload: UploadFile) -> Document:
@@ -427,14 +609,20 @@ async def ingest_csv(upload: UploadFile) -> Document:
         chunk_count=len(chunks),
     )
 
+    _progress(
+        f"CSV ingestion '{sanitized}': parsed {len(chunks)} row-chunk(s), "
+        f"embedding + persisting…"
+    )
+
     if config.use_postgres():
-        _persist_postgres(document, chunks, chunk_embeddings)
+        _persist_postgres_bulk(document, chunks, chunk_embeddings)
     else:
         chunking.save_chunks(doc_id, chunks)
         embeddings.save_embeddings(doc_id, chunk_embeddings)
         _save_chunk_facts(chunk_facts)
         _append_metadata(document)
 
+    _progress(f"CSV ingestion '{sanitized}' complete: {len(chunks)} chunk(s).")
     return document
 
 
@@ -523,14 +711,20 @@ async def ingest_xlsx(upload: UploadFile) -> Document:
         chunk_count=len(chunks),
     )
 
+    _progress(
+        f"XLSX ingestion '{sanitized}': parsed {len(chunks)} row-chunk(s), "
+        f"embedding + persisting…"
+    )
+
     if config.use_postgres():
-        _persist_postgres(document, chunks, chunk_embeddings)
+        _persist_postgres_bulk(document, chunks, chunk_embeddings)
     else:
         chunking.save_chunks(doc_id, chunks)
         embeddings.save_embeddings(doc_id, chunk_embeddings)
         _save_chunk_facts(chunk_facts)
         _append_metadata(document)
 
+    _progress(f"XLSX ingestion '{sanitized}' complete: {len(chunks)} chunk(s).")
     return document
 
 
