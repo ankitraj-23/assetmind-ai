@@ -58,7 +58,7 @@ export default function DashboardPage() {
             <p className="text-sm font-medium text-red-400">Backend Connection Error</p>
             <p className="max-w-md text-sm text-[var(--color-muted)]">
               Could not load dashboard data from the backend API. Make sure the
-              FastAPI server is running on <code className="text-xs">http://127.0.0.1:8000</code>.
+              FastAPI backend is reachable from the configured API base URL.
             </p>
             <p className="text-xs text-[var(--color-muted)]">{error}</p>
             <button
