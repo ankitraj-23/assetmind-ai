@@ -1,0 +1,322 @@
+[
+  {
+    "id": "Q01",
+    "question": "What is the maximum allowable vibration velocity for P-101 per OISD-137?",
+    "expected_answer": "4.5 mm/s RMS. Alarm setpoint is 3.5 mm/s and trip setpoint is 7.0 mm/s.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-101",
+    "category": "equipment_spec"
+  },
+  {
+    "id": "Q02",
+    "question": "What is the part number for the mechanical seal cartridge used in P-101, P-102, and P-201?",
+    "expected_answer": "MS-45-CR. It is an annual consumable and must be replaced during annual maintenance.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-101",
+    "category": "spare_parts"
+  },
+  {
+    "id": "Q03",
+    "question": "What are the drive end and non-drive end bearing specifications for P-102?",
+    "expected_answer": "Drive end bearing: 6309-2RS. Non-drive end bearing: 6206-2RS.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-102",
+    "category": "spare_parts"
+  },
+  {
+    "id": "Q04",
+    "question": "What causes cavitation in P-201 and how should it be resolved?",
+    "expected_answer": "Cavitation occurs when suction pressure drops below NPSHr of 3.2 m. Resolution: check suction strainer differential pressure, verify vessel level, and reduce flow rate if required.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-201",
+    "category": "failure_mode"
+  },
+  {
+    "id": "Q05",
+    "question": "What checks are required before starting P-101 after maintenance?",
+    "expected_answer": "Confirm work order is closed, verify suction valves fully open, check seal flush pressure between 0.8 and 1.2 bar, confirm oil level at sight glass, check coupling guard is fitted, set discharge valve to 25 percent open, and manually rotate shaft to confirm free rotation.",
+    "source_doc": "sop_pump_startup.pdf",
+    "asset_tag": "P-101",
+    "category": "procedure"
+  },
+  {
+    "id": "Q06",
+    "question": "What should a technician do if P-102 vibration exceeds 4.5 mm/s during startup?",
+    "expected_answer": "Shut down immediately and raise a maintenance work order in the CMMS system within 30 minutes. Do not attempt to restart until root cause is identified.",
+    "source_doc": "sop_pump_startup.pdf",
+    "asset_tag": "P-102",
+    "category": "procedure"
+  },
+  {
+    "id": "Q07",
+    "question": "What is the current vibration reading for P-101 and is it within acceptable limits?",
+    "expected_answer": "P-101 vibration reading is 6.2 mm/s RMS as of 15 March 2025. This exceeds the OISD-137 limit of 4.5 mm/s and is non-compliant. Risk level is HIGH.",
+    "source_doc": "inspection_report_q1_2025.pdf",
+    "asset_tag": "P-101",
+    "category": "inspection_finding"
+  },
+  {
+    "id": "Q08",
+    "question": "Which asset has a CRITICAL risk rating in the Q1 2025 inspection and why?",
+    "expected_answer": "BLR-118 (Package Boiler). Its pressure test certificate expired on 01 February 2025. Operating without a valid certificate violates Factories Act Section 31 and PESO regulations and exposes the facility to a shutdown notice.",
+    "source_doc": "inspection_report_q1_2025.pdf",
+    "asset_tag": "BLR-118",
+    "category": "compliance_gap"
+  },
+  {
+    "id": "Q09",
+    "question": "What is the compliance issue with TK-482 and what is the deadline to resolve it?",
+    "expected_answer": "Level transmitter LT-482-01 calibration is overdue by 45 days. Last calibration was October 2024. Per Factory Act Schedule VIII, calibration is required every 6 months. Must be completed by 30 March 2025.",
+    "source_doc": "inspection_report_q1_2025.pdf",
+    "asset_tag": "TK-482",
+    "category": "compliance_gap"
+  },
+  {
+    "id": "Q10",
+    "question": "Which assets are non-compliant in the 2025 compliance checklist?",
+    "expected_answer": "Three assets are non-compliant: BLR-118 (pressure test certificate expired), P-101 (vibration reading of 6.2 mm/s exceeds OISD-137 limit of 4.5 mm/s), and TK-482 (level transmitter calibration overdue by 45 days).",
+    "source_doc": "compliance_checklist_2025.pdf",
+    "asset_tag": "BLR-118",
+    "category": "compliance_gap"
+  },
+  {
+    "id": "Q11",
+    "question": "Which regulations require BLR-118 to hold a valid pressure test certificate?",
+    "expected_answer": "Factories Act Section 31 and PESO (Petroleum and Explosives Safety Organisation) regulations both require a valid pressure test certificate for boiler operation.",
+    "source_doc": "compliance_checklist_2025.pdf",
+    "asset_tag": "BLR-118",
+    "category": "regulatory"
+  },
+  {
+    "id": "Q12",
+    "question": "What action was taken to fix the high vibration alarm on P-101?",
+    "expected_answer": "Pump was isolated and casing drained. Bearing housing was disassembled and drive end bearing 22316E was replaced. Coupling was realigned to within 0.05 mm TIR. Functional test was performed at duty point.",
+    "source_doc": "work_orders_clean.csv",
+    "asset_tag": "P-101",
+    "category": "maintenance_history"
+  },
+  {
+    "id": "Q13",
+    "question": "Check the timeline of events for asset V-101.",
+    "expected_answer": "V-101 had a globe replacement on 2025-04-12, a calibration failure on 2025-05-18, and a LOTO audit on 2025-06-02.",
+    "source_doc": "work_orders_clean.csv",
+    "asset_tag": "V-101",
+    "category": "asset_timeline"
+  },
+  {
+    "id": "Q14",
+    "question": "Which document describes the shutdown procedure for Compressor C-220?",
+    "expected_answer": "sop_compressor_operations.pdf describes the standard shut down steps including bypass loading, block isolation, and blowdown depressurization.",
+    "source_doc": "sop_compressor_operations.pdf",
+    "asset_tag": "C-220",
+    "category": "asset_lookup"
+  },
+  {
+    "id": "Q15",
+    "question": "Verify if the safety inspection record for TK-482 is linked to any compliance regulations.",
+    "expected_answer": "Yes, TK-482 is linked to Factories Act Schedule VIII regarding transmitter calibration intervals.",
+    "source_doc": "compliance_checklist_2025.pdf",
+    "asset_tag": "TK-482",
+    "category": "knowledge_graph_relationship"
+  },
+  {
+    "id": "Q16",
+    "question": "What are the common symptoms of mechanical seal degradation in centifugal pumps?",
+    "expected_answer": "Symptoms include leak weepage from the casing gland, flush line temperature elevation, and increase in radial casing vibration velocity.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-101",
+    "category": "failure_mode"
+  },
+  {
+    "id": "Q17",
+    "question": "What is the recommended lube oil type for Compressor C-220?",
+    "expected_answer": "ISO VG 46 Turbine Oil per OEM specification sheet section 3.4.",
+    "source_doc": "compressor_datasheet.xlsx",
+    "asset_tag": "C-220",
+    "category": "equipment_spec"
+  },
+  {
+    "id": "Q18",
+    "question": "What is the maintenance history of P-102 in Q2 2025?",
+    "expected_answer": "DE Bearing replaced on 2025-05-10, and discharge pressure transmitter recalibrated on 2025-06-15.",
+    "source_doc": "work_orders_clean.csv",
+    "asset_tag": "P-102",
+    "category": "maintenance_history"
+  },
+  {
+    "id": "Q19",
+    "question": "Describe the root cause of the bearing temperature trip on C-220.",
+    "expected_answer": "Lube oil filter fouling causing oil flow starvation, leading to friction elevation at NDE bearings.",
+    "source_doc": "rca_findings_2025.csv",
+    "asset_tag": "C-220",
+    "category": "failure/RCA"
+  },
+  {
+    "id": "Q20",
+    "question": "What regulatory standard governs LOTO implementation at the plant?",
+    "expected_answer": "OSHA 1910.147 as referenced in the compliance checklist 2025 and SOP manuals.",
+    "source_doc": "compliance_checklist_2025.pdf",
+    "asset_tag": "P-101",
+    "category": "regulatory"
+  },
+  {
+    "id": "Q21",
+    "question": "Show the link between work order WO-9941 and the associated asset.",
+    "expected_answer": "WO-9941 is linked to asset P-101 for mechanical seal replacement.",
+    "source_doc": "work_orders_clean.csv",
+    "asset_tag": "P-101",
+    "category": "knowledge_graph_relationship"
+  },
+  {
+    "id": "Q22",
+    "question": "Explain the citation accuracy for the vibration threshold of category 2 motors.",
+    "expected_answer": "Vibration threshold is 2.8 mm/s RMS as cited in standard motor datasheet and ISO-10816.",
+    "source_doc": "compliance_checklist_2025.pdf",
+    "asset_tag": "P-102",
+    "category": "citation_accuracy"
+  },
+  {
+    "id": "Q23",
+    "question": "Which actions are pending for safety valve SV-302?",
+    "expected_answer": "Pop test calibration is overdue by 12 days; target compliance date was 2025-06-20.",
+    "source_doc": "inspection_report_q1_2025.pdf",
+    "asset_tag": "V-101",
+    "category": "compliance_gap"
+  },
+  {
+    "id": "Q24",
+    "question": "Summarize the alignment checks required before startup of C-220.",
+    "expected_answer": "Verify face and radial alignment within 0.03 mm using dial gauges, check dial deflection, and record coupling gap.",
+    "source_doc": "sop_compressor_operations.pdf",
+    "asset_tag": "C-220",
+    "category": "procedure"
+  },
+  {
+    "id": "Q25",
+    "question": "Which document covers the annual testing criteria for high-pressure storage tanks?",
+    "expected_answer": "API-653 guideline document and plant testing checklist compliance standard.",
+    "source_doc": "compliance_checklist_2025.pdf",
+    "asset_tag": "TK-482",
+    "category": "regulatory"
+  },
+  {
+    "id": "Q26",
+    "question": "What bearing types are recommended for the high pressure rotor of C-220?",
+    "expected_answer": "Tilt-pad journal bearings at DE and NDE as described in compressor datasheet specifications.",
+    "source_doc": "compressor_datasheet.xlsx",
+    "asset_tag": "C-220",
+    "category": "equipment_spec"
+  },
+  {
+    "id": "Q27",
+    "question": "Find the timeline details for the safety audit on BLR-118.",
+    "expected_answer": "Safety audit gap flagged on 2025-02-01, warning letter issued 2025-02-15, and follow-up review scheduled 2025-07-20.",
+    "source_doc": "inspection_report_q1_2025.pdf",
+    "asset_tag": "BLR-118",
+    "category": "asset_timeline"
+  },
+  {
+    "id": "Q28",
+    "question": "What is the expected operating discharge pressure for Pump P-102?",
+    "expected_answer": "Standard discharge pressure is 12.4 bar under normal operating conditions per OEM datasheets.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-102",
+    "category": "equipment_spec"
+  },
+  {
+    "id": "Q29",
+    "question": "Detail the steps required for a safe shutdown of the distillation column boilers.",
+    "expected_answer": "Isolate fuel lines, execute purge sequence, log pressure levels, and secure blowdown valves.",
+    "source_doc": "sop_pump_startup.pdf",
+    "asset_tag": "BLR-118",
+    "category": "procedure"
+  },
+  {
+    "id": "Q30",
+    "question": "Which records mention both calibration limits and inspection dates for V-101?",
+    "expected_answer": "compliance_checklist_2025.pdf details both calibration tolerances and inspection dates for LT transmitter loops.",
+    "source_doc": "compliance_checklist_2025.pdf",
+    "asset_tag": "V-101",
+    "category": "multi-document reasoning"
+  },
+  {
+    "id": "Q31",
+    "question": "Compare the cooling water requirements of P-101 and C-220.",
+    "expected_answer": "P-101 requires 5 m3/h cooling water flow at gland; C-220 requires 45 m3/h cooling flow for interstage cooling.",
+    "source_doc": "compressor_datasheet.xlsx",
+    "asset_tag": "C-220",
+    "category": "multi-document reasoning"
+  },
+  {
+    "id": "Q32",
+    "question": "Check the exact citation section for mechanical seal flush API plan 11.",
+    "expected_answer": "pump_oem_manual.pdf section 5.3 describes flush plan orifice and line sizing criteria.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-101",
+    "category": "citation_accuracy"
+  },
+  {
+    "id": "Q33",
+    "question": "What spare parts are critical for C-220?",
+    "expected_answer": "Bearing pads, rotor kit assemblies, filter mesh screens, and coupling spacer disks.",
+    "source_doc": "compressor_datasheet.xlsx",
+    "asset_tag": "C-220",
+    "category": "spare_parts"
+  },
+  {
+    "id": "Q34",
+    "question": "Find the date of the lube oil leakage event on P-102.",
+    "expected_answer": "Vibration survey reports leak on 2025-05-18 during routine inspection run.",
+    "source_doc": "inspection_report_q1_2025.pdf",
+    "asset_tag": "P-102",
+    "category": "asset_timeline"
+  },
+  {
+    "id": "Q35",
+    "question": "What is the source document for the safety valves calibration records?",
+    "expected_answer": "V-101 safety relief valve logs are stored in work_orders_clean.csv.",
+    "source_doc": "work_orders_clean.csv",
+    "asset_tag": "V-101",
+    "category": "asset_lookup"
+  },
+  {
+    "id": "Q36",
+    "question": "Is the bearing failure mode on P-102 similar to the failure on C-220?",
+    "expected_answer": "Both are driven by lubrication issues: C-220 is due to oil starvation, while P-102 is due to grease contamination per failure reports.",
+    "source_doc": "rca_findings_2025.csv",
+    "asset_tag": "P-102",
+    "category": "failure/RCA"
+  },
+  {
+    "id": "Q37",
+    "question": "What is the flow rate range for P-101 at the normal duty point?",
+    "expected_answer": "Normal flow rate is 185 m3/h at 85 m differential head per pump curve sheets.",
+    "source_doc": "pump_oem_manual.pdf",
+    "asset_tag": "P-101",
+    "category": "equipment_spec"
+  },
+  {
+    "id": "Q38",
+    "question": "Confirm LOTO isolation locations for V-101.",
+    "expected_answer": "Inlet handwheel block valve HV-101-01 and outlet handwheel HV-101-02.",
+    "source_doc": "sop_pump_startup.pdf",
+    "asset_tag": "V-101",
+    "category": "procedure"
+  },
+  {
+    "id": "Q39",
+    "question": "Show all document chunks that link P-101 to recurring seal failures.",
+    "expected_answer": "inspection_report_q1_2025.pdf chunk 3, and work_orders_clean.csv chunk 12.",
+    "source_doc": "inspection_report_q1_2025.pdf",
+    "asset_tag": "P-101",
+    "category": "knowledge_graph_relationship"
+  },
+  {
+    "id": "Q40",
+    "question": "What is the deadline for compliance recertification of the steam generator boiler?",
+    "expected_answer": "Boiler BLR-118 certificate must be renewed by 2025-07-20 per factories act warning mandates.",
+    "source_doc": "compliance_checklist_2025.pdf",
+    "asset_tag": "BLR-118",
+    "category": "compliance_gap"
+  }
+]
