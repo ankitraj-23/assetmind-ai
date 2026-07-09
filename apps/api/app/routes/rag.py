@@ -8,9 +8,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core import config
 from app.db.session import DatabaseNotConfiguredError
 from app.rag import answer as answer_service
+from app.rag import chat as chat_service
 from app.rag import retrieval, storage
 from app.rag.embeddings import MissingGeminiApiKeyError
 from app.rag.schemas import (
+    RAGChatHistoryResponse,
+    RAGChatRequest,
+    RAGChatResponse,
+    RAGChatSessionsResponse,
     RAGIngestRequest,
     RAGIngestResponse,
     RAGQueryRequest,
@@ -60,6 +65,44 @@ def query(request: RAGQueryRequest) -> RAGQueryResponse:
         raise HTTPException(status_code=400, detail="'question' must not be empty.")
     try:
         return answer_service.answer_question(request.question, top_k=request.top_k)
+    except Exception as exc:
+        raise _handle_error(exc) from exc
+
+
+@router.post("/chat", response_model=RAGChatResponse)
+def chat(request: RAGChatRequest) -> RAGChatResponse:
+    _require_postgres()
+    if not request.message.strip():
+        raise HTTPException(status_code=400, detail="'message' must not be empty.")
+    try:
+        return chat_service.answer_chat_message(
+            request.message,
+            session_id=request.session_id,
+            user_id=request.user_id,
+            top_k=request.top_k,
+            asset_tag=request.asset_tag,
+        )
+    except Exception as exc:
+        raise _handle_error(exc) from exc
+
+
+@router.get("/chat/sessions", response_model=RAGChatSessionsResponse)
+def chat_sessions(user_id: str | None = None) -> RAGChatSessionsResponse:
+    _require_postgres()
+    try:
+        return chat_service.list_chat_sessions(user_id=user_id)
+    except Exception as exc:
+        raise _handle_error(exc) from exc
+
+
+@router.get("/chat/sessions/{session_id}", response_model=RAGChatHistoryResponse)
+def chat_history(
+    session_id: str,
+    user_id: str | None = None,
+) -> RAGChatHistoryResponse:
+    _require_postgres()
+    try:
+        return chat_service.get_chat_history(session_id, user_id=user_id)
     except Exception as exc:
         raise _handle_error(exc) from exc
 

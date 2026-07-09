@@ -25,7 +25,7 @@ def _api_key() -> str:
 
 
 def _generation_model() -> str:
-    return (settings.gemini_generation_model or "gemini-3.5-flash").strip()
+    return (settings.gemini_generation_model or "gemini-2.5-flash").strip()
 
 
 def _client():
@@ -87,7 +87,30 @@ def _context(chunks: list[RetrievedChunk]) -> str:
     return "\n\n".join(blocks)
 
 
-def _generate_answer(question: str, chunks: list[RetrievedChunk]) -> str:
+def _conversation_context(messages: list[dict[str, str]] | None) -> str:
+    if not messages:
+        return "No prior conversation context."
+    lines: list[str] = []
+    for message in messages:
+        role = str(message.get("role") or "").strip().lower()
+        content = str(message.get("content") or "").strip()
+        if role in {"user", "assistant"} and content:
+            lines.append(f"{role}: {content}")
+    return "\n".join(lines) if lines else "No prior conversation context."
+
+
+def _generate_answer(
+    question: str,
+    chunks: list[RetrievedChunk],
+    *,
+    standalone_question: str | None = None,
+    conversation_messages: list[dict[str, str]] | None = None,
+) -> str:
+    standalone_block = (
+        standalone_question.strip()
+        if standalone_question and standalone_question.strip() != question.strip()
+        else question.strip()
+    )
     prompt = f"""
 You answer questions for AssetMind AI using only the supplied document context.
 If the context does not contain enough evidence, answer exactly:
@@ -99,9 +122,16 @@ Rules:
 - Retrieval summary labels are search hints only; do not cite them as evidence.
 - Keep the answer concise and factual.
 - Mention source numbers like [1] or [2] beside supported claims.
+- Use recent conversation only to understand pronouns/follow-ups; factual claims must still come from the document context.
 
-Question:
+Recent conversation:
+{_conversation_context(conversation_messages)}
+
+Current user question:
 {question}
+
+Standalone retrieval question:
+{standalone_block}
 
 Context:
 {_context(chunks)}
@@ -161,8 +191,13 @@ def _visual_parts(chunks: list[RetrievedChunk]) -> list[tuple[str, object]]:
     return parts
 
 
-def answer_question(question: str, top_k: int = 5) -> RAGQueryResponse:
-    retrieved = retrieve_relevant_chunks(question, top_k=top_k)
+def answer_with_chunks(
+    question: str,
+    retrieved: list[RetrievedChunk],
+    *,
+    standalone_question: str | None = None,
+    conversation_messages: list[dict[str, str]] | None = None,
+) -> RAGQueryResponse:
     if not retrieved or retrieved[0].score < MIN_CONTEXT_SCORE:
         return RAGQueryResponse(
             answer=INSUFFICIENT_ANSWER,
@@ -172,7 +207,12 @@ def answer_question(question: str, top_k: int = 5) -> RAGQueryResponse:
             retrieved_chunks=retrieved,
         )
 
-    answer = _generate_answer(question, retrieved)
+    answer = _generate_answer(
+        question,
+        retrieved,
+        standalone_question=standalone_question,
+        conversation_messages=conversation_messages,
+    )
     response_citations = citations.citations_from_chunks(retrieved)
     missing_info: list[str] = []
     if answer.strip() == INSUFFICIENT_ANSWER:
@@ -186,3 +226,8 @@ def answer_question(question: str, top_k: int = 5) -> RAGQueryResponse:
         missing_info=missing_info,
         retrieved_chunks=retrieved,
     )
+
+
+def answer_question(question: str, top_k: int = 5) -> RAGQueryResponse:
+    retrieved = retrieve_relevant_chunks(question, top_k=top_k)
+    return answer_with_chunks(question, retrieved)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -240,6 +241,54 @@ class RAGQueryResponse(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
     missing_info: list[str] = Field(default_factory=list)
     retrieved_chunks: list[RetrievedChunk]
+
+
+ChatRole = Literal["user", "assistant"]
+
+
+class RAGChatMessage(BaseModel):
+    id: str
+    role: ChatRole
+    content: str
+    standalone_question: str | None = None
+    citations: list[RAGCitation] = Field(default_factory=list)
+    retrieved_chunk_ids: list[str] = Field(default_factory=list)
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    created_at: datetime | None = None
+
+
+class RAGChatSessionSummary(BaseModel):
+    session_id: str
+    title: str | None = None
+    user_id: str | None = None
+    message_count: int = 0
+    updated_at: datetime | None = None
+    created_at: datetime | None = None
+
+
+class RAGChatSessionsResponse(BaseModel):
+    sessions: list[RAGChatSessionSummary]
+
+
+class RAGChatHistoryResponse(BaseModel):
+    session: RAGChatSessionSummary
+    messages: list[RAGChatMessage]
+
+
+class RAGChatRequest(BaseModel):
+    session_id: str | None = None
+    user_id: str | None = None
+    message: str = Field(..., min_length=1)
+    top_k: int = Field(7, ge=1, le=20)
+    asset_tag: str | None = None
+
+
+class RAGChatResponse(RAGQueryResponse):
+    session_id: str
+    user_message_id: str
+    assistant_message_id: str
+    standalone_question: str
+    asset_tag: str | None = None
 
 
 class RAGSearchResponse(BaseModel):

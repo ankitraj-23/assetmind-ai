@@ -79,6 +79,9 @@ export interface ApiQueryResponse {
   retrieved_count: number;
   query_intent?: string; // Added in Week 2
   related_assets?: string[]; // Added in Week 2
+  session_id?: string;
+  standalone_question?: string;
+  asset_tag?: string | null;
 }
 
 /** Throw a readable error, surfacing the backend's `detail` message when present. */
@@ -429,21 +432,145 @@ export interface QueryCopilotParams {
   question: string;
   top_k?: number;
   asset_tag?: string;
+  session_id?: string;
+  user_id?: string;
+}
+
+interface ApiRagCitation {
+  file_name: string;
+  page: number | null;
+  row: number | null;
+  section_title: string | null;
+  parent_chunk_id: string | null;
+  retrieval_unit_id: string | null;
+  chunk_id: string;
+  source_path: string | null;
+  snippet: string;
+}
+
+interface ApiRetrievedChunk {
+  chunk_id: string;
+  document_id: string;
+  parent_chunk_id?: string | null;
+  score: number;
+  file_name: string;
+  page_number?: number | null;
+  page_start?: number | null;
+  chunk_index: number;
+  raw_text?: string | null;
+  content: string;
+  asset_tags?: string[];
+}
+
+interface ApiRagChatResponse {
+  session_id: string;
+  user_message_id: string;
+  assistant_message_id: string;
+  standalone_question: string;
+  asset_tag?: string | null;
+  answer: string;
+  citations: ApiRagCitation[];
+  confidence: number;
+  missing_info: string[];
+  retrieved_chunks: ApiRetrievedChunk[];
+}
+
+export interface ApiChatSessionSummary {
+  session_id: string;
+  title: string | null;
+  user_id: string | null;
+  message_count: number;
+  updated_at: string | null;
+  created_at: string | null;
+}
+
+interface ApiRagChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  standalone_question: string | null;
+  citations: ApiRagCitation[];
+  retrieved_chunk_ids: string[];
+  confidence: number | null;
+  created_at: string | null;
+}
+
+export interface ApiChatHistoryResponse {
+  session: ApiChatSessionSummary;
+  messages: ApiRagChatMessage[];
 }
 
 export async function queryCopilot(
   params: QueryCopilotParams,
 ): Promise<ApiQueryResponse> {
-  const res = await fetch(`${API_BASE_URL}/query`, {
+  const res = await fetch(`${API_BASE_URL}/rag/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      question: params.question,
+      message: params.question,
       top_k: params.top_k ?? 5,
       asset_tag: params.asset_tag || undefined,
+      session_id: params.session_id || undefined,
+      user_id: params.user_id || undefined,
     }),
   });
   await ensureOk(res, "Query Copilot");
-  return res.json() as Promise<ApiQueryResponse>;
+  const body = (await res.json()) as ApiRagChatResponse;
+  const chunksById = new Map(body.retrieved_chunks.map((chunk) => [chunk.chunk_id, chunk]));
+  const scopedAsset = (body.asset_tag ?? "").toUpperCase();
+  const relatedAssets = Array.from(
+    new Set(
+      body.retrieved_chunks
+        .flatMap((chunk) => chunk.asset_tags ?? [])
+        .map((tag) => tag.toUpperCase())
+        .filter((tag) => tag && tag !== scopedAsset),
+    ),
+  );
+
+  return {
+    question: params.question,
+    answer: body.answer,
+    confidence: body.confidence >= 0.75 ? "high" : body.confidence >= 0.4 ? "medium" : "low",
+    citations: body.citations.map((citation, index) => {
+      const chunk = chunksById.get(citation.chunk_id);
+      return {
+        document_id: chunk?.document_id ?? citation.parent_chunk_id ?? citation.chunk_id,
+        chunk_id: citation.chunk_id,
+        chunk_index: chunk?.chunk_index ?? index,
+        score: chunk?.score ?? body.confidence,
+        text_preview: citation.snippet || chunk?.raw_text || chunk?.content || "",
+        filename: citation.file_name,
+        page_number: citation.page ?? chunk?.page_start ?? chunk?.page_number ?? null,
+      };
+    }),
+    retrieved_count: body.retrieved_chunks.length,
+    query_intent: "rag_chat",
+    related_assets: relatedAssets,
+    session_id: body.session_id,
+    standalone_question: body.standalone_question,
+    asset_tag: body.asset_tag ?? null,
+  };
+}
+
+export async function listCopilotChats(
+  userId: string,
+): Promise<ApiChatSessionSummary[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/rag/chat/sessions?user_id=${encodeURIComponent(userId)}`,
+  );
+  await ensureOk(res, "Load chat sessions");
+  const body = (await res.json()) as { sessions: ApiChatSessionSummary[] };
+  return body.sessions;
+}
+
+export async function getCopilotChat(
+  sessionId: string,
+  userId: string,
+): Promise<ApiChatHistoryResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/rag/chat/sessions/${encodeURIComponent(sessionId)}?user_id=${encodeURIComponent(userId)}`,
+  );
+  await ensureOk(res, "Load chat history");
+  return res.json() as Promise<ApiChatHistoryResponse>;
 }
 

@@ -72,11 +72,31 @@ Retrieval/query flow:
 ```text
 Question
 -> Gemini query embedding
--> vector search over parent summary embeddings
+-> 70/30 hybrid vector + keyword retrieval
+-> metadata boost for answerable_questions and asset_tags
+-> reciprocal rank fusion + MMR diversity selection
 -> fetch linked raw parent chunks
 -> Gemini answer generation using raw parent chunk evidence
 -> answer + citations + confidence
 ```
+
+Follow-up chat flow:
+
+```text
+session summary + last few messages + new user message
+-> standalone retrieval query rewrite
+-> same hybrid retrieval pipeline
+-> Gemini answer generation with recent conversation context
+-> store user/assistant messages, citations, confidence, and retrieved chunk IDs
+```
+
+The chat endpoint stores full message history in Postgres, but it does not send
+the full history to Gemini. Rewriting and answer generation use only a compact
+session summary plus the most recent messages so long conversations do not keep
+growing the prompt. LLM-based session compression starts once the session has
+more than 6 stored messages, which is the 4th user question in a normal
+user/assistant chat. Older messages are merged into `chat_sessions.summary`,
+while the latest 6 messages remain available as raw recent context.
 
 CSV rows are extracted as text elements, with each non-empty cell rendered as
 `'Column name': value.` and no atomic visual summaries. Atomic visual elements
@@ -128,7 +148,7 @@ Optional model overrides:
 
 ```powershell
 $env:GEMINI_EMBEDDING_MODEL="gemini-embedding-2"
-$env:GEMINI_GENERATION_MODEL="gemini-3.5-flash"
+$env:GEMINI_GENERATION_MODEL="gemini-2.5-flash"
 $env:RAG_VISUAL_STORAGE_DIR="storage/extracted_visuals"
 ```
 
@@ -173,6 +193,22 @@ Query the RAG API:
 curl.exe -X POST http://localhost:8000/rag/query `
   -H "Content-Type: application/json" `
   -d "{\"question\":\"What is the maximum allowable vibration velocity for P-101 per OISD-137?\",\"top_k\":5}"
+```
+
+Ask a follow-up aware chat question:
+
+```powershell
+curl.exe -X POST http://localhost:8000/rag/chat `
+  -H "Content-Type: application/json" `
+  -d "{\"message\":\"What could be possible reasons for P-101 to fail?\",\"top_k\":7}"
+```
+
+Pass the returned `session_id` for follow-ups:
+
+```powershell
+curl.exe -X POST http://localhost:8000/rag/chat `
+  -H "Content-Type: application/json" `
+  -d "{\"session_id\":\"chat-id-from-previous-response\",\"message\":\"How can we prevent that?\",\"top_k\":7}"
 ```
 
 Retrieval-only debug endpoint:

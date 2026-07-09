@@ -16,7 +16,7 @@ from app.rag.schemas import (
 )
 from app.services.entity_extraction import extract_equipment_tags
 
-SUMMARY_MODEL_FALLBACK = "gemini-3.5-flash"
+SUMMARY_MODEL_FALLBACK = "gemini-2.5-flash"
 QUESTION_COUNT = 5
 
 

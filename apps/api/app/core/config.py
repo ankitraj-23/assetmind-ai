@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     # API keys are reported by RAG endpoints/scripts at runtime, not at startup.
     gemini_api_key: str | None = None
     gemini_embedding_model: str = "gemini-embedding-2"
-    gemini_generation_model: str = "gemini-3.5-flash"
+    gemini_generation_model: str = "gemini-2.5-flash"
     rag_visual_storage_dir: str = "storage/extracted_visuals"
 
     # Browser origins allowed to call the API (the Next.js dev server by default).

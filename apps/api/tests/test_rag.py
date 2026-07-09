@@ -7,7 +7,16 @@ from app.core.config import settings
 from app.main import app
 from app.rag.chunking import build_parent_chunks
 from app.rag.extraction import extract_file
-from app.rag.schemas import DocumentElement, RAGQueryResponse, RetrievedChunk
+from app.rag.schemas import (
+    DocumentElement,
+    RAGChatHistoryResponse,
+    RAGChatMessage,
+    RAGChatResponse,
+    RAGChatSessionSummary,
+    RAGChatSessionsResponse,
+    RAGQueryResponse,
+    RetrievedChunk,
+)
 from app.rag.summaries import (
     build_parent_summary,
     build_retrieval_unit,
@@ -550,3 +559,148 @@ def test_rag_query_endpoint_validates_response_schema(monkeypatch):
     assert response.status_code == 200
     assert response.json()["answer"] == response_model.answer
     assert response.json()["confidence"] == 0.8
+
+
+def test_chat_memory_uses_summary_and_recent_messages_only():
+    from app.rag import chat
+
+    class Message:
+        def __init__(self, role: str, content: str):
+            self.role = role
+            self.content = content
+
+    history = [Message("user", f"question {index}") for index in range(10)]
+
+    memory = chat._memory_context("The user is discussing P-101 failures.", history)
+
+    assert memory[0]["content"] == "Conversation summary: The user is discussing P-101 failures."
+    assert len(memory) == chat.RECENT_MESSAGE_LIMIT + 1
+    assert memory[1]["content"] == "question 4"
+    assert memory[-1]["content"] == "question 9"
+
+
+def test_chat_summary_compression_starts_after_fourth_user_question(monkeypatch):
+    from app.rag import chat
+
+    class Message:
+        def __init__(self, role: str, content: str):
+            self.role = role
+            self.content = content
+
+    six_messages = [
+        Message("user", "question 1"),
+        Message("assistant", "answer 1"),
+        Message("user", "question 2"),
+        Message("assistant", "answer 2"),
+        Message("user", "question 3"),
+        Message("assistant", "answer 3"),
+    ]
+    summarized_batches = []
+
+    def fake_llm_summary(existing_summary, messages_to_summarize):
+        summarized_batches.append(messages_to_summarize)
+        return "LLM summary of older P-101 discussion."
+
+    monkeypatch.setattr(chat, "_llm_compact_summary", fake_llm_summary)
+
+    summary, message_count, was_updated = chat._summarize_session_if_needed(
+        None,
+        0,
+        six_messages,
+        "question 4",
+        "answer 4",
+    )
+
+    assert was_updated is True
+    assert summary == "LLM summary of older P-101 discussion."
+    assert message_count == 2
+    assert summarized_batches == [
+        [
+            {"role": "user", "content": "question 1"},
+            {"role": "assistant", "content": "answer 1"},
+        ]
+    ]
+
+
+def test_chat_asset_scope_is_added_to_standalone_query():
+    from app.rag import chat
+
+    assert (
+        chat._apply_asset_scope("How can failures be prevented?", "P-101")
+        == "How can failures be prevented? Asset tag: P-101."
+    )
+    assert chat._apply_asset_scope("How can P-101 failures be prevented?", "P-101") == (
+        "How can P-101 failures be prevented?"
+    )
+
+
+def test_rag_chat_endpoint_validates_response_schema(monkeypatch):
+    from app.rag import chat
+
+    monkeypatch.setattr(settings, "persistence_backend", "postgres")
+
+    response_model = RAGChatResponse(
+        session_id="chat-1",
+        user_message_id="msg-user",
+        assistant_message_id="msg-assistant",
+        standalone_question="How can pump P-101 failures be prevented?",
+        answer="Prevent P-101 failures by addressing seal leakage and overloads. [1]",
+        citations=[],
+        confidence=0.82,
+        missing_info=[],
+        retrieved_chunks=[],
+    )
+    monkeypatch.setattr(
+        chat,
+        "answer_chat_message",
+        lambda message, session_id=None, user_id=None, top_k=7, asset_tag=None: response_model,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/rag/chat",
+        json={"message": "How can we prevent that?", "top_k": 7},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["session_id"] == "chat-1"
+    assert response.json()["standalone_question"] == response_model.standalone_question
+    assert response.json()["answer"] == response_model.answer
+
+
+def test_rag_chat_session_endpoints_validate_response_schema(monkeypatch):
+    from app.rag import chat
+
+    monkeypatch.setattr(settings, "persistence_backend", "postgres")
+
+    session_summary = RAGChatSessionSummary(
+        session_id="chat-1",
+        title="P-101 failure",
+        user_id="user-1",
+        message_count=2,
+    )
+    monkeypatch.setattr(
+        chat,
+        "list_chat_sessions",
+        lambda user_id=None: RAGChatSessionsResponse(sessions=[session_summary]),
+    )
+    monkeypatch.setattr(
+        chat,
+        "get_chat_history",
+        lambda session_id, user_id=None: RAGChatHistoryResponse(
+            session=session_summary,
+            messages=[
+                RAGChatMessage(id="m1", role="user", content="Why can P-101 fail?"),
+                RAGChatMessage(id="m2", role="assistant", content="Seal leakage. [1]"),
+            ],
+        ),
+    )
+
+    client = TestClient(app)
+    list_response = client.get("/rag/chat/sessions?user_id=user-1")
+    history_response = client.get("/rag/chat/sessions/chat-1?user_id=user-1")
+
+    assert list_response.status_code == 200
+    assert list_response.json()["sessions"][0]["session_id"] == "chat-1"
+    assert history_response.status_code == 200
+    assert len(history_response.json()["messages"]) == 2
