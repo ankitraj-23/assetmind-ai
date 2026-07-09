@@ -24,6 +24,7 @@ Usage
 from __future__ import annotations
 
 import sys
+from uuid import uuid4
 
 from sqlalchemy import func, select
 
@@ -39,6 +40,10 @@ from app.db.session import (  # noqa: E402
     session_scope,
 )
 
+# The tuple that uniquely identifies a knowledge edge, mirroring the uniqueness
+# check in :func:`app.db.repository.upsert_knowledge_edge`.
+_EdgeKey = tuple[str, str, str, str, str, str | None]
+
 
 def main() -> int:
     try:
@@ -47,8 +52,6 @@ def main() -> int:
         print(f"ERROR: {exc}")
         print("Set DATABASE_URL and PERSISTENCE_BACKEND=postgres before running.")
         return 1
-
-    from app.db import repository as repo
 
     mentions_scanned = 0
     edges_attempted = 0
@@ -61,15 +64,67 @@ def main() -> int:
             or 0
         )
 
+        # Preload every existing edge key once, so the per-mention loop below is
+        # pure in-memory set membership instead of a SELECT round-trip per edge.
+        # This is what makes the backfill fast after a large CSV/XLSX ingest.
+        seen_keys: set[_EdgeKey] = set(
+            session.execute(
+                select(
+                    KnowledgeEdge.source_type,
+                    KnowledgeEdge.source_id,
+                    KnowledgeEdge.relation_type,
+                    KnowledgeEdge.target_type,
+                    KnowledgeEdge.target_id,
+                    KnowledgeEdge.evidence_chunk_id,
+                )
+            ).all()
+        )
+
+        new_edges: list[KnowledgeEdge] = []
+
+        def _stage_edge(
+            *,
+            source_id: str,
+            relation_type: str,
+            target_type: str,
+            target_id: str,
+            evidence_chunk_id: str | None,
+            confidence: float | None,
+        ) -> None:
+            nonlocal edges_attempted
+            edges_attempted += 1
+            key: _EdgeKey = (
+                "asset",
+                source_id,
+                relation_type,
+                target_type,
+                target_id,
+                evidence_chunk_id,
+            )
+            # Skip both edges already in the DB and duplicates within this run.
+            if key in seen_keys:
+                return
+            seen_keys.add(key)
+            new_edges.append(
+                KnowledgeEdge(
+                    id=uuid4().hex,
+                    source_type="asset",
+                    source_id=source_id,
+                    relation_type=relation_type,
+                    target_type=target_type,
+                    target_id=target_id,
+                    evidence_chunk_id=evidence_chunk_id,
+                    confidence=confidence,
+                    metadata_json={},
+                )
+            )
+
         mentions = session.execute(select(AssetMention)).scalars().all()
         for mention in mentions:
             mentions_scanned += 1
 
             if mention.document_id is not None:
-                edges_attempted += 1
-                repo.upsert_knowledge_edge(
-                    session=session,
-                    source_type="asset",
+                _stage_edge(
                     source_id=mention.asset_id,
                     relation_type="mentioned_in",
                     target_type="document",
@@ -78,10 +133,7 @@ def main() -> int:
                     confidence=mention.confidence,
                 )
             if mention.chunk_id is not None:
-                edges_attempted += 1
-                repo.upsert_knowledge_edge(
-                    session=session,
-                    source_type="asset",
+                _stage_edge(
                     source_id=mention.asset_id,
                     relation_type="supported_by_chunk",
                     target_type="chunk",
@@ -90,10 +142,7 @@ def main() -> int:
                     confidence=mention.confidence,
                 )
             if mention.entity_id is not None:
-                edges_attempted += 1
-                repo.upsert_knowledge_edge(
-                    session=session,
-                    source_type="asset",
+                _stage_edge(
                     source_id=mention.asset_id,
                     relation_type="has_entity",
                     target_type="entity",
@@ -101,6 +150,9 @@ def main() -> int:
                     evidence_chunk_id=mention.chunk_id,
                     confidence=mention.confidence,
                 )
+
+        if new_edges:
+            session.add_all(new_edges)
 
         # Flush so the post-count reflects rows added in this transaction before
         # the surrounding session_scope commits.
