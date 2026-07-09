@@ -16,15 +16,17 @@ class QueryRequest(BaseModel):
     top_k: int = Field(
         5, ge=1, le=50, description="Number of chunks to retrieve as context."
     )
+    asset_tag: str | None = Field(
+        None,
+        description=(
+            "Optional equipment tag (e.g. 'P-101'). When provided, retrieval "
+            "prioritises chunks that mention this asset."
+        ),
+    )
 
 
 class QueryCitation(BaseModel):
-    """A retrieved chunk cited as evidence for the answer.
-
-    ``filename`` is the human-readable source document name for demo-friendly
-    citations; it is optional and falls back to ``document_id`` in the UI when
-    absent. ``document_id``/``chunk_id`` are retained for internal traceability.
-    """
+    """A retrieved chunk cited as evidence for the answer."""
 
     document_id: str
     chunk_id: str
@@ -32,6 +34,7 @@ class QueryCitation(BaseModel):
     score: float
     text_preview: str
     filename: str | None = None
+    page_number: int | None = None
 
 
 class QueryResponse(BaseModel):
@@ -42,3 +45,5 @@ class QueryResponse(BaseModel):
     confidence: str
     citations: list[QueryCitation]
     retrieved_count: int
+    query_intent: str = "general"
+    related_assets: list[str] = Field(default_factory=list)
