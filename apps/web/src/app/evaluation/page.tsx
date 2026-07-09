@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Card, PageHeader, Badge, SectionTitle, StatCard } from "@/components/ui";
 import Link from "next/link";
 import { listDocuments, type ApiDocument } from "@/lib/api";
-import sampleData from "../../../../../data/benchmark/results_sample.json";
-import questions from "../../../../../data/benchmark/questions.json";
+import sampleData from "@/data/benchmark/results_sample.json";
+import questions from "@/data/benchmark/questions.json";
 
 export default function EvaluationPage() {
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
