@@ -46,8 +46,8 @@ export default function DocumentsPage() {
         ) : docs.length === 0 ? (
           <div className="px-1 py-10 text-center">
             <p className="text-sm font-medium">No documents yet</p>
-            <p className="mt-1 text-xs text-[var(--color-muted)]">
-              Upload a PDF or TXT to index it into the knowledge base.
+            <p className="mt-1 text-xs text-[var(--color-muted)] max-w-md mx-auto">
+              Upload industrial PDFs, text notes, work order CSVs, or spreadsheet records to start parsing equipment tags and compliance facts.
             </p>
             <Link
               href="/upload"

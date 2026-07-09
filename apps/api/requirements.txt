@@ -12,4 +12,6 @@ pgvector
 PyMuPDF
 google-genai
 pytest
-httpx2
+httpx
+pandas
+openpyxl

@@ -6,8 +6,11 @@
  * local FastAPI dev server.
  */
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+const API_BASE_URL =
+process.env.NEXT_PUBLIC_API_BASE_URL ??
+(process.env.NODE_ENV === "production"
+? "https://assetmind-ai-api.onrender.com"
+: "http://127.0.0.1:8000");
 
 /** Mirrors app.models.document.Document */
 export interface ApiDocument {
@@ -64,6 +67,7 @@ export interface ApiCitation {
   text_preview: string;
   /** Human-readable source filename; falls back to document_id when absent. */
   filename?: string | null;
+  page_number?: number | null; // Added in Week 2
 }
 
 /** Mirrors app.models.query.QueryResponse */
@@ -73,6 +77,8 @@ export interface ApiQueryResponse {
   confidence: string;
   citations: ApiCitation[];
   retrieved_count: number;
+  query_intent?: string; // Added in Week 2
+  related_assets?: string[]; // Added in Week 2
 }
 
 /** Throw a readable error, surfacing the backend's `detail` message when present. */
@@ -218,5 +224,226 @@ export async function getAssetMentions(
   );
   await ensureOk(res, "Load asset mentions");
   return res.json() as Promise<ApiAssetMentionsResponse>;
+}
+
+// ---------------------------------------------------------------------------
+// Week 2 Additions (Dashboard, Details, Graphs, Risk & Scoped Query)
+// ---------------------------------------------------------------------------
+
+/** Detailed facts returned by GET /assets/{tag}/facts. */
+export interface ApiAssetFacts {
+  asset: ApiAsset;
+  mention_count: number;
+  document_count: number;
+  documents: ApiDocument[];
+  entities: {
+    id: string;
+    entity_type: string;
+    raw_value: string;
+    normalized_value: string;
+    confidence: number | null;
+    document_id: string | null;
+    chunk_id: string | null;
+    page_number: number | null;
+    char_start: number | null;
+    char_end: number | null;
+    extraction_method: string | null;
+    metadata: Record<string, unknown>;
+    created_at: string;
+  }[];
+}
+
+/** Derived timeline event for an asset. */
+export interface ApiAssetTimelineEvent {
+  id: string;
+  asset_tag: string;
+  event_type: 'inspection' | 'work_order' | 'procedure' | 'compliance' | 'failure' | 'evidence_mention';
+  severity: 'high' | 'medium' | 'low';
+  reason_tags: string[];
+  title: string;
+  date: string | null;
+  document_id: string | null;
+  filename: string | null;
+  chunk_id: string | null;
+  chunk_index: number | null;
+  text_preview: string | null;
+  citation: ApiCitation;
+}
+
+/** Derived asset graph node. */
+export interface ApiAssetGraphNode {
+  id: string;
+  type: 'asset' | 'document' | 'chunk' | 'entity';
+  label: string;
+  asset_id?: string;
+  asset_type?: string;
+  document_id?: string;
+  chunk_id?: string;
+  chunk_index?: number;
+  entity_id?: string;
+  entity_type?: string;
+}
+
+/** Derived asset graph edge. */
+export interface ApiAssetGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  relation_type: 'mentioned_in' | 'supported_by_chunk' | 'has_entity';
+}
+
+/** Derived asset graph response. */
+export interface ApiAssetGraphResponse {
+  asset: ApiAsset;
+  nodes: ApiAssetGraphNode[];
+  edges: ApiAssetGraphEdge[];
+  counts: {
+    nodes: number;
+    edges: number;
+  };
+}
+
+/** Asset risk info. */
+export interface ApiAssetRiskInfo {
+  asset: ApiAsset;
+  asset_tag: string;
+  risk_score: number;
+  risk_level: 'high' | 'medium' | 'low';
+  risk_reasons: string[];
+  evidence: {
+    document_id: string;
+    filename: string | null;
+    chunk_id: string;
+    chunk_index: number | null;
+    text_preview: string | null;
+  }[];
+  mention_count: number;
+  document_count: number;
+  last_seen: string | null;
+}
+
+/** Asset risk summary response. */
+export interface ApiAssetRiskSummaryResponse {
+  count: number;
+  assets: ApiAssetRiskInfo[];
+}
+
+/** Dashboard summary v2 response. */
+export interface ApiDashboardSummary {
+  documents_indexed: number;
+  chunks_created: number;
+  assets_discovered: number;
+  entities_extracted: number;
+  asset_mentions: number;
+  knowledge_edges: number;
+  recent_documents: ApiDocument[];
+  high_risk_assets: number;
+  medium_risk_assets: number;
+  low_risk_assets: number;
+  open_compliance_gaps: number;
+  repeated_failure_patterns: number;
+  top_assets_by_mentions: {
+    asset_tag: string;
+    asset_type: string;
+    mention_count: number;
+  }[];
+  risk_summary: ApiAssetRiskInfo[];
+  mode?: string;
+  message?: string;
+}
+
+/** GET /dashboard/summary — live summary counts for the dashboard. */
+export async function getDashboardSummary(): Promise<ApiDashboardSummary> {
+  const res = await fetch(`${API_BASE_URL}/dashboard/summary`);
+  await ensureOk(res, "Load dashboard summary");
+  return res.json() as Promise<ApiDashboardSummary>;
+}
+
+/** GET /assets/{tag}/documents — get unique documents mentioning this asset. */
+export async function getAssetDocuments(
+  tag: string,
+): Promise<{ tag: string; count: number; documents: ApiDocument[] }> {
+  const res = await fetch(
+    `${API_BASE_URL}/assets/${encodeURIComponent(tag)}/documents`,
+  );
+  await ensureOk(res, "Load asset documents");
+  return res.json() as Promise<{
+    tag: string;
+    count: number;
+    documents: ApiDocument[];
+  }>;
+}
+
+/** GET /assets/{tag}/timeline — get derived timeline events for this asset. */
+export async function getAssetTimeline(
+  tag: string,
+): Promise<{ tag: string; count: number; events: ApiAssetTimelineEvent[] }> {
+  const res = await fetch(
+    `${API_BASE_URL}/assets/${encodeURIComponent(tag)}/timeline`,
+  );
+  await ensureOk(res, "Load asset timeline");
+  return res.json() as Promise<{
+    tag: string;
+    count: number;
+    events: ApiAssetTimelineEvent[];
+  }>;
+}
+
+/** GET /assets/{tag}/graph — get derived knowledge graph for this asset. */
+export async function getAssetGraph(
+  tag: string,
+  includeChunks = true,
+  relationType?: string,
+): Promise<ApiAssetGraphResponse> {
+  let url = `${API_BASE_URL}/assets/${encodeURIComponent(tag)}/graph?include_chunks=${includeChunks}`;
+  if (relationType) {
+    url += `&relation_type=${encodeURIComponent(relationType)}`;
+  }
+  const res = await fetch(url);
+  await ensureOk(res, "Load asset graph");
+  return res.json() as Promise<ApiAssetGraphResponse>;
+}
+
+/** GET /assets/{tag}/facts — get compact fact sheet for this asset. */
+export async function getAssetFacts(tag: string): Promise<ApiAssetFacts> {
+  const res = await fetch(
+    `${API_BASE_URL}/assets/${encodeURIComponent(tag)}/facts`,
+  );
+  await ensureOk(res, "Load asset facts");
+  return res.json() as Promise<ApiAssetFacts>;
+}
+
+/** GET /assets/risk-summary — get top risky assets. */
+export async function getAssetRiskSummary(
+  limit = 10,
+): Promise<ApiAssetRiskSummaryResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/assets/risk-summary?limit=${limit}`,
+  );
+  await ensureOk(res, "Load asset risk summary");
+  return res.json() as Promise<ApiAssetRiskSummaryResponse>;
+}
+
+/** POST /query — ask a question with asset scoping option. */
+export interface QueryCopilotParams {
+  question: string;
+  top_k?: number;
+  asset_tag?: string;
+}
+
+export async function queryCopilot(
+  params: QueryCopilotParams,
+): Promise<ApiQueryResponse> {
+  const res = await fetch(`${API_BASE_URL}/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      question: params.question,
+      top_k: params.top_k ?? 5,
+      asset_tag: params.asset_tag || undefined,
+    }),
+  });
+  await ensureOk(res, "Query Copilot");
+  return res.json() as Promise<ApiQueryResponse>;
 }
 
