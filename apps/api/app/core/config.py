@@ -29,6 +29,13 @@ class Settings(BaseSettings):
     # No connection is opened at import time.
     database_url: str | None = None
 
+    # Gemini credentials and model names used only by the /rag pipeline. Missing
+    # API keys are reported by RAG endpoints/scripts at runtime, not at startup.
+    gemini_api_key: str | None = None
+    gemini_embedding_model: str = "gemini-embedding-2"
+    gemini_generation_model: str = "gemini-2.5-flash"
+    rag_visual_storage_dir: str = "storage/extracted_visuals"
+
     # Browser origins allowed to call the API (the Next.js dev server by default).
     # Override with a comma-separated CORS_ORIGINS environment variable.
     cors_origins: list[str] = ["http://localhost:3000"]
