@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     gemini_embedding_model: str = "gemini-embedding-2"
     gemini_generation_model: str = "gemini-2.5-flash"
+    # LLM provider for agents like RCA. Set to 'gemini' to enable.
+    # If unset, agents will use a deterministic fallback.
+    llm_provider: str | None = None
     rag_visual_storage_dir: str = "storage/extracted_visuals"
 
     # Browser origins allowed to call the API (the Next.js dev server by default).
