@@ -2,14 +2,16 @@
 
 Minimal backend skeleton. Only a health check is wired up at this stage.
 """
-
+from app.routes import agents    
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 
 from app.core.config import settings
 from app.routes import assets, dashboard, documents, health, query, rag, search
 
 app = FastAPI(title=settings.project_name, version="0.1.0")
+app.include_router(agents.router)  
 
 app.add_middleware(
     CORSMiddleware,
