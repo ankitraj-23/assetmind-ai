@@ -83,6 +83,18 @@ export default function AssetDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /* Tab query parameter handling on mount */
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam && ["overview", "documents", "timeline", "graph", "facts"].includes(tabParam)) {
+        setTab(tabParam as any);
+      }
+    }
+  }, []);
+
+
   /* Graph visualization state */
   const [graphIncludeChunks, setGraphIncludeChunks] = useState(true);
   const [graphRelationType, setGraphRelationType] = useState("");
@@ -249,6 +261,49 @@ export default function AssetDetailPage() {
                 <dd className="mt-0.5 font-medium">{asset.created_at.slice(0, 10)}</dd>
               </div>
             </dl>
+          </Card>
+
+          {/* Reliability & Compliance Actions */}
+          <Card>
+            <h2 className="mb-4 text-lg font-semibold tracking-tight">Reliability & Compliance Actions</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Link href={`/rca?asset=${encodeURIComponent(asset.tag)}`}>
+                <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 text-center cursor-pointer hover:border-[var(--color-accent)] transition flex flex-col items-center justify-center">
+                  <span className="text-2xl mb-2">🔍</span>
+                  <span className="text-sm font-semibold text-[var(--color-fg)]">Generate RCA</span>
+                  <span className="text-[10px] text-[var(--color-muted)] mt-1.5 leading-relaxed">
+                    Analyze failure logs & root causes
+                  </span>
+                </div>
+              </Link>
+              <Link href={`/compliance?asset=${encodeURIComponent(asset.tag)}`}>
+                <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 text-center cursor-pointer hover:border-[var(--color-accent)] transition flex flex-col items-center justify-center">
+                  <span className="text-2xl mb-2">🛡️</span>
+                  <span className="text-sm font-semibold text-[var(--color-fg)]">Check Compliance</span>
+                  <span className="text-[10px] text-[var(--color-muted)] mt-1.5 leading-relaxed">
+                    Review standards & checklist status
+                  </span>
+                </div>
+              </Link>
+              <Link href={`/compliance?asset=${encodeURIComponent(asset.tag)}&action=generate`}>
+                <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 text-center cursor-pointer hover:border-[var(--color-accent)] transition flex flex-col items-center justify-center">
+                  <span className="text-2xl mb-2">📦</span>
+                  <span className="text-sm font-semibold text-[var(--color-fg)] font-medium">Generate Evidence Package</span>
+                  <span className="text-[10px] text-[var(--color-muted)] mt-1.5 leading-relaxed">
+                    Compile audit audit-ready reports
+                  </span>
+                </div>
+              </Link>
+              <Link href={`/copilot?asset=${encodeURIComponent(asset.tag)}`}>
+                <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 text-center cursor-pointer hover:border-[var(--color-accent)] transition flex flex-col items-center justify-center">
+                  <span className="text-2xl mb-2">💬</span>
+                  <span className="text-sm font-semibold text-[var(--color-fg)]">Ask Copilot About Asset</span>
+                  <span className="text-[10px] text-[var(--color-muted)] mt-1.5 leading-relaxed">
+                    Chat with AI about this equipment
+                  </span>
+                </div>
+              </Link>
+            </div>
           </Card>
 
           {/* Timeline preview */}

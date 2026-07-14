@@ -33,3 +33,24 @@ class RcaResponse(BaseModel):
     recommended_actions: List[str] = Field(..., description="A list of recommended next actions.")
     missing_information: List[str] = Field(..., description="A list of information that would improve the analysis.")
     citations: list = Field([], description="Legacy field, content moved into likely_causes.evidence.")
+
+
+class EvidencePackageRequest(BaseModel):
+    asset_tag: Optional[str] = Field(None, description="The asset tag to compile evidence for.", example="P-101")
+    standard: Optional[str] = Field(None, description="The standard to compile evidence for.", example="OISD-137")
+
+
+class EvidenceItem(BaseModel):
+    source: str = Field(..., description="Source document or checklist section.")
+    text: str = Field(..., description="Verbatim text evidence.")
+    status: str = Field("Non-Compliant", description="Status of the item (e.g. Non-Compliant, At Risk, SOP Issue).")
+
+
+class EvidencePackageResponse(BaseModel):
+    package_id: str = Field(..., description="Unique generated package ID.")
+    asset_tag: Optional[str] = Field(None, description="The asset tag compiled.")
+    standard: Optional[str] = Field(None, description="The standard compiled.")
+    generated_at: str = Field(..., description="ISO timestamp of generation.")
+    summary: str = Field(..., description="Compiled compliance executive summary.")
+    evidence_items: List[EvidenceItem] = Field(..., description="List of evidence items.")
+    download_url: str = Field(..., description="Relative download URL path.")

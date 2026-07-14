@@ -116,6 +116,157 @@ export default function DashboardPage() {
         subtitle="Unified view of indexed knowledge, asset health, and compliance posture."
       />
 
+      {/* 🎬 Judge's Guided Demo Flow: Repeated P-101 Vibration */}
+      <Card className="mb-6 border-[var(--color-accent)]/30 bg-[var(--color-surface-2)]/40 backdrop-blur-md shadow-[0_0_20px_rgba(45,212,191,0.08)]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-border)] pb-3.5 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="animate-pulse flex h-2 w-2 rounded-full bg-[var(--color-accent)]" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
+                Interactive Guided Flow
+              </span>
+            </div>
+            <h3 className="text-base font-bold text-slate-100 mt-0.5">
+              Demo Scenario: Repeated P-101 Vibration
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed mt-0.5">
+              Follow this step-by-step story sequence to evaluate asset reliability, timeline evidence, compliance audits, and AI reasoning.
+            </p>
+          </div>
+        </div>
+
+        {/* Steps Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Step 1 */}
+          <Link href="/assets/P-101" className="group">
+            <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-base)]/50 p-3 hover:border-[var(--color-accent)] transition flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold text-[var(--color-accent)] font-mono">STEP 01</span>
+                <h4 className="text-xs font-semibold text-slate-200 mt-1">Open P-101 Asset Page</h4>
+                <p className="text-[10px] text-slate-400 mt-1 leading-normal">
+                  Inspect the physical specifications, properties, and health state.
+                </p>
+              </div>
+              <span className="text-[10px] text-[var(--color-accent)] mt-3 block font-semibold group-hover:underline">
+                Go to Asset Page →
+              </span>
+            </div>
+          </Link>
+
+          {/* Step 2 */}
+          <Link href="/assets/P-101?tab=timeline" className="group">
+            <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-base)]/50 p-3 hover:border-[var(--color-accent)] transition flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold text-[var(--color-accent)] font-mono">STEP 02</span>
+                <h4 className="text-xs font-semibold text-slate-200 mt-1">View Recent Timeline</h4>
+                <p className="text-[10px] text-slate-400 mt-1 leading-normal">
+                  Analyze chronological maintenance logs and seal replacement timestamps.
+                </p>
+              </div>
+              <span className="text-[10px] text-[var(--color-accent)] mt-3 block font-semibold group-hover:underline">
+                View Timeline →
+              </span>
+            </div>
+          </Link>
+
+          {/* Step 3 */}
+          <Link href="/assets/P-101?tab=graph" className="group">
+            <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-base)]/50 p-3 hover:border-[var(--color-accent)] transition flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold text-[var(--color-accent)] font-mono">STEP 03</span>
+                <h4 className="text-xs font-semibold text-slate-200 mt-1">View Knowledge Graph</h4>
+                <p className="text-[10px] text-slate-400 mt-1 leading-normal">
+                  Explore entity linkages between P-101 and industrial manuals.
+                </p>
+              </div>
+              <span className="text-[10px] text-[var(--color-accent)] mt-3 block font-semibold group-hover:underline">
+                View Graph →
+              </span>
+            </div>
+          </Link>
+
+          {/* Step 4 */}
+          <Link href="/copilot?asset=P-101" className="group">
+            <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-base)]/50 p-3 hover:border-[var(--color-accent)] transition flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold text-[var(--color-accent)] font-mono">STEP 04</span>
+                <h4 className="text-xs font-semibold text-slate-200 mt-1">Ask AI Copilot</h4>
+                <p className="text-[10px] text-slate-400 mt-1 leading-normal">
+                  Query the RAG chat scope locked to P-101 context references.
+                </p>
+              </div>
+              <span className="text-[10px] text-[var(--color-accent)] mt-3 block font-semibold group-hover:underline">
+                Open Copilot →
+              </span>
+            </div>
+          </Link>
+
+          {/* Step 5 */}
+          <Link href="/rca?asset=P-101" className="group">
+            <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-base)]/50 p-3 hover:border-[var(--color-accent)] transition flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold text-[var(--color-accent-2)] font-mono">STEP 05</span>
+                <h4 className="text-xs font-semibold text-slate-200 mt-1">Generate RCA</h4>
+                <p className="text-[10px] text-slate-400 mt-1 leading-normal">
+                  Trigger live RCA to pinpoint mechanical seal leakage and misalignment.
+                </p>
+              </div>
+              <span className="text-[10px] text-[var(--color-accent-2)] mt-3 block font-semibold group-hover:underline">
+                Run RCA Diagnostic →
+              </span>
+            </div>
+          </Link>
+
+          {/* Step 6 */}
+          <Link href="/compliance?asset=P-101" className="group">
+            <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-base)]/50 p-3 hover:border-[var(--color-accent)] transition flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold text-[var(--color-accent-2)] font-mono">STEP 06</span>
+                <h4 className="text-xs font-semibold text-slate-200 mt-1">Check Compliance Gaps</h4>
+                <p className="text-[10px] text-slate-400 mt-1 leading-normal">
+                  Audit open gaps showing OISD-137 vibration limit exceedance.
+                </p>
+              </div>
+              <span className="text-[10px] text-[var(--color-accent-2)] mt-3 block font-semibold group-hover:underline">
+                Check Compliance →
+              </span>
+            </div>
+          </Link>
+
+          {/* Step 7 */}
+          <Link href="/compliance?asset=P-101&action=generate" className="group">
+            <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-base)]/50 p-3 hover:border-[var(--color-accent)] transition flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold text-[var(--color-accent-2)] font-mono">STEP 07</span>
+                <h4 className="text-xs font-semibold text-slate-200 mt-1">Generate Evidence Package</h4>
+                <p className="text-[10px] text-slate-400 mt-1 leading-normal">
+                  Compile safety logs and download report (.txt) file attachment.
+                </p>
+              </div>
+              <span className="text-[10px] text-[var(--color-accent-2)] mt-3 block font-semibold group-hover:underline">
+                Compile & Download Report →
+              </span>
+            </div>
+          </Link>
+
+          {/* Step 8 */}
+          <Link href="/evaluation" className="group">
+            <div className="h-full rounded-lg border border-[var(--color-border)] bg-[var(--color-base)]/50 p-3 hover:border-[var(--color-accent)] transition flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold text-[var(--color-accent-2)] font-mono">STEP 08</span>
+                <h4 className="text-xs font-semibold text-slate-200 mt-1">View Evaluation Score</h4>
+                <p className="text-[10px] text-slate-400 mt-1 leading-normal">
+                  Review benchmark accuracy, retrieval confidence, and graph coverage.
+                </p>
+              </div>
+              <span className="text-[10px] text-[var(--color-accent-2)] mt-3 block font-semibold group-hover:underline">
+                View Benchmark Scores →
+              </span>
+            </div>
+          </Link>
+        </div>
+      </Card>
+
       {/* ── KPI Stat Cards ───────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (

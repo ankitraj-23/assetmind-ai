@@ -2,15 +2,18 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
   getCopilotChat,
   queryCopilot,
   listAssets,
   listCopilotChats,
+  listDocuments,
   type ApiChatSessionSummary,
   type ApiQueryResponse,
   type ApiAsset,
+  type ApiDocument,
 } from "@/lib/api";
 
 type ChatMessage = {
@@ -40,6 +43,7 @@ function getOrCreateUserId() {
 }
 
 export default function CopilotPage() {
+  const router = useRouter();
   const [question, setQuestion] = useState("");
   const [selectedAsset, setSelectedAsset] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
@@ -52,13 +56,76 @@ export default function CopilotPage() {
   );
   const [result, setResult] = useState<ApiQueryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [documentsList, setDocumentsList] = useState<ApiDocument[]>([]);
 
   useEffect(() => {
-    setUserId(getOrCreateUserId());
+    const uid = getOrCreateUserId();
+    setUserId(uid);
     listAssets()
       .then(setAssets)
       .catch(() => setAssets([]));
+
+    listDocuments()
+      .then(setDocumentsList)
+      .catch(() => {});
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const assetParam = params.get("asset");
+      const queryParam = params.get("q");
+
+      let initialAsset = "";
+      if (assetParam) {
+        initialAsset = assetParam;
+        setSelectedAsset(assetParam);
+      }
+
+      if (queryParam) {
+        setQuestion(queryParam);
+
+        // Auto-run search query on mount
+        const userMessage: ChatMessage = {
+          id: `user-${Date.now()}`,
+          role: "user",
+          content: queryParam,
+          assetTag: initialAsset || undefined,
+        };
+        setMessages([userMessage]);
+        setStatus("loading");
+        setError(null);
+
+        queryCopilot({
+          question: queryParam,
+          top_k: 7,
+          asset_tag: initialAsset || undefined,
+          user_id: uid || undefined,
+        })
+          .then((res) => {
+            setSessionId(res.session_id ?? null);
+            setResult(res);
+            setMessages((current) => [
+              ...current,
+              {
+                id: `assistant-${Date.now()}`,
+                role: "assistant",
+                content: res.answer,
+                assetTag: (res.asset_tag ?? initialAsset) || undefined,
+                result: res,
+              },
+            ]);
+            setStatus("done");
+            listCopilotChats(uid)
+              .then(setSessions)
+              .catch(() => {});
+          })
+          .catch((err) => {
+            setError(err instanceof Error ? err.message : "Failed to run search.");
+            setStatus("error");
+          });
+      }
+    }
   }, []);
+
 
   useEffect(() => {
     if (!userId) return;
@@ -127,6 +194,8 @@ export default function CopilotPage() {
     setResult(null);
     setError(null);
     setStatus("idle");
+    setSelectedAsset("");
+    router.push("/copilot");
   }
 
   async function openChat(chatSessionId: string) {
@@ -183,6 +252,15 @@ export default function CopilotPage() {
     }
   }
 
+  const docIdMap = new Map<string, string>();
+  const docNameMap = new Map<string, string>();
+  documentsList.forEach((d) => {
+    if (d.filename) {
+      docIdMap.set(d.filename, d.id);
+    }
+    docNameMap.set(d.id, d.filename);
+  });
+
   const uniqueCitations =
     result?.citations.filter(
       (citation, index, self) =>
@@ -200,9 +278,11 @@ export default function CopilotPage() {
             onClick={startNewChat}
             aria-label="New chat"
             title="New chat"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] text-xl leading-none text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-white transition"
           >
-            +
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
           </button>
         }
       />
@@ -329,9 +409,11 @@ export default function CopilotPage() {
                 onClick={startNewChat}
                 aria-label="New chat"
                 title="New chat"
-                className="flex h-7 w-7 items-center justify-center rounded border border-[var(--color-border)] bg-[var(--color-base)] text-base leading-none text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-white"
+                className="flex h-7 w-7 items-center justify-center rounded border border-[var(--color-border)] bg-[var(--color-base)] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-white transition"
               >
-                +
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
               </button>
             </div>
             {sessions.length === 0 ? (
@@ -407,13 +489,19 @@ export default function CopilotPage() {
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-2)] text-xs text-[var(--color-accent)]">
                           {index + 1}
                         </span>
-                        <Link
-                          href={`/documents/${citation.document_id}`}
-                          className="truncate text-sm font-medium text-[var(--color-accent)] hover:underline"
-                          title={citation.filename ?? citation.document_id}
-                        >
-                          {citation.filename ?? citation.document_id}
-                        </Link>
+                        {(() => {
+                          const resolvedId = docIdMap.get(citation.filename || "") || citation.document_id;
+                          const resolvedName = citation.filename || docNameMap.get(citation.document_id) || "Source Document";
+                          return (
+                            <Link
+                              href={`/documents/${resolvedId}`}
+                              className="truncate text-sm font-medium text-[var(--color-accent)] hover:underline"
+                              title={resolvedName}
+                            >
+                              {resolvedName}
+                            </Link>
+                          );
+                        })()}
                       </div>
                     </div>
                     {tags.length > 0 && (

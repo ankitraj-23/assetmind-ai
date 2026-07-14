@@ -11,16 +11,20 @@ import {
 } from "@/lib/api";
 import type { Risk } from "@/lib/mock-data";
 
+// Set to 9 to display 9 assets per page
+const PAGE_SIZE = 9;
+
 export default function AssetsPage() {
   const [assets, setAssets] = useState<ApiAsset[] | null>(null);
   const [riskMap, setRiskMap] = useState<Record<string, ApiAssetRiskInfo>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     let active = true;
 
-    Promise.all([listAssets(), getAssetRiskSummary(50)])
+    Promise.all([listAssets(), getAssetRiskSummary(100)])
       .then(([assetList, riskData]) => {
         if (!active) return;
         setAssets(assetList);
@@ -40,6 +44,14 @@ export default function AssetsPage() {
       active = false;
     };
   }, []);
+
+  // Pagination calculation
+  const totalAssets = assets ?? [];
+  const totalPages = Math.ceil(totalAssets.length / PAGE_SIZE);
+  const paginatedAssets = totalAssets.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
   return (
     <div>
@@ -89,62 +101,99 @@ export default function AssetsPage() {
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(assets ?? []).map((a) => {
-            const risk = riskMap[a.tag];
-            return (
-              <Link key={a.id} href={`/assets/${a.tag}`}>
-                <Card className="h-full transition hover:border-[var(--color-accent)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">{a.tag}</p>
-                      <p className="text-xs text-[var(--color-muted)]">
-                        {a.asset_type ? a.asset_type.replace("_", " ") : "equipment"}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {paginatedAssets.map((a) => {
+              const risk = riskMap[a.tag];
+              return (
+                <Link key={a.id} href={`/assets/${a.tag}`}>
+                  <Card className="h-full transition hover:border-[var(--color-accent)]">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{a.tag}</p>
+                        <p className="text-xs text-[var(--color-muted)]">
+                          {a.asset_type ? a.asset_type.replace("_", " ") : "equipment"}
+                        </p>
+                      </div>
+                      {risk ? (
+                        <RiskBadge risk={risk.risk_level as Risk} />
+                      ) : (
+                        <Badge>{a.asset_type}</Badge>
+                      )}
+                    </div>
+
+                    <dl className="mt-4 space-y-2 text-sm">
+                      {risk && (
+                        <>
+                          <div className="flex justify-between">
+                            <dt className="text-[var(--color-muted)]">Mentions</dt>
+                            <dd>{risk.mention_count}</dd>
+                          </div>
+                          <div className="flex justify-between">
+                            <dt className="text-[var(--color-muted)]">Documents</dt>
+                            <dd>{risk.document_count}</dd>
+                          </div>
+                          <div className="flex justify-between">
+                            <dt className="text-[var(--color-muted)]">Risk Score</dt>
+                            <dd>{risk.risk_score}</dd>
+                          </div>
+                        </>
+                      )}
+                      <div className="flex justify-between">
+                        <dt className="text-[var(--color-muted)]">Discovered</dt>
+                        <dd>{a.created_at.slice(0, 10)}</dd>
+                      </div>
+                    </dl>
+
+                    {risk && risk.risk_reasons.length > 0 && (
+                      <p className="mt-3 text-xs text-[var(--color-muted)] line-clamp-1">
+                        {risk.risk_reasons.slice(0, 2).join(" · ")}
                       </p>
-                    </div>
-                    {risk ? (
-                      <RiskBadge risk={risk.risk_level as Risk} />
-                    ) : (
-                      <Badge>{a.asset_type}</Badge>
                     )}
-                  </div>
 
-                  <dl className="mt-4 space-y-2 text-sm">
-                    {risk && (
-                      <>
-                        <div className="flex justify-between">
-                          <dt className="text-[var(--color-muted)]">Mentions</dt>
-                          <dd>{risk.mention_count}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-[var(--color-muted)]">Documents</dt>
-                          <dd>{risk.document_count}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-[var(--color-muted)]">Risk Score</dt>
-                          <dd>{risk.risk_score}</dd>
-                        </div>
-                      </>
-                    )}
-                    <div className="flex justify-between">
-                      <dt className="text-[var(--color-muted)]">Discovered</dt>
-                      <dd>{a.created_at.slice(0, 10)}</dd>
-                    </div>
-                  </dl>
-
-                  {risk && risk.risk_reasons.length > 0 && (
-                    <p className="mt-3 text-xs text-[var(--color-muted)]">
-                      {risk.risk_reasons.slice(0, 2).join(" · ")}
+                    <p className="mt-3 text-xs text-[var(--color-accent)]">
+                      View detail →
                     </p>
-                  )}
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
 
-                  <p className="mt-3 text-xs text-[var(--color-accent)]">
-                    View detail →
-                  </p>
-                </Card>
-              </Link>
-            );
-          })}
+          {/* Pagination Controls */}
+          {totalPages > 0 && (
+            <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-4 mt-6">
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                className={`px-3.5 py-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] text-xs font-semibold transition ${
+                  currentPage === 1
+                    ? "text-[var(--color-muted)]/40 cursor-not-allowed opacity-50"
+                    : "text-[var(--color-fg)] hover:border-[var(--color-accent)] cursor-pointer"
+                }`}
+              >
+                ← Previous Page
+              </button>
+
+              <span className="text-xs text-[var(--color-muted)] font-medium">
+                Page {currentPage} of {totalPages || 1}
+              </span>
+
+              <button
+                type="button"
+                disabled={currentPage === totalPages || totalPages === 0}
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                className={`px-3.5 py-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] text-xs font-semibold transition ${
+                  currentPage === totalPages || totalPages === 0
+                    ? "text-[var(--color-muted)]/40 cursor-not-allowed opacity-50"
+                    : "text-[var(--color-fg)] hover:border-[var(--color-accent)] cursor-pointer"
+                }`}
+              >
+                Next Page →
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

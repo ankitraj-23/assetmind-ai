@@ -574,3 +574,90 @@ export async function getCopilotChat(
   return res.json() as Promise<ApiChatHistoryResponse>;
 }
 
+// ---------------------------------------------------------------------------
+// RCA (Root Cause Analysis) Agent
+// ---------------------------------------------------------------------------
+
+export interface ApiRcaEvidence {
+  source: string;
+  text: string;
+  document_id?: string | null;
+  chunk_id?: string | null;
+}
+
+export interface ApiLikelyCause {
+  cause: string;
+  confidence: number;
+  evidence: ApiRcaEvidence[];
+}
+
+export interface ApiRcaResponse {
+  asset_tag: string;
+  symptom: string;
+  summary: string;
+  likely_causes: ApiLikelyCause[];
+  recommended_actions: string[];
+  missing_information: string[];
+}
+
+/** POST /agents/rca — run the root cause analysis agent for an asset symptom */
+export async function performRca(
+  assetTag: string,
+  symptom: string,
+): Promise<ApiRcaResponse> {
+  const res = await fetch(`${API_BASE_URL}/agents/rca`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      asset_tag: assetTag,
+      symptom,
+    }),
+  });
+  await ensureOk(res, "Perform RCA");
+  return res.json() as Promise<ApiRcaResponse>;
+}
+
+// ---------------------------------------------------------------------------
+// Evidence Package Agent
+// ---------------------------------------------------------------------------
+
+export interface ApiEvidenceItem {
+  source: string;
+  text: string;
+  status: string;
+}
+
+export interface ApiEvidencePackageResponse {
+  package_id: string;
+  asset_tag: string | null;
+  standard: string | null;
+  generated_at: string;
+  summary: string;
+  evidence_items: ApiEvidenceItem[];
+  download_url: string;
+}
+
+/** POST /agents/evidence-package — generate a compliance evidence package report */
+export async function generateEvidencePackage(
+  assetTag?: string,
+  standard?: string,
+): Promise<ApiEvidencePackageResponse> {
+  const res = await fetch(`${API_BASE_URL}/agents/evidence-package`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      asset_tag: assetTag || undefined,
+      standard: standard || undefined,
+    }),
+  });
+  await ensureOk(res, "Generate evidence package");
+  return res.json() as Promise<ApiEvidencePackageResponse>;
+}
+
+/** Helper to construct full download link URL for a package */
+export function getEvidencePackageDownloadUrl(downloadPath: string): string {
+  return `${API_BASE_URL}${downloadPath}`;
+}
+
+
+
