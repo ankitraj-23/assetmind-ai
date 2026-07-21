@@ -2,14 +2,44 @@
   "summary": {
     "total_questions": 40,
     "top1_source_hit_rate": 0.325,
-    "top3_source_hit_rate": 0.55,
+    "top3_source_hit_rate": 0.65,
     "asset_hit_rate": 0.7,
     "asset_questions": 40,
-    "average_latency_ms": 127.3,
-    "failed_questions_count": 18,
+    "average_latency_ms": 199.7,
+    "p95_latency_ms": 214.1,
+    "failed_questions_count": 14,
+    "corpus_document_count": 5,
+    "corpus_documents": [
+      "compliance_checklist_2025.pdf",
+      "inspection_report_q1_2025.pdf",
+      "pump_oem_manual.pdf",
+      "sop_pump_startup.pdf",
+      "work_orders_clean.csv"
+    ],
     "embedding_provider": "local",
     "embedding_model": "local-hashing-v1",
-    "last_run_time": "2026-07-21T20:59:41.804248+00:00"
+    "answer_provider": "deterministic-fallback",
+    "answer_model": "extractive-no-llm",
+    "retrieval_config": {
+      "strategy": "hybrid_vector_keyword_rrf_rerank_mmr",
+      "top_k": 5,
+      "vector_weight": 0.7,
+      "keyword_weight": 0.3,
+      "rrf_k": 60,
+      "mmr_lambda": 0.72,
+      "max_chunks_per_document": 2,
+      "filename_intent_boost": 0.12,
+      "metadata_boost_cap": 0.55,
+      "candidate_min": 50,
+      "candidate_max": 150
+    },
+    "failure_category_breakdown": {
+      "correct_document_outside_top3": 5,
+      "pass": 26,
+      "correct_document_not_retrieved": 1,
+      "expected_source_absent_from_corpus": 8
+    },
+    "last_run_time": "2026-07-21T21:28:22.849853+00:00"
   },
   "results": [
     {
@@ -19,24 +49,12 @@
       "asset_tag": "P-101",
       "expected_doc": "pump_oem_manual.pdf",
       "retrieved_docs": [
-        "work_orders_clean.csv",
-        "pump_oem_manual.pdf",
         "compliance_checklist_2025.pdf",
-        "inspection_report_q1_2025.pdf"
+        "inspection_report_q1_2025.pdf",
+        "work_orders_clean.csv",
+        "pump_oem_manual.pdf"
       ],
       "citations": [
-        {
-          "file_name": "work_orders_clean.csv",
-          "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-12",
-          "snippet": "Equipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 vibration trending upward over 30 days. Broadband velocity 265.4 mm/s. Bearing d"
-        },
-        {
-          "file_name": "pump_oem_manual.pdf",
-          "page": null,
-          "chunk_id": "6b1eaf203c38485d9eb646c712d5d5f2-1",
-          "snippet": "inspect seal flush flow (min 2 L/min), check for leakage at gland. Monthly: verify coupling alignment (max 0.05 mm TIR), measure vibration. 6-Monthly: replace b"
-        },
         {
           "file_name": "compliance_checklist_2025.pdf",
           "page": null,
@@ -52,16 +70,29 @@
         {
           "file_name": "work_orders_clean.csv",
           "page": null,
+          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-12",
+          "snippet": "Equipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 vibration trending upward over 30 days. Broadband velocity 265.4 mm/s. Bearing d"
+        },
+        {
+          "file_name": "pump_oem_manual.pdf",
+          "page": null,
+          "chunk_id": "6b1eaf203c38485d9eb646c712d5d5f2-1",
+          "snippet": "inspect seal flush flow (min 2 L/min), check for leakage at gland. Monthly: verify coupling alignment (max 0.05 mm TIR), measure vibration. 6-Monthly: replace b"
+        },
+        {
+          "file_name": "work_orders_clean.csv",
+          "page": null,
           "chunk_id": "0d627579f0c046eaa40d482e8a73840b-18",
           "snippet": "Equipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 vibration trending upward over 30 days. Broadband velocity 265.4 mm/s. Bearing d"
         }
       ],
       "top1_hit": false,
-      "top3_hit": true,
+      "top3_hit": false,
       "asset_hit": true,
-      "latency_ms": 287,
-      "status": "passed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 vibration trending upward over 30 days. Broadband velocity 265.4 mm/s. Bearing defect frequency identified in spectrum. OperationDescription: Vibration analysis confirms bearing fault. Replace drive end bearing proactively. Re-baseline vibration signature after repair. CreatedDate: 2021-09-28 ActualStartDate: 2021-10-05 ActualFinishDate: 2021-10-05 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] pump_oem_manual.pdf\ninspect seal flush flow (min 2 L/min), check for leakage at gland. Monthly: verify coupling alignment (max 0.05 mm TIR), measure vibration. 6-Monthly: replace bearing grease (Mobilux EP2, 15 g per bearing). Annual: replace mechanical seal cartridge MS-45-CR, inspect impeller for cavitation damage, replace wear ring if clearance exceeds 0.5 mm. 4. Vibration Standards (OISD-137) Per OISD-137, maximum allowable vibration velocity is 4.5 mm/s RMS. Alarm setpoint: 3.5 mm/s. Trip setpoint: 7.0 mm/s. Any reading above 4.5 mm/s requires investigation within 48 hours. Measurements must be taken at the...\n\n[3] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P..."
+      "latency_ms": 213,
+      "status": "failed",
+      "failure_category": "correct_document_outside_top3",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P...\n\n[2] inspection_report_q1_2025.pdf\n[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Region P-101 - Cooling Water Pump [Risk: HIGH] Vibration at drive end bearing: 6.2 mm/s RMS. Exceeds OISD-137 limit of 4.5 mm/s. Visual inspection reveals slight misalignment of flexible coupling. Last seal replacement on 12 January 2025 per work order WO-20000019. Bearing temperature 71 deg C, within limit. Recommendation: perform laser alignment check within 48 hours. If vibration remains above 4.5 mm/s after alignment, replace drive end...\n\n[3] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 vibration trending upward over 30 days. Broadband velocity 265.4 mm/s. Bearing defect frequency identified in spectrum. OperationDescription: Vibration analysis confirms bearing fault. Replace drive end bearing proactively. Re-baseline vibration signature after repair. CreatedDate: 2021-09-28 ActualStartDate: 2021-10-05 ActualFinishDate: 2021-10-05 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_B"
     },
     {
       "id": "Q02",
@@ -71,7 +102,9 @@
       "expected_doc": "pump_oem_manual.pdf",
       "retrieved_docs": [
         "pump_oem_manual.pdf",
-        "work_orders_clean.csv"
+        "work_orders_clean.csv",
+        "sop_pump_startup.pdf",
+        "inspection_report_q1_2025.pdf"
       ],
       "citations": [
         {
@@ -93,23 +126,24 @@
           "snippet": "Equipment_ID: P-201 OrderType: CM WorkOrderDescription: Centrifugal Pump P-102 mechanical seal failure. Product leakage observed at gland area estimated 43.0 L/"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "sop_pump_startup.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-80",
-          "snippet": "Equipment_ID: P-102 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/"
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-0",
+          "snippet": "[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-2"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-82",
-          "snippet": "Equipment_ID: P-102 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/"
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-0",
+          "snippet": "[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Reg"
         }
       ],
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 118,
+      "latency_ms": 207,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[2] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/h. OperationDescription: Replace complete mechanical seal cartridge. Flush seal chamber, pressure test at 19.1 bar. Return to service and monitor seal flush flow. Maintenance_activity_type: CM03 CreatedDate: 2019-01-03 ActualStartDate: 2019-01-04 ActualFinishDate: 2019-01-04 MaintenanceWorkCenter: MECH_TEAM_B\n\n[3] work_orders_clean.csv\nEquipment_ID: P-201 OrderType: CM WorkOrderDescription: Centrifugal Pump P-102 mechanical seal failure. Product leakage observed at gland area estimated 43.0 L/h. OperationDescription: Replace complete mechanical seal cartridge. Flush seal chamber, pressure test at 7.4 bar. Return to service and monitor seal flush flow. Maintenance_activity_type: CM02 CreatedDate: 2020-08-23 ActualStartDate: 2020-08-22 ActualFinishDate: 2020-08-22 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B"
     },
     {
@@ -120,7 +154,8 @@
       "expected_doc": "pump_oem_manual.pdf",
       "retrieved_docs": [
         "work_orders_clean.csv",
-        "pump_oem_manual.pdf"
+        "pump_oem_manual.pdf",
+        "inspection_report_q1_2025.pdf"
       ],
       "citations": [
         {
@@ -142,23 +177,24 @@
           "snippet": "Equipment_ID: P-102 OrderType: PM WorkOrderDescription: Centrifugal Pump P-102 quarterly lubrication service. Bearing grease replenishment and vibration baselin"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-63",
-          "snippet": "Equipment_ID: P-102 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baselin"
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-0",
+          "snippet": "[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Reg"
         },
         {
           "file_name": "work_orders_clean.csv",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-129",
-          "snippet": "Equipment_ID: P-201 OrderType: PM WorkOrderDescription: Centrifugal Pump P-102 quarterly lubrication service. Bearing grease replenishment and vibration baselin"
+          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-63",
+          "snippet": "Equipment_ID: P-102 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baselin"
         }
       ],
       "top1_hit": false,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 107,
+      "latency_ms": 196,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: PM WorkOrderDescription: Centrifugal Pump P-102 quarterly lubrication service. Bearing grease replenishment and vibration baseline measurement. OperationDescription: Grease drive end and non-drive end bearings. Measure and record vibration signature. Check motor current at duty point. Inspect coupling spider for wear. Maintenance_activity_type: PM03 CreatedDate: 2021-06-23 ActualStartDate: 2021-07-13 ActualFinishDate: 2021-07-14 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: PM WorkOrderDescription: Centrifugal Pump P-102 quarterly lubrication service. Bearing grease replenishment and vibration baseline measurement. OperationDescription: Grease drive end and non-drive end bearings. Measure and record vibration signature. Check motor current at duty point. Inspect coupling spider for wear. Maintenance_activity_type: PM03 CreatedDate: 2020-05-15 ActualStartDate: 2020-06-04 ActualFinishDate: 2020-06-05 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_B"
     },
     {
@@ -206,8 +242,9 @@
       "top1_hit": false,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 116,
+      "latency_ms": 192,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-201 OrderType: PM WorkOrderDescription: Centrifugal Pump P-201 quarterly lubrication service. Bearing grease replenishment and vibration baseline measurement. OperationDescription: Grease drive end and non-drive end bearings. Measure and record vibration signature. Check motor current at duty point. Inspect coupling spider for wear. Maintenance_activity_type: PM02 CreatedDate: 2021-04-11 ActualStartDate: 2021-05-13 ActualFinishDate: 2021-05-14 MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] work_orders_clean.csv\nEquipment_ID: P-201 OrderType: PM WorkOrderDescription: Centrifugal Pump P-201 quarterly lubrication service. Bearing grease replenishment and vibration baseline measurement. OperationDescription: Grease drive end and non-drive end bearings. Measure and record vibration signature. Check motor current at duty point. Inspect coupling spider for wear. Maintenance_activity_type: PM02 CreatedDate: 2021-09-28 ActualStartDate: 2021-10-30 ActualFinishDate: 2021-10-31 OrderStatus: CLSD MaintenanceWorkCenter: MEECH_TEAM_B\n\n[3] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm..."
     },
     {
@@ -218,7 +255,9 @@
       "expected_doc": "sop_pump_startup.pdf",
       "retrieved_docs": [
         "work_orders_clean.csv",
-        "pump_oem_manual.pdf"
+        "pump_oem_manual.pdf",
+        "sop_pump_startup.pdf",
+        "inspection_report_q1_2025.pdf"
       ],
       "citations": [
         {
@@ -240,23 +279,24 @@
           "snippet": "Equipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 vibration trending upward over 30 days. Broadband velocity 265.4 mm/s. Bearing d"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "sop_pump_startup.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-36",
-          "snippet": "Equipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 vibration trending upward over 30 days. Broadband velocity 265.4 mm/s. Bearing d"
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-0",
+          "snippet": "[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-2"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-31",
-          "snippet": "Equipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 vibration trending upward over 30 days. Broadband velocity 265.4 mm/s. Bearing d"
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
+          "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
         }
       ],
       "top1_hit": false,
-      "top3_hit": false,
+      "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 122,
-      "status": "failed",
+      "latency_ms": 197,
+      "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 vibration trending upward over 30 days. Broadband velocity 265.4 mm/s. Bearing defect frequency identified in spectrum. OperationDescription: Vibration analysis confirms bearing fault. Replace drive end bearing proactively. Re-baseline vibration signature after repair. CreatedDate: 2021-09-28 ActualStartDate: 2021-10-05 ActualFinishDate: 2021-10-05 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 vibration trending upward over 30 days. Broadband velocity 265.4 mm/s. Bearing defect frequency identified in spectrum. OperationDescription: Vibration analysis confirms bearing fault. Replace drive end bearing proactively. Re-baseline vibration signature after repair. Maintenance_activity_type: PDM2 CreatedDate: 2020-06-24 ActualStartDate: 2020-07-02 ActualFinishDate: 2020-07-02 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_B"
     },
     {
@@ -267,9 +307,9 @@
       "expected_doc": "sop_pump_startup.pdf",
       "retrieved_docs": [
         "inspection_report_q1_2025.pdf",
+        "sop_pump_startup.pdf",
         "work_orders_clean.csv",
         "compliance_checklist_2025.pdf",
-        "sop_pump_startup.pdf",
         "pump_oem_manual.pdf"
       ],
       "citations": [
@@ -278,6 +318,12 @@
           "page": null,
           "chunk_id": "950746b751784053a8cdae5689ad4f2b-0",
           "snippet": "[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Reg"
+        },
+        {
+          "file_name": "sop_pump_startup.pdf",
+          "page": null,
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-1",
+          "snippet": "t to start. 2. Startup Sequence 2.1 Energise motor from MCC panel. Confirm green running indication. 2.2 Slowly open discharge valve to duty point over 30 secon"
         },
         {
           "file_name": "work_orders_clean.csv",
@@ -292,12 +338,6 @@
           "snippet": "[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure V"
         },
         {
-          "file_name": "sop_pump_startup.pdf",
-          "page": null,
-          "chunk_id": "7348361058c246cbad72a343bf5c552a-1",
-          "snippet": "t to start. 2. Startup Sequence 2.1 Energise motor from MCC panel. Confirm green running indication. 2.2 Slowly open discharge valve to duty point over 30 secon"
-        },
-        {
           "file_name": "pump_oem_manual.pdf",
           "page": null,
           "chunk_id": "6b1eaf203c38485d9eb646c712d5d5f2-1",
@@ -305,11 +345,12 @@
         }
       ],
       "top1_hit": false,
-      "top3_hit": false,
+      "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 117,
-      "status": "failed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] inspection_report_q1_2025.pdf\n[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Region P-101 - Cooling Water Pump [Risk: HIGH] Vibration at drive end bearing: 6.2 mm/s RMS. Exceeds OISD-137 limit of 4.5 mm/s. Visual inspection reveals slight misalignment of flexible coupling. Last seal replacement on 12 January 2025 per work order WO-20000019. Bearing temperature 71 deg C, within limit. Recommendation: perform laser alignment check within 48 hours. If vibration remains above 4.5 mm/s after alignment, replace drive end...\n\n[2] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-102 vibration trending upward over 30 days. Broadband velocity 164.4 mm/s. Bearing defect frequency identified in spectrum. OperationDescription: Vibration analysis confirms bearing fault. Replace drive end bearing proactively. Re-baseline vibration signature after repair. Maintenance_activity_type: PDM1 CreatedDate: 2022-07-21 ActualStartDate: 22022-08-14 ActualFinishDate: 2022-08-15 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B\n\n[3] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P..."
+      "latency_ms": 218,
+      "status": "passed",
+      "failure_category": "pass",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] inspection_report_q1_2025.pdf\n[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Region P-101 - Cooling Water Pump [Risk: HIGH] Vibration at drive end bearing: 6.2 mm/s RMS. Exceeds OISD-137 limit of 4.5 mm/s. Visual inspection reveals slight misalignment of flexible coupling. Last seal replacement on 12 January 2025 per work order WO-20000019. Bearing temperature 71 deg C, within limit. Recommendation: perform laser alignment check within 48 hours. If vibration remains above 4.5 mm/s after alignment, replace drive end...\n\n[2] sop_pump_startup.pdf\nt to start. 2. Startup Sequence 2.1 Energise motor from MCC panel. Confirm green running indication. 2.2 Slowly open discharge valve to duty point over 30 seconds. 2.3 Confirm discharge pressure stabilises at design value within plus or minus 10 percent. 2.4 Measure vibration at bearing housing within 5 minutes. Must be below 4.5 mm/s per OISD-137. Shut down immediately if reading exceeds 4.5 mm/s. 2.5 Check bearing temperature within 15 minutes. Must be below 70 deg C. 2.6 Inspect gland area for leakage. Maximum acceptable: 10 drops per minute. 2.7 Record startup in maintenance register with...\n\n[3] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-102 vibration trending upward over 30 days. Broadband velocity 164.4 mm/s. Bearing defect frequency identified in spectrum. OperationDescription: Vibration analysis confirms bearing fault. Replace drive end bearing proactively. Re-baseline vibration signature after repair. Maintenance_activity_type: PDM1 CreatedDate: 2022-07-21 ActualStartDate: 22022-08-14 ActualFinishDate: 2022-08-15 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B"
     },
     {
       "id": "Q07",
@@ -320,7 +361,8 @@
       "retrieved_docs": [
         "work_orders_clean.csv",
         "pump_oem_manual.pdf",
-        "compliance_checklist_2025.pdf"
+        "compliance_checklist_2025.pdf",
+        "sop_pump_startup.pdf"
       ],
       "citations": [
         {
@@ -348,17 +390,18 @@
           "snippet": "Equipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baselin"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "sop_pump_startup.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-21",
-          "snippet": "Equipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baselin"
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-0",
+          "snippet": "[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-2"
         }
       ],
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": true,
-      "latency_ms": 124,
+      "latency_ms": 188,
       "status": "failed",
+      "failure_category": "correct_document_not_retrieved",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baseline measurement. OperationDescription: Grease drive end and non-drive end bearings. Measure and record vibration signature. Check motor current at duty point. Inspect coupling spider for wear. Maintenance_activity_type: PM01 CreatedDate: 2023-02-10 ActualStartDate: 2023-03-30 ActualFinishDate: 2023-03-30 OrderStatus: REL MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P..."
     },
     {
@@ -370,9 +413,7 @@
       "retrieved_docs": [
         "inspection_report_q1_2025.pdf",
         "compliance_checklist_2025.pdf",
-        "work_orders_clean.csv",
-        "final_e2e_marker_20260721181811.txt",
-        "final_e2e_marker_20260721181401.txt"
+        "work_orders_clean.csv"
       ],
       "citations": [
         {
@@ -394,23 +435,24 @@
           "snippet": "Equipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-01 annual statutory inspection. Internal and external inspection per local pressure vessel "
         },
         {
-          "file_name": "final_e2e_marker_20260721181811.txt",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "08919d43dbec4c4eb94dd45f5f1b1ebd-0",
-          "snippet": "Pump ZZ-991 uses a tungsten-ceramic TC-77 seal and requires a 41 minute cooldown before inspection."
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
+          "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
         },
         {
-          "file_name": "final_e2e_marker_20260721181401.txt",
+          "file_name": "work_orders_clean.csv",
           "page": null,
-          "chunk_id": "bf85405818404ca5a377ac5e991504d1-0",
-          "snippet": "Pump ZZ-991 uses a tungsten-ceramic TC-77 seal and requires a 41 minute cooldown before inspection."
+          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-430",
+          "snippet": "Equipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-01 annual statutory inspection. Internal and external inspection per local pressure vessel "
         }
       ],
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 129,
+      "latency_ms": 214,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] inspection_report_q1_2025.pdf\ntube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bundle chemical cleaning recommended during next planned shutdown. No tube leakage detected. BLR-118 - Package Boiler [Risk: CRITICAL] Pressure test certificate expired on 01 February 2025. Under PESO regulations and Factories Act Section 31, a valid pressure test certificate is mandatory for boiler operation. Operating without a valid certificate constitutes a regulatory violation and exposes the facility to shutdown notice. Immediate ac...\n\n[2] compliance_checklist_2025.pdf\neviewed: January 2025. Status: COMPLIANT. Section E: Quality Non-Conformances (ISO 9001:2015) E1. HX-305 tube fouling - NCR raised 15 March 2025. RCA pending. Target closure: 30 April 2025. E2. P-101 vibration exceedance - NCR raised 15 March 2025. Alignment check scheduled 17 March 2025. Target closure: 20 March 2025. E3. BLR-118 certificate lapse - NCR raised 01 February 2025. Inspection scheduled 25 March 2025. Target closure: 31 March 2025. Compliance Summary [Page 2] Total items checked: 16 Compliant: 9 Non-compliant: 3 - BLR-118 pressure cert, P-101 vibration, TK-482 calibration Action r...\n\n[3] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-01 annual statutory inspection. Internal and external inspection per local pressure vessel regulations. OperationDescription: Drain boiler. Descale waterside surfaces. Inspect fireside tubes and refractory. Inspect safety valve, pressure gauge and water level gauges. Prepare inspection report for regulatory authority. Maintenance_activity_type: Pm02 CreatedDate: 2022-01-22 ActualFinishDate: 2022-02-17 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_D"
     },
     {
@@ -421,10 +463,10 @@
       "expected_doc": "inspection_report_q1_2025.pdf",
       "retrieved_docs": [
         "inspection_report_q1_2025.pdf",
+        "compliance_checklist_2025.pdf",
         "work_orders_clean.csv",
         "pump_oem_manual.pdf",
-        "sop_pump_startup.pdf",
-        "compliance_checklist_2025.pdf"
+        "sop_pump_startup.pdf"
       ],
       "citations": [
         {
@@ -432,6 +474,12 @@
           "page": null,
           "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
           "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
+        },
+        {
+          "file_name": "compliance_checklist_2025.pdf",
+          "page": null,
+          "chunk_id": "139074d893994e4f9e5d2be80474f89e-0",
+          "snippet": "[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure V"
         },
         {
           "file_name": "work_orders_clean.csv",
@@ -450,20 +498,15 @@
           "page": null,
           "chunk_id": "7348361058c246cbad72a343bf5c552a-0",
           "snippet": "[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-2"
-        },
-        {
-          "file_name": "compliance_checklist_2025.pdf",
-          "page": null,
-          "chunk_id": "139074d893994e4f9e5d2be80474f89e-0",
-          "snippet": "[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure V"
         }
       ],
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 120,
+      "latency_ms": 203,
       "status": "passed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] inspection_report_q1_2025.pdf\n116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 April 2025. M-017 - Boiler Feed Motor [Risk: LOW] Insulation resistance: 85 MOhm (healthy, minimum 1 MOhm per IEC 60034). Winding temperature within limits. Terminal connections show no heat discolouration. Vibration at motor bearing: 2.2 mm/s. No issues found. Inspection Summary Total assets inspected: 8 Compliant (no issues): 4 - P-102, P-201, M-017, partial HX-305 Action required: 3 - P-101 vibration, TK-482 calibration, R-201 SRV tes...\n\n[2] work_orders_clean.csv\nEquipment_ID: TK-482 OrderType: CM WorkOrderDescription: Storage Tank TK-03 outlet valve passing. Confirmed by downstream flow with valve closed. OperationDescription: Isolate valve. Disassemble. Inspect seat and ball/gate for erosion. Lap seat if minor damage. Replace valve internals if worn beyond tolerance. Maintenance_activity_type: CM01 CreatedDate: 2023-01-20 ActualStartDate: 2023-01-22 ActualFinishDate: 2023-01-22 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_D\n\n[3] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm..."
+      "failure_category": "pass",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] inspection_report_q1_2025.pdf\n116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 April 2025. M-017 - Boiler Feed Motor [Risk: LOW] Insulation resistance: 85 MOhm (healthy, minimum 1 MOhm per IEC 60034). Winding temperature within limits. Terminal connections show no heat discolouration. Vibration at motor bearing: 2.2 mm/s. No issues found. Inspection Summary Total assets inspected: 8 Compliant (no issues): 4 - P-102, P-201, M-017, partial HX-305 Action required: 3 - P-101 vibration, TK-482 calibration, R-201 SRV tes...\n\n[2] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P...\n\n[3] work_orders_clean.csv\nEquipment_ID: TK-482 OrderType: CM WorkOrderDescription: Storage Tank TK-03 outlet valve passing. Confirmed by downstream flow with valve closed. OperationDescription: Isolate valve. Disassemble. Inspect seat and ball/gate for erosion. Lap seat if minor damage. Replace valve internals if worn beyond tolerance. Maintenance_activity_type: CM01 CreatedDate: 2023-01-20 ActualStartDate: 2023-01-22 ActualFinishDate: 2023-01-22 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_D"
     },
     {
       "id": "Q10",
@@ -485,16 +528,16 @@
           "snippet": "eviewed: January 2025. Status: COMPLIANT. Section E: Quality Non-Conformances (ISO 9001:2015) E1. HX-305 tube fouling - NCR raised 15 March 2025. RCA pending. T"
         },
         {
-          "file_name": "inspection_report_q1_2025.pdf",
-          "page": null,
-          "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
-          "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
-        },
-        {
           "file_name": "compliance_checklist_2025.pdf",
           "page": null,
           "chunk_id": "139074d893994e4f9e5d2be80474f89e-0",
           "snippet": "[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure V"
+        },
+        {
+          "file_name": "inspection_report_q1_2025.pdf",
+          "page": null,
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
+          "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
         },
         {
           "file_name": "work_orders_clean.csv",
@@ -512,9 +555,10 @@
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 121,
+      "latency_ms": 200,
       "status": "passed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] compliance_checklist_2025.pdf\neviewed: January 2025. Status: COMPLIANT. Section E: Quality Non-Conformances (ISO 9001:2015) E1. HX-305 tube fouling - NCR raised 15 March 2025. RCA pending. Target closure: 30 April 2025. E2. P-101 vibration exceedance - NCR raised 15 March 2025. Alignment check scheduled 17 March 2025. Target closure: 20 March 2025. E3. BLR-118 certificate lapse - NCR raised 01 February 2025. Inspection scheduled 25 March 2025. Target closure: 31 March 2025. Compliance Summary [Page 2] Total items checked: 16 Compliant: 9 Non-compliant: 3 - BLR-118 pressure cert, P-101 vibration, TK-482 calibration Action r...\n\n[2] inspection_report_q1_2025.pdf\n116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 April 2025. M-017 - Boiler Feed Motor [Risk: LOW] Insulation resistance: 85 MOhm (healthy, minimum 1 MOhm per IEC 60034). Winding temperature within limits. Terminal connections show no heat discolouration. Vibration at motor bearing: 2.2 mm/s. No issues found. Inspection Summary Total assets inspected: 8 Compliant (no issues): 4 - P-102, P-201, M-017, partial HX-305 Action required: 3 - P-101 vibration, TK-482 calibration, R-201 SRV tes...\n\n[3] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P..."
+      "failure_category": "pass",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] compliance_checklist_2025.pdf\neviewed: January 2025. Status: COMPLIANT. Section E: Quality Non-Conformances (ISO 9001:2015) E1. HX-305 tube fouling - NCR raised 15 March 2025. RCA pending. Target closure: 30 April 2025. E2. P-101 vibration exceedance - NCR raised 15 March 2025. Alignment check scheduled 17 March 2025. Target closure: 20 March 2025. E3. BLR-118 certificate lapse - NCR raised 01 February 2025. Inspection scheduled 25 March 2025. Target closure: 31 March 2025. Compliance Summary [Page 2] Total items checked: 16 Compliant: 9 Non-compliant: 3 - BLR-118 pressure cert, P-101 vibration, TK-482 calibration Action r...\n\n[2] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P...\n\n[3] inspection_report_q1_2025.pdf\n116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 April 2025. M-017 - Boiler Feed Motor [Risk: LOW] Insulation resistance: 85 MOhm (healthy, minimum 1 MOhm per IEC 60034). Winding temperature within limits. Terminal connections show no heat discolouration. Vibration at motor bearing: 2.2 mm/s. No issues found. Inspection Summary Total assets inspected: 8 Compliant (no issues): 4 - P-102, P-201, M-017, partial HX-305 Action required: 3 - P-101 vibration, TK-482 calibration, R-201 SRV tes..."
     },
     {
       "id": "Q11",
@@ -524,8 +568,8 @@
       "expected_doc": "compliance_checklist_2025.pdf",
       "retrieved_docs": [
         "inspection_report_q1_2025.pdf",
-        "work_orders_clean.csv",
-        "compliance_checklist_2025.pdf"
+        "compliance_checklist_2025.pdf",
+        "work_orders_clean.csv"
       ],
       "citations": [
         {
@@ -533,12 +577,6 @@
           "page": null,
           "chunk_id": "950746b751784053a8cdae5689ad4f2b-2",
           "snippet": "tube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bu"
-        },
-        {
-          "file_name": "work_orders_clean.csv",
-          "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-415",
-          "snippet": "Equipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-101 annual statutory inspection. Internal and external inspection per local pressure vessel"
         },
         {
           "file_name": "compliance_checklist_2025.pdf",
@@ -549,22 +587,29 @@
         {
           "file_name": "work_orders_clean.csv",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-433",
-          "snippet": "Equipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-101 safety valve lifting at 101.6 bar below set pressure. Seat leakage suspected. Operation"
+          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-415",
+          "snippet": "Equipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-101 annual statutory inspection. Internal and external inspection per local pressure vessel"
         },
         {
           "file_name": "work_orders_clean.csv",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-434",
-          "snippet": "Equipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-01 annual statutory inspection. Internal and external inspection per local pressure vessel "
+          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-433",
+          "snippet": "Equipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-101 safety valve lifting at 101.6 bar below set pressure. Seat leakage suspected. Operation"
+        },
+        {
+          "file_name": "inspection_report_q1_2025.pdf",
+          "page": null,
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
+          "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
         }
       ],
       "top1_hit": false,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 123,
+      "latency_ms": 196,
       "status": "passed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] inspection_report_q1_2025.pdf\ntube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bundle chemical cleaning recommended during next planned shutdown. No tube leakage detected. BLR-118 - Package Boiler [Risk: CRITICAL] Pressure test certificate expired on 01 February 2025. Under PESO regulations and Factories Act Section 31, a valid pressure test certificate is mandatory for boiler operation. Operating without a valid certificate constitutes a regulatory violation and exposes the facility to shutdown notice. Immediate ac...\n\n[2] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-101 annual statutory inspection. Internal and external inspection per local pressure vessel regulations. OperationDescription: Drain boiler. Descale waterside surfaces. Inspect fireside tubes and refractory. Inspect safety valve, pressure gauge and water level gauges. Prepare inspection report for regulatory authority. Maintenance_activity_type: PM02 CreatedDate: 2023-02-27 ActualStartDate: 2023-03-12 ActualFinishDate: 2023-03-13 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_D\n\n[3] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P..."
+      "failure_category": "pass",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] inspection_report_q1_2025.pdf\ntube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bundle chemical cleaning recommended during next planned shutdown. No tube leakage detected. BLR-118 - Package Boiler [Risk: CRITICAL] Pressure test certificate expired on 01 February 2025. Under PESO regulations and Factories Act Section 31, a valid pressure test certificate is mandatory for boiler operation. Operating without a valid certificate constitutes a regulatory violation and exposes the facility to shutdown notice. Immediate ac...\n\n[2] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P...\n\n[3] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-101 annual statutory inspection. Internal and external inspection per local pressure vessel regulations. OperationDescription: Drain boiler. Descale waterside surfaces. Inspect fireside tubes and refractory. Inspect safety valve, pressure gauge and water level gauges. Prepare inspection report for regulatory authority. Maintenance_activity_type: PM02 CreatedDate: 2023-02-27 ActualStartDate: 2023-03-12 ActualFinishDate: 2023-03-13 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_D"
     },
     {
       "id": "Q12",
@@ -574,7 +619,9 @@
       "expected_doc": "work_orders_clean.csv",
       "retrieved_docs": [
         "work_orders_clean.csv",
-        "pump_oem_manual.pdf"
+        "pump_oem_manual.pdf",
+        "inspection_report_q1_2025.pdf",
+        "compliance_checklist_2025.pdf"
       ],
       "citations": [
         {
@@ -596,23 +643,24 @@
           "snippet": "Equipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 high vibration alarm on drive end bearing. Amplitude 203.2 mm/s RMS exceeding tri"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-61",
-          "snippet": "Equipment_ID: P-102 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 high vibration alarm on drive end bearing. Amplitude 203.2 mm/s RMS exceeding tri"
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-0",
+          "snippet": "[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Reg"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "compliance_checklist_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-7",
-          "snippet": "Equipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 high vibration alarm on drive end bearing. Amplitude 203.2 mm/s RMS exceeding tri"
+          "chunk_id": "139074d893994e4f9e5d2be80474f89e-0",
+          "snippet": "[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure V"
         }
       ],
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 112,
+      "latency_ms": 192,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 high vibration alarm on drive end bearing. Amplitude 203.2 mm/s RMS exceeding trip setpoint. OperationDescription: Isolate pump, drain casing, disassemble bearing housing. Replace drive end bearing 22316E. Realign coupling to within 0.05mm TIR. Functional test at duty point. Maintenance_activity_type: CM01 CreatedDate: 2023-02-09 ActualStartDate: 2023-02-09 ActualFinishDate: 2023-02-09 OrderStatus: TECO MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 high vibration alarm on drive end bearing. Amplitude 203.2 mm/s RMS exceeding trip setpoint. OperationDescription: Isolate pump, drain casing, disassemble bearing housing. Replace drive end bearing 22316E. Realign coupling to within 0.05mm TIR. Functional test at duty point. Maintenance_activity_type: CM01 CreatedDate: 2021-06-13 ActualStartDate: 2021-06-14 ActualFinishDate: 2021-06-14 OrderStatus: TECO MaintenanceWorkCenter: MECH_TEAM_B"
     },
     {
@@ -660,8 +708,9 @@
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": false,
-      "latency_ms": 101,
+      "latency_ms": 184,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 six-monthly planned maintenance. Bearing inspection, mechanical seal check and coupling alignment verification. OperationDescription: Inspect bearing condition and clearances. Replenish grease per lubrication schedule Castrol Tribol 800. Check coupling alignment. Verify seal flush flow rate. Update maintenance record. Maintenance_activity_type: PM01 CreatedDate: 2023-02-10 ActualFinishDate: 2023-2-22 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 low flow alarm active. Flow 38.4 m3/h below minimum process requirement. OperationDescription: Inspect impeller for wear and blockage. Remove any debris. Check wear ring clearance. Trim impeller if required. Verify system curve against pump curve. Maintenance_activity_type: CM03 CreatedDate: 2023-02-09 ActualStartDate: 2023-02-10 ActualFinishDate: 2023-02-10 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_B"
     },
     {
@@ -696,23 +745,24 @@
           "snippet": "tube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bu"
         },
         {
-          "file_name": "work_orders_clean.csv",
-          "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-433",
-          "snippet": "Equipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-101 safety valve lifting at 101.6 bar below set pressure. Seat leakage suspected. Operation"
-        },
-        {
           "file_name": "pump_oem_manual.pdf",
           "page": null,
           "chunk_id": "6b1eaf203c38485d9eb646c712d5d5f2-1",
           "snippet": "inspect seal flush flow (min 2 L/min), check for leakage at gland. Monthly: verify coupling alignment (max 0.05 mm TIR), measure vibration. 6-Monthly: replace b"
+        },
+        {
+          "file_name": "sop_pump_startup.pdf",
+          "page": null,
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-1",
+          "snippet": "t to start. 2. Startup Sequence 2.1 Energise motor from MCC panel. Confirm green running indication. 2.2 Slowly open discharge valve to duty point over 30 secon"
         }
       ],
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": false,
-      "latency_ms": 126,
+      "latency_ms": 198,
       "status": "failed",
+      "failure_category": "expected_source_absent_from_corpus",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] sop_pump_startup.pdf\no a complete stop. 3.4 Close suction valve if pump is to be isolated for maintenance. 3.5 Depressurise and drain casing before any mechanical work begins. 4. Emergency Shutdown 4.1 De-energise motor immediately from nearest isolation point. 4.2 Do not attempt to restart until root cause of emergency is identified. 4.3 Raise maintenance work order in CMMS system within 30 minutes. 4.4 Notify shift supervisor immediately. 5. Safety Precautions 5.1 Follow LOTO procedure HSE-LOTO-001 before any mechanical work. 5.2 Mandatory PPE: safety glasses, chemical-resistant gloves, steel-toed boots. 5.3 Nev...\n\n[2] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-01 safety valve lifting at 16.3 bar below set pressure. Seat leakage suspected. OperationDescription: Isolate safety valve. Remove and send to certified workshop for testing, reconditioning and recertification. Fit inspected spare valve. Update safety valve register. CreatedDate: 2022-01-22 ActualStartDate: 2022-01-20 ActualFinishDate: 2022-01-21 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_D\n\n[3] inspection_report_q1_2025.pdf\ntube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bundle chemical cleaning recommended during next planned shutdown. No tube leakage detected. BLR-118 - Package Boiler [Risk: CRITICAL] Pressure test certificate expired on 01 February 2025. Under PESO regulations and Factories Act Section 31, a valid pressure test certificate is mandatory for boiler operation. Operating without a valid certificate constitutes a regulatory violation and exposes the facility to shutdown notice. Immediate ac..."
     },
     {
@@ -723,8 +773,8 @@
       "expected_doc": "compliance_checklist_2025.pdf",
       "retrieved_docs": [
         "compliance_checklist_2025.pdf",
-        "work_orders_clean.csv",
         "inspection_report_q1_2025.pdf",
+        "work_orders_clean.csv",
         "sop_pump_startup.pdf"
       ],
       "citations": [
@@ -735,16 +785,16 @@
           "snippet": "[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure V"
         },
         {
-          "file_name": "work_orders_clean.csv",
-          "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-183",
-          "snippet": "Equipment_ID: TK-482 OrderType: CM WorkOrderDescription: Storage Tank TK-04 level transmitter LT failure. Reading stuck at 129% suspect impulse line blockage. O"
-        },
-        {
           "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
           "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
           "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
+        },
+        {
+          "file_name": "work_orders_clean.csv",
+          "page": null,
+          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-183",
+          "snippet": "Equipment_ID: TK-482 OrderType: CM WorkOrderDescription: Storage Tank TK-04 level transmitter LT failure. Reading stuck at 129% suspect impulse line blockage. O"
         },
         {
           "file_name": "sop_pump_startup.pdf",
@@ -762,9 +812,10 @@
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 128,
+      "latency_ms": 207,
       "status": "passed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P...\n\n[2] work_orders_clean.csv\nEquipment_ID: TK-482 OrderType: CM WorkOrderDescription: Storage Tank TK-04 level transmitter LT failure. Reading stuck at 129% suspect impulse line blockage. OperationDescription: Isolate and remove level transmitter. Blow down impulse lines. Clean displacer float. Bench calibrate. Reinstall and verify reading against dip measurement. Maintenance_activity_type: CM03 CreatedDate: 2023-01-19 ActualStartDate: 2023-01-20 ActualFinishDate: 2023-01-20 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_D\n\n[3] inspection_report_q1_2025.pdf\n116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 April 2025. M-017 - Boiler Feed Motor [Risk: LOW] Insulation resistance: 85 MOhm (healthy, minimum 1 MOhm per IEC 60034). Winding temperature within limits. Terminal connections show no heat discolouration. Vibration at motor bearing: 2.2 mm/s. No issues found. Inspection Summary Total assets inspected: 8 Compliant (no issues): 4 - P-102, P-201, M-017, partial HX-305 Action required: 3 - P-101 vibration, TK-482 calibration, R-201 SRV tes..."
+      "failure_category": "pass",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P...\n\n[2] inspection_report_q1_2025.pdf\n116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 April 2025. M-017 - Boiler Feed Motor [Risk: LOW] Insulation resistance: 85 MOhm (healthy, minimum 1 MOhm per IEC 60034). Winding temperature within limits. Terminal connections show no heat discolouration. Vibration at motor bearing: 2.2 mm/s. No issues found. Inspection Summary Total assets inspected: 8 Compliant (no issues): 4 - P-102, P-201, M-017, partial HX-305 Action required: 3 - P-101 vibration, TK-482 calibration, R-201 SRV tes...\n\n[3] work_orders_clean.csv\nEquipment_ID: TK-482 OrderType: CM WorkOrderDescription: Storage Tank TK-04 level transmitter LT failure. Reading stuck at 129% suspect impulse line blockage. OperationDescription: Isolate and remove level transmitter. Blow down impulse lines. Clean displacer float. Bench calibrate. Reinstall and verify reading against dip measurement. Maintenance_activity_type: CM03 CreatedDate: 2023-01-19 ActualStartDate: 2023-01-20 ActualFinishDate: 2023-01-20 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_D"
     },
     {
       "id": "Q16",
@@ -774,7 +825,9 @@
       "expected_doc": "pump_oem_manual.pdf",
       "retrieved_docs": [
         "work_orders_clean.csv",
-        "pump_oem_manual.pdf"
+        "pump_oem_manual.pdf",
+        "sop_pump_startup.pdf",
+        "inspection_report_q1_2025.pdf"
       ],
       "citations": [
         {
@@ -796,23 +849,24 @@
           "snippet": "Equipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "sop_pump_startup.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-42",
-          "snippet": "Equipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/"
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-0",
+          "snippet": "[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-2"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-4",
-          "snippet": "Equipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/"
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-0",
+          "snippet": "[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Reg"
         }
       ],
       "top1_hit": false,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 124,
+      "latency_ms": 208,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/h. OperationDescription: Replace complete mechanical seal cartridge. Flush seal chamber, pressure test at 19.1 bar. Return to service and monitor seal flush flow. Maintenance_activity_type: CM03 CreatedDate: 2019-01-03 ActualStartDate: 2019-01-04 ActualFinishDate: 2019-01-04 MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/h. OperationDescription: Replace complete mechanical seal cartridge. Flush seal chamber, pressure test at 19.1 bar. Return to service and monitor seal flush flow. Maintenance_activity_type: CM03 CreatedDate: 2021-09-28 ActualStartDate: 2021-09-29 ActualFinishDate: 2021-09-29 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B"
     },
     {
@@ -824,7 +878,8 @@
       "retrieved_docs": [
         "work_orders_clean.csv",
         "pump_oem_manual.pdf",
-        "inspection_report_q1_2025.pdf"
+        "inspection_report_q1_2025.pdf",
+        "sop_pump_startup.pdf"
       ],
       "citations": [
         {
@@ -852,17 +907,18 @@
           "snippet": "Equipment_ID: R-201 OrderType: PM WorkOrderDescription: Reactor R-02 quarterly agitator mechanical seal and gearbox oil service. OperationDescription: Drain gea"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "sop_pump_startup.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-387",
-          "snippet": "Equipment_ID: R-201 OrderType: PM WorkOrderDescription: Reactor R-101 quarterly agitator mechanical seal and gearbox oil service. OperationDescription: Drain ge"
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-2",
+          "snippet": "o a complete stop. 3.4 Close suction valve if pump is to be isolated for maintenance. 3.5 Depressurise and drain casing before any mechanical work begins. 4. Em"
         }
       ],
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": false,
-      "latency_ms": 177,
+      "latency_ms": 262,
       "status": "failed",
+      "failure_category": "expected_source_absent_from_corpus",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: R-201 OrderType: PM WorkOrderDescription: Reactor R-101 quarterly agitator mechanical seal and gearbox oil service. OperationDescription: Drain gearbox. Replace oil with approved grade. Inspect mechanical seal faces for wear. Replace seal if face wear exceeds tolerance. Check impeller clearance. Maintenance_activity_type: PM03 ActualStartDate: 2020-10-21 ActualFinishDate: 2020-10-22 OrderStatus: OPEN MaintenanceWorkCenter: MECH_TEAM_D\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] inspection_report_q1_2025.pdf\ntube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bundle chemical cleaning recommended during next planned shutdown. No tube leakage detected. BLR-118 - Package Boiler [Risk: CRITICAL] Pressure test certificate expired on 01 February 2025. Under PESO regulations and Factories Act Section 31, a valid pressure test certificate is mandatory for boiler operation. Operating without a valid certificate constitutes a regulatory violation and exposes the facility to shutdown notice. Immediate ac..."
     },
     {
@@ -875,8 +931,7 @@
         "work_orders_clean.csv",
         "compliance_checklist_2025.pdf",
         "inspection_report_q1_2025.pdf",
-        "pump_oem_manual.pdf",
-        "sop_pump_startup.pdf"
+        "pump_oem_manual.pdf"
       ],
       "citations": [
         {
@@ -904,17 +959,18 @@
           "snippet": "[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Ove"
         },
         {
-          "file_name": "sop_pump_startup.pdf",
+          "file_name": "work_orders_clean.csv",
           "page": null,
-          "chunk_id": "7348361058c246cbad72a343bf5c552a-0",
-          "snippet": "[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-2"
+          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-70",
+          "snippet": "Equipment_ID: P-102 OrderType: PM WorkOrderDescription: Centrifugal Pump P-102 six-monthly planned maintenance. Bearing inspection, mechanical seal check and co"
         }
       ],
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 111,
+      "latency_ms": 197,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: PM WorkOrderDescription: Centrifugal Pump P-102 six-monthly planned maintenance. Bearing inspection, mechanical seal check and coupling alignment verification. OperationDescription: Inspect bearing condition and clearances. Replenish grease per lubrication schedule Castrol Tribol 800. Check coupling alignment. Verify seal flush flow rate. Update maintenance record. Maintenance_activity_type: PM01 CreatedDate: 2021-09-27 ActualStartDate: 2021-11-18 ActualFinishDate: 2021-11-19 OrderStatus: OPEN MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] compliance_checklist_2025.pdf\neviewed: January 2025. Status: COMPLIANT. Section E: Quality Non-Conformances (ISO 9001:2015) E1. HX-305 tube fouling - NCR raised 15 March 2025. RCA pending. Target closure: 30 April 2025. E2. P-101 vibration exceedance - NCR raised 15 March 2025. Alignment check scheduled 17 March 2025. Target closure: 20 March 2025. E3. BLR-118 certificate lapse - NCR raised 01 February 2025. Inspection scheduled 25 March 2025. Target closure: 31 March 2025. Compliance Summary [Page 2] Total items checked: 16 Compliant: 9 Non-compliant: 3 - BLR-118 pressure cert, P-101 vibration, TK-482 calibration Action r...\n\n[3] inspection_report_q1_2025.pdf\n116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 April 2025. M-017 - Boiler Feed Motor [Risk: LOW] Insulation resistance: 85 MOhm (healthy, minimum 1 MOhm per IEC 60034). Winding temperature within limits. Terminal connections show no heat discolouration. Vibration at motor bearing: 2.2 mm/s. No issues found. Inspection Summary Total assets inspected: 8 Compliant (no issues): 4 - P-102, P-201, M-017, partial HX-305 Action required: 3 - P-101 vibration, TK-482 calibration, R-201 SRV tes..."
     },
     {
@@ -954,17 +1010,18 @@
           "snippet": "Equipment_ID: P-201 OrderType: CM WorkOrderDescription: Centrifugal Pump P-201 bearing temperature high alarm drive end. Temperature 262 degC above baseline. Op"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "pump_oem_manual.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-66",
-          "snippet": "Equipment_ID: P-102 OrderType: CM WorkOrderDescription: Centrifugal Pump P-102 bearing temperature high alarm drive end. Temperature 91 degC above baseline. Ope"
+          "chunk_id": "6b1eaf203c38485d9eb646c712d5d5f2-1",
+          "snippet": "inspect seal flush flow (min 2 L/min), check for leakage at gland. Monthly: verify coupling alignment (max 0.05 mm TIR), measure vibration. 6-Monthly: replace b"
         }
       ],
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": false,
-      "latency_ms": 117,
+      "latency_ms": 195,
       "status": "failed",
+      "failure_category": "expected_source_absent_from_corpus",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] pump_oem_manual.pdf\ne damage from dry running. Corrective action: replace cartridge seal MS-45-CR and verify alignment per SOP-PUMP-07. 2. Bearing overheating above 75 deg C: caused by over-greasing, under-greasing, or contaminated lubricant. Replace bearing 6309-2RS if temperature exceeds 85 deg C. 3. High vibration above 4.5 mm/s: caused by misalignment, cavitation, worn impeller, or unbalanced rotor. Check shaft alignment first, then verify NPSH available. 4. Cavitation: occurs when suction pressure drops below NPSHr of 3.2 m. Check suction strainer differential pressure and verify vessel level. 5. Motor overl...\n\n[2] work_orders_clean.csv\nEquipment_ID: P-201 OrderType: CM WorkOrderDescription: Centrifugal Pump P-103 bearing temperature high alarm drive end. Temperature 145 degC above baseline. OperationDescription: Remove bearing housing end cover. Measure bearing clearance. Replace worn bearing. Re-grease per lubrication schedule. Monitor temperature for 2 hours post start. CreatedDate: 2019-04-09 ActualStartDate: 2019-04-11 ActualFinishDate: 22019-04-11 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B\n\n[3] inspection_report_q1_2025.pdf\n[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Region P-101 - Cooling Water Pump [Risk: HIGH] Vibration at drive end bearing: 6.2 mm/s RMS. Exceeds OISD-137 limit of 4.5 mm/s. Visual inspection reveals slight misalignment of flexible coupling. Last seal replacement on 12 January 2025 per work order WO-20000019. Bearing temperature 71 deg C, within limit. Recommendation: perform laser alignment check within 48 hours. If vibration remains above 4.5 mm/s after alignment, replace drive end..."
     },
     {
@@ -975,8 +1032,9 @@
       "expected_doc": "compliance_checklist_2025.pdf",
       "retrieved_docs": [
         "work_orders_clean.csv",
+        "pump_oem_manual.pdf",
         "inspection_report_q1_2025.pdf",
-        "pump_oem_manual.pdf"
+        "compliance_checklist_2025.pdf"
       ],
       "citations": [
         {
@@ -986,36 +1044,37 @@
           "snippet": "Equipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 motor current increasing trend. Current draw 124.1 A versus baseline 182.0 A. Po"
         },
         {
-          "file_name": "inspection_report_q1_2025.pdf",
-          "page": null,
-          "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
-          "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
-        },
-        {
           "file_name": "pump_oem_manual.pdf",
           "page": null,
           "chunk_id": "6b1eaf203c38485d9eb646c712d5d5f2-0",
           "snippet": "[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Ove"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-16",
-          "snippet": "Equipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baselin"
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
+          "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
+        },
+        {
+          "file_name": "compliance_checklist_2025.pdf",
+          "page": null,
+          "chunk_id": "139074d893994e4f9e5d2be80474f89e-0",
+          "snippet": "[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure V"
         },
         {
           "file_name": "work_orders_clean.csv",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-37",
-          "snippet": "Equipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 motor current increasing trend. Current draw 124.1 A versus baseline 182.0 A. Po"
+          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-16",
+          "snippet": "Equipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baselin"
         }
       ],
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": true,
-      "latency_ms": 125,
+      "latency_ms": 199,
       "status": "failed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 motor current increasing trend. Current draw 124.1 A versus baseline 182.0 A. Possible internal wear. OperationDescription: Inspect impeller and wear rings for erosion. Measure internal clearances. Replace worn components. Re-test performance at duty conditions. Maintenance_activity_type: PDM2 CreatedDate: 2023-02-10 ActualStartDate: 2023-03-15 ActualFinishDate: 2023-03-16 OrderStatus: - MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] inspection_report_q1_2025.pdf\n116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 April 2025. M-017 - Boiler Feed Motor [Risk: LOW] Insulation resistance: 85 MOhm (healthy, minimum 1 MOhm per IEC 60034). Winding temperature within limits. Terminal connections show no heat discolouration. Vibration at motor bearing: 2.2 mm/s. No issues found. Inspection Summary Total assets inspected: 8 Compliant (no issues): 4 - P-102, P-201, M-017, partial HX-305 Action required: 3 - P-101 vibration, TK-482 calibration, R-201 SRV tes...\n\n[3] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm..."
+      "failure_category": "correct_document_outside_top3",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-101 motor current increasing trend. Current draw 124.1 A versus baseline 182.0 A. Possible internal wear. OperationDescription: Inspect impeller and wear rings for erosion. Measure internal clearances. Replace worn components. Re-test performance at duty conditions. Maintenance_activity_type: PDM2 CreatedDate: 2023-02-10 ActualStartDate: 2023-03-15 ActualFinishDate: 2023-03-16 OrderStatus: - MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] inspection_report_q1_2025.pdf\n116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 April 2025. M-017 - Boiler Feed Motor [Risk: LOW] Insulation resistance: 85 MOhm (healthy, minimum 1 MOhm per IEC 60034). Winding temperature within limits. Terminal connections show no heat discolouration. Vibration at motor bearing: 2.2 mm/s. No issues found. Inspection Summary Total assets inspected: 8 Compliant (no issues): 4 - P-102, P-201, M-017, partial HX-305 Action required: 3 - P-101 vibration, TK-482 calibration, R-201 SRV tes..."
     },
     {
       "id": "Q21",
@@ -1026,7 +1085,8 @@
       "retrieved_docs": [
         "work_orders_clean.csv",
         "sop_pump_startup.pdf",
-        "pump_oem_manual.pdf"
+        "pump_oem_manual.pdf",
+        "inspection_report_q1_2025.pdf"
       ],
       "citations": [
         {
@@ -1042,45 +1102,11 @@
           "snippet": "[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-2"
         },
         {
-          "file_name": "pump_oem_manual.pdf",
-          "page": null,
-          "chunk_id": "6b1eaf203c38485d9eb646c712d5d5f2-0",
-          "snippet": "[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Ove"
-        },
-        {
           "file_name": "work_orders_clean.csv",
           "page": null,
           "chunk_id": "0d627579f0c046eaa40d482e8a73840b-16",
           "snippet": "Equipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baselin"
         },
-        {
-          "file_name": "work_orders_clean.csv",
-          "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-21",
-          "snippet": "Equipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baselin"
-        }
-      ],
-      "top1_hit": true,
-      "top3_hit": true,
-      "asset_hit": true,
-      "latency_ms": 146,
-      "status": "passed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baseline measurement. OperationDescription: Grease drive end and non-drive end bearings. Measure and record vibration signature. Check motor current at duty point. Inspect coupling spider for wear. Maintenance_activity_type: PM01 CreatedDate: 2023/12/19 ActualStartDate: 2024-02-05 ActualFinishDate: 2024-02-05 OrderStatus: REL MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] sop_pump_startup.pdf\n[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-201 1. Pre-Startup Checks 1.1 Confirm maintenance work order is closed and equipment returned to service. 1.2 Verify all isolation valves on suction line are fully open. 1.3 Check mechanical seal flush line is open; flush pressure must read 0.8 to 1.2 bar. 1.4 Confirm bearing housing oil level is between MIN and MAX marks on sight glass. 1.5 Check coupling guard is fitted and all bolts are torqued. 1.6 Set discharge valve to 25 percent o...\n\n[3] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm..."
-    },
-    {
-      "id": "Q22",
-      "question": "Explain the citation accuracy for the vibration threshold of category 2 motors.",
-      "category": "citation_accuracy",
-      "asset_tag": "P-102",
-      "expected_doc": "compliance_checklist_2025.pdf",
-      "retrieved_docs": [
-        "pump_oem_manual.pdf",
-        "inspection_report_q1_2025.pdf",
-        "work_orders_clean.csv",
-        "compliance_checklist_2025.pdf",
-        "sop_pump_startup.pdf"
-      ],
-      "citations": [
         {
           "file_name": "pump_oem_manual.pdf",
           "page": null,
@@ -1090,8 +1116,43 @@
         {
           "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
+          "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
+        }
+      ],
+      "top1_hit": true,
+      "top3_hit": true,
+      "asset_hit": true,
+      "latency_ms": 202,
+      "status": "passed",
+      "failure_category": "pass",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baseline measurement. OperationDescription: Grease drive end and non-drive end bearings. Measure and record vibration signature. Check motor current at duty point. Inspect coupling spider for wear. Maintenance_activity_type: PM01 CreatedDate: 2023/12/19 ActualStartDate: 2024-02-05 ActualFinishDate: 2024-02-05 OrderStatus: REL MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] sop_pump_startup.pdf\n[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-201 1. Pre-Startup Checks 1.1 Confirm maintenance work order is closed and equipment returned to service. 1.2 Verify all isolation valves on suction line are fully open. 1.3 Check mechanical seal flush line is open; flush pressure must read 0.8 to 1.2 bar. 1.4 Confirm bearing housing oil level is between MIN and MAX marks on sight glass. 1.5 Check coupling guard is fitted and all bolts are torqued. 1.6 Set discharge valve to 25 percent o...\n\n[3] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baseline measurement. OperationDescription: Grease drive end and non-drive end bearings. Measure and record vibration signature. Check motor current at duty point. Inspect coupling spider for wear. Maintenance_activity_type: PM01 CreatedDate: 2023-02-10 ActualStartDate: 2023-03-30 ActualFinishDate: 2023-03-30 OrderStatus: REL MaintenanceWorkCenter: MECH_TEAM_B"
+    },
+    {
+      "id": "Q22",
+      "question": "Explain the citation accuracy for the vibration threshold of category 2 motors.",
+      "category": "citation_accuracy",
+      "asset_tag": "P-102",
+      "expected_doc": "compliance_checklist_2025.pdf",
+      "retrieved_docs": [
+        "inspection_report_q1_2025.pdf",
+        "pump_oem_manual.pdf",
+        "work_orders_clean.csv",
+        "compliance_checklist_2025.pdf",
+        "sop_pump_startup.pdf"
+      ],
+      "citations": [
+        {
+          "file_name": "inspection_report_q1_2025.pdf",
+          "page": null,
           "chunk_id": "950746b751784053a8cdae5689ad4f2b-0",
           "snippet": "[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Reg"
+        },
+        {
+          "file_name": "pump_oem_manual.pdf",
+          "page": null,
+          "chunk_id": "6b1eaf203c38485d9eb646c712d5d5f2-0",
+          "snippet": "[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Ove"
         },
         {
           "file_name": "work_orders_clean.csv",
@@ -1115,9 +1176,10 @@
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": true,
-      "latency_ms": 121,
+      "latency_ms": 176,
       "status": "failed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[2] inspection_report_q1_2025.pdf\n[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Region P-101 - Cooling Water Pump [Risk: HIGH] Vibration at drive end bearing: 6.2 mm/s RMS. Exceeds OISD-137 limit of 4.5 mm/s. Visual inspection reveals slight misalignment of flexible coupling. Last seal replacement on 12 January 2025 per work order WO-20000019. Bearing temperature 71 deg C, within limit. Recommendation: perform laser alignment check within 48 hours. If vibration remains above 4.5 mm/s after alignment, replace drive end...\n\n[3] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-102 vibration trending upward over 30 days. Broadband velocity 164.4 mm/s. Bearing defect frequency identified in spectrum. OperationDescription: Vibration analysis confirms bearing fault. Replace drive end bearing proactively. Re-baseline vibration signature after repair. Maintenance_activity_type: PDM1 CreatedDate: 2022-07-21 ActualStartDate: 22022-08-14 ActualFinishDate: 2022-08-15 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B"
+      "failure_category": "correct_document_outside_top3",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] inspection_report_q1_2025.pdf\n[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Region P-101 - Cooling Water Pump [Risk: HIGH] Vibration at drive end bearing: 6.2 mm/s RMS. Exceeds OISD-137 limit of 4.5 mm/s. Visual inspection reveals slight misalignment of flexible coupling. Last seal replacement on 12 January 2025 per work order WO-20000019. Bearing temperature 71 deg C, within limit. Recommendation: perform laser alignment check within 48 hours. If vibration remains above 4.5 mm/s after alignment, replace drive end...\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-102 vibration trending upward over 30 days. Broadband velocity 164.4 mm/s. Bearing defect frequency identified in spectrum. OperationDescription: Vibration analysis confirms bearing fault. Replace drive end bearing proactively. Re-baseline vibration signature after repair. Maintenance_activity_type: PDM1 CreatedDate: 2022-07-21 ActualStartDate: 22022-08-14 ActualFinishDate: 2022-08-15 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B"
     },
     {
       "id": "Q23",
@@ -1126,7 +1188,10 @@
       "asset_tag": "V-101",
       "expected_doc": "inspection_report_q1_2025.pdf",
       "retrieved_docs": [
-        "work_orders_clean.csv"
+        "work_orders_clean.csv",
+        "inspection_report_q1_2025.pdf",
+        "sop_pump_startup.pdf",
+        "compliance_checklist_2025.pdf"
       ],
       "citations": [
         {
@@ -1142,30 +1207,31 @@
           "snippet": "Equipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-101 safety valve lifting at 101.6 bar below set pressure. Seat leakage suspected. Operation"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-450",
-          "snippet": "Equipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-02 safety valve lifting at 83.0 bar below set pressure. Seat leakage suspected. OperationDe"
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
+          "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "sop_pump_startup.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-456",
-          "snippet": "Equipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-02 safety valve lifting at 83.0 bar below set pressure. Seat leakage suspected. OperationDe"
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-2",
+          "snippet": "o a complete stop. 3.4 Close suction valve if pump is to be isolated for maintenance. 3.5 Depressurise and drain casing before any mechanical work begins. 4. Em"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "compliance_checklist_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-428",
-          "snippet": "Equipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-01 safety valve lifting at 16.3 bar below set pressure. Seat leakage suspected. OperationDe"
+          "chunk_id": "139074d893994e4f9e5d2be80474f89e-0",
+          "snippet": "[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure V"
         }
       ],
       "top1_hit": false,
-      "top3_hit": false,
+      "top3_hit": true,
       "asset_hit": false,
-      "latency_ms": 106,
-      "status": "failed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-101 safety valve lifting at 101.6 bar below set pressure. Seat leakage suspected. OperationDescription: Isolate safety valve. Remove and send to certified workshop for testing, reconditioning and recertification. Fit inspected spare valve. Update safety valve register. Maintenance_activity_type: CM02 CreatedDate: 2023-02-27 ActualStartDate: 2023-03-01 ActualFinishDate: 2023-03-01 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_D\n\n[2] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-101 safety valve lifting at 101.6 bar below set pressure. Seat leakage suspected. OperationDescription: Isolate safety valve. Remove and send to certified workshop for testing, reconditioning and recertification. Fit inspected spare valve. Update safety valve register. Maintenance_activity_type: CM02 CreatedDate: 2020-06-02 ActualStartDate: 2020-06-04 ActualFinishDate: 2020-06-04 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_D\n\n[3] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-02 safety valve lifting at 83.0 bar below set pressure. Seat leakage suspected. OperationDescription: Isolate safety valve. Remove and send to certified workshop for testing, reconditioning and recertification. Fit inspected spare valve. Update safety valve regiser. Maintenance_activity_type: CM03 CreatedDate: 2019-0427 ActualStartDate: 2019-04-26 ActualFinishDate: - OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_D"
+      "latency_ms": 191,
+      "status": "passed",
+      "failure_category": "pass",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-101 safety valve lifting at 101.6 bar below set pressure. Seat leakage suspected. OperationDescription: Isolate safety valve. Remove and send to certified workshop for testing, reconditioning and recertification. Fit inspected spare valve. Update safety valve register. Maintenance_activity_type: CM02 CreatedDate: 2023-02-27 ActualStartDate: 2023-03-01 ActualFinishDate: 2023-03-01 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_D\n\n[2] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-101 safety valve lifting at 101.6 bar below set pressure. Seat leakage suspected. OperationDescription: Isolate safety valve. Remove and send to certified workshop for testing, reconditioning and recertification. Fit inspected spare valve. Update safety valve register. Maintenance_activity_type: CM02 CreatedDate: 2020-06-02 ActualStartDate: 2020-06-04 ActualFinishDate: 2020-06-04 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_D\n\n[3] inspection_report_q1_2025.pdf\n116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 April 2025. M-017 - Boiler Feed Motor [Risk: LOW] Insulation resistance: 85 MOhm (healthy, minimum 1 MOhm per IEC 60034). Winding temperature within limits. Terminal connections show no heat discolouration. Vibration at motor bearing: 2.2 mm/s. No issues found. Inspection Summary Total assets inspected: 8 Compliant (no issues): 4 - P-102, P-201, M-017, partial HX-305 Action required: 3 - P-101 vibration, TK-482 calibration, R-201 SRV tes..."
     },
     {
       "id": "Q24",
@@ -1214,8 +1280,9 @@
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": false,
-      "latency_ms": 102,
+      "latency_ms": 187,
       "status": "failed",
+      "failure_category": "expected_source_absent_from_corpus",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[2] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: PM WorkOrderDescription: Centrifugal Pump P-103 six-monthly planned maintenance. Bearing inspection, mechanical seal check and coupling alignment verification. OperationDescription: Inspect bearing condition and clearances. Replenish grease per lubrication schedule Shell Omala 220. Check coupling alignment. Verify seal flush flow rate. Update maintenance record. Maintenance_activity_type: PM01 CreatedDate: 2023-02-27 ActualStartDate: 2023-03-13 ActualFinishDate: 2023-03-14 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B\n\n[3] inspection_report_q1_2025.pdf\n[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Region P-101 - Cooling Water Pump [Risk: HIGH] Vibration at drive end bearing: 6.2 mm/s RMS. Exceeds OISD-137 limit of 4.5 mm/s. Visual inspection reveals slight misalignment of flexible coupling. Last seal replacement on 12 January 2025 per work order WO-20000019. Bearing temperature 71 deg C, within limit. Recommendation: perform laser alignment check within 48 hours. If vibration remains above 4.5 mm/s after alignment, replace drive end..."
     },
     {
@@ -1227,7 +1294,8 @@
       "retrieved_docs": [
         "work_orders_clean.csv",
         "inspection_report_q1_2025.pdf",
-        "compliance_checklist_2025.pdf"
+        "compliance_checklist_2025.pdf",
+        "pump_oem_manual.pdf"
       ],
       "citations": [
         {
@@ -1255,17 +1323,18 @@
           "snippet": "Equipment_ID: TK-482 OrderType: PM WorkOrderDescription: Storage Tank TK-05 annual calibration of all level and temperature instruments. OperationDescription: C"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "pump_oem_manual.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-175",
-          "snippet": "Equipment_ID: TK-482 OrderType: PM WorkOrderDescription: Storage T\u0430nk TK-301 API 653 intern\u0430l inspecti\u03bfn. Floor, shell \u0430nd r\u03bfof c\u03bfndition assessment. OperationD"
+          "chunk_id": "6b1eaf203c38485d9eb646c712d5d5f2-0",
+          "snippet": "[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Ove"
         }
       ],
       "top1_hit": false,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 113,
+      "latency_ms": 204,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: TK-482 OrderType: PM WorkOrderDescription: Storage Tank TK-02 annual calibration of all level and temperature instruments. OperationDescription: Calibrate all level transmitters against certified reference. Check temperature sensor accuracy. Verify high level alarm setpoints. Update calibration records. Maintenance_activity_type: PM02 ActualStartDate: 2020-05-01 ActualFinishDate: 2020-05-02 OrderStatus: CLSDD\n\n[2] inspection_report_q1_2025.pdf\nin. No leakage at gland. No issues found. Next inspection: June 2025. P-201 - Condensate Extraction Pump [Risk: LOW] Vibration: 2.8 mm/s, well within OISD-137 limit. Bearing temperature 65 deg C. Seal flush pressure 0.95 bar, within 0.8 to 1.2 bar range. No issues found. Next inspection: June 2025. TK-482 - Feed Storage Tank [Risk: MEDIUM] Level transmitter LT-482-01 calibration is overdue by 45 days. Last calibration: October 2024. Per Factory Act Schedule VIII, level instruments on process tanks must be calibrated every 6 months. Tank shell shows no visible corrosion. Nitrogen blanket pressu...\n\n[3] compliance_checklist_2025.pdf\n[Page 1] Plant Compliance and Regulatory Checklist - 2025 Reference: Factory Act 1948, OISD-137, OISD-116, PESO Regulations, ISO 9001:2015 Section A: Pressure Vessels and Boilers A1. BLR-118 - Annual pressure test certificate: EXPIRED (01-Feb-2025). Required by Factories Act Section 31 and PESO. Status: NON-COMPLIANT. Action: schedule inspection authority visit immediately. A2. R-201 - Safety relief valve SRV-R201-01 test certificate: DUE March 2025. Required by OISD-116 every 18 months. Status: ACTION REQUIRED within 30 days. Section B: Rotating Equipment Vibration Monitoring (OISD-137) B1. P..."
     },
     {
@@ -1315,8 +1384,9 @@
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": false,
-      "latency_ms": 114,
+      "latency_ms": 171,
       "status": "failed",
+      "failure_category": "expected_source_absent_from_corpus",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] pump_oem_manual.pdf\ne damage from dry running. Corrective action: replace cartridge seal MS-45-CR and verify alignment per SOP-PUMP-07. 2. Bearing overheating above 75 deg C: caused by over-greasing, under-greasing, or contaminated lubricant. Replace bearing 6309-2RS if temperature exceeds 85 deg C. 3. High vibration above 4.5 mm/s: caused by misalignment, cavitation, worn impeller, or unbalanced rotor. Check shaft alignment first, then verify NPSH available. 4. Cavitation: occurs when suction pressure drops below NPSHr of 3.2 m. Check suction strainer differential pressure and verify vessel level. 5. Motor overl...\n\n[2] work_orders_clean.csv\nEquipment_ID: P-201 OrderType: CM WorkOrderDescription: Centrifugal Pump P-103 high vibration alarm on drive end bearing. Amplitude 23.8 mm/s RMS exceeding trip setpoint. OperationDescription: Isolate pump, drain casing, disassemble bearing housing. Replace drive end bearing NU2316. Realign coupling to within 0.05mm TIR. Functional test at duty point. Maintenance_activity_type: CM01 CreatedDate: 2019-04-10 ActualStartDate: 2019-04-09 OrderStatus: CLSD MaintenanceWorkCenter: mech_team_b\n\n[3] inspection_report_q1_2025.pdf\ntube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bundle chemical cleaning recommended during next planned shutdown. No tube leakage detected. BLR-118 - Package Boiler [Risk: CRITICAL] Pressure test certificate expired on 01 February 2025. Under PESO regulations and Factories Act Section 31, a valid pressure test certificate is mandatory for boiler operation. Operating without a valid certificate constitutes a regulatory violation and exposes the facility to shutdown notice. Immediate ac..."
     },
     {
@@ -1328,7 +1398,8 @@
       "retrieved_docs": [
         "work_orders_clean.csv",
         "inspection_report_q1_2025.pdf",
-        "compliance_checklist_2025.pdf"
+        "compliance_checklist_2025.pdf",
+        "sop_pump_startup.pdf"
       ],
       "citations": [
         {
@@ -1356,17 +1427,18 @@
           "snippet": "Equipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-101 safety valve lifting at 101.6 bar below set pressure. Seat leakage suspected. Operation"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "sop_pump_startup.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-443",
-          "snippet": "Equipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-101 safety valve lifting at 101.6 bar below set pressure. Seat leakage suspected. Operation"
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-2",
+          "snippet": "o a complete stop. 3.4 Close suction valve if pump is to be isolated for maintenance. 3.5 Depressurise and drain casing before any mechanical work begins. 4. Em"
         }
       ],
       "top1_hit": false,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 109,
+      "latency_ms": 181,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-01 safety valve lifting at 16.3 bar below set pressure. Seat leakage suspected. OperationDescription: Isolate safety valve. Remove and send to certified workshop for testing, reconditioning and recertification. Fit inspected spare valve. Update safety valve register. CreatedDate: 2022-01-22 ActualStartDate: 2022-01-20 ActualFinishDate: 2022-01-21 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_D\n\n[2] inspection_report_q1_2025.pdf\ntube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bundle chemical cleaning recommended during next planned shutdown. No tube leakage detected. BLR-118 - Package Boiler [Risk: CRITICAL] Pressure test certificate expired on 01 February 2025. Under PESO regulations and Factories Act Section 31, a valid pressure test certificate is mandatory for boiler operation. Operating without a valid certificate constitutes a regulatory violation and exposes the facility to shutdown notice. Immediate ac...\n\n[3] compliance_checklist_2025.pdf\neviewed: January 2025. Status: COMPLIANT. Section E: Quality Non-Conformances (ISO 9001:2015) E1. HX-305 tube fouling - NCR raised 15 March 2025. RCA pending. Target closure: 30 April 2025. E2. P-101 vibration exceedance - NCR raised 15 March 2025. Alignment check scheduled 17 March 2025. Target closure: 20 March 2025. E3. BLR-118 certificate lapse - NCR raised 01 February 2025. Inspection scheduled 25 March 2025. Target closure: 31 March 2025. Compliance Summary [Page 2] Total items checked: 16 Compliant: 9 Non-compliant: 3 - BLR-118 pressure cert, P-101 vibration, TK-482 calibration Action r..."
     },
     {
@@ -1417,8 +1489,9 @@
       "top1_hit": false,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 112,
+      "latency_ms": 206,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] sop_pump_startup.pdf\n[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-201 1. Pre-Startup Checks 1.1 Confirm maintenance work order is closed and equipment returned to service. 1.2 Verify all isolation valves on suction line are fully open. 1.3 Check mechanical seal flush line is open; flush pressure must read 0.8 to 1.2 bar. 1.4 Confirm bearing housing oil level is between MIN and MAX marks on sight glass. 1.5 Check coupling guard is fitted and all bolts are torqued. 1.6 Set discharge valve to 25 percent o...\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: CM WorkOrderDescription: Centrifugal Pump P-102 cavitating intermittently. Suction pressure 33.20 bar below minimum NPSH required. OperationDescription: Check suction strainer differential pressure. Clean strainer basket. Verify suction vessel level. Adjust operating point to restore positive NPSH. Maintenance_activity_type: CM02 CreatedDate: 2021-09-28 ActualStartDate: 2021-09-27 ActualFinishDate: 2021-09-27 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_B"
     },
     {
@@ -1468,8 +1541,9 @@
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": true,
-      "latency_ms": 118,
+      "latency_ms": 210,
       "status": "failed",
+      "failure_category": "correct_document_outside_top3",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] inspection_report_q1_2025.pdf\ntube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bundle chemical cleaning recommended during next planned shutdown. No tube leakage detected. BLR-118 - Package Boiler [Risk: CRITICAL] Pressure test certificate expired on 01 February 2025. Under PESO regulations and Factories Act Section 31, a valid pressure test certificate is mandatory for boiler operation. Operating without a valid certificate constitutes a regulatory violation and exposes the facility to shutdown notice. Immediate ac...\n\n[2] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: CM WorkOrderDescription: Boiler BLR-101 safety valve lifting at 101.6 bar below set pressure. Seat leakage suspected. Maintenance_activity_type: CM02 CreatedDate: 221-10-15 ActualStartDate: 2021-10-17 ActualFinishDate: 2021-10-17 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_D\n\n[3] compliance_checklist_2025.pdf\neviewed: January 2025. Status: COMPLIANT. Section E: Quality Non-Conformances (ISO 9001:2015) E1. HX-305 tube fouling - NCR raised 15 March 2025. RCA pending. Target closure: 30 April 2025. E2. P-101 vibration exceedance - NCR raised 15 March 2025. Alignment check scheduled 17 March 2025. Target closure: 20 March 2025. E3. BLR-118 certificate lapse - NCR raised 01 February 2025. Inspection scheduled 25 March 2025. Target closure: 31 March 2025. Compliance Summary [Page 2] Total items checked: 16 Compliant: 9 Non-compliant: 3 - BLR-118 pressure cert, P-101 vibration, TK-482 calibration Action r..."
     },
     {
@@ -1480,10 +1554,8 @@
       "expected_doc": "compliance_checklist_2025.pdf",
       "retrieved_docs": [
         "compliance_checklist_2025.pdf",
-        "work_orders_clean.csv",
         "inspection_report_q1_2025.pdf",
-        "final_e2e_marker_20260721181811.txt",
-        "final_e2e_marker_20260721181401.txt"
+        "work_orders_clean.csv"
       ],
       "citations": [
         {
@@ -1493,36 +1565,37 @@
           "snippet": "e June 2025. B3. P-201 - Vibration inspection: COMPLIANT. Reading 2.8 mm/s. Next due June 2025. Section C: Instrumentation Calibration (Factory Act Schedule VII"
         },
         {
-          "file_name": "work_orders_clean.csv",
-          "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-320",
-          "snippet": "Equipment_ID: HX-305 OrderType: PM WorkOrderDescription: Heat Exchanger HX-101 annual inspection. Tube bundle inspection, gasket replacement and pressure test. "
-        },
-        {
           "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
           "chunk_id": "950746b751784053a8cdae5689ad4f2b-1",
           "snippet": "in. No leakage at gland. No issues found. Next inspection: June 2025. P-201 - Condensate Extraction Pump [Risk: LOW] Vibration: 2.8 mm/s, well within OISD-137 l"
         },
         {
-          "file_name": "final_e2e_marker_20260721181811.txt",
+          "file_name": "work_orders_clean.csv",
           "page": null,
-          "chunk_id": "08919d43dbec4c4eb94dd45f5f1b1ebd-0",
-          "snippet": "Pump ZZ-991 uses a tungsten-ceramic TC-77 seal and requires a 41 minute cooldown before inspection."
+          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-320",
+          "snippet": "Equipment_ID: HX-305 OrderType: PM WorkOrderDescription: Heat Exchanger HX-101 annual inspection. Tube bundle inspection, gasket replacement and pressure test. "
         },
         {
-          "file_name": "final_e2e_marker_20260721181401.txt",
+          "file_name": "work_orders_clean.csv",
           "page": null,
-          "chunk_id": "bf85405818404ca5a377ac5e991504d1-0",
-          "snippet": "Pump ZZ-991 uses a tungsten-ceramic TC-77 seal and requires a 41 minute cooldown before inspection."
+          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-351",
+          "snippet": "Equipment_ID: R-201 OrderType: PM WorkOrderDescription: Reactor R-101 annual shutdown inspection. Internal inspection, instrument calibration and gasket replace"
+        },
+        {
+          "file_name": "compliance_checklist_2025.pdf",
+          "page": null,
+          "chunk_id": "139074d893994e4f9e5d2be80474f89e-2",
+          "snippet": "eviewed: January 2025. Status: COMPLIANT. Section E: Quality Non-Conformances (ISO 9001:2015) E1. HX-305 tube fouling - NCR raised 15 March 2025. RCA pending. T"
         }
       ],
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": false,
-      "latency_ms": 106,
+      "latency_ms": 178,
       "status": "passed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] compliance_checklist_2025.pdf\ne June 2025. B3. P-201 - Vibration inspection: COMPLIANT. Reading 2.8 mm/s. Next due June 2025. Section C: Instrumentation Calibration (Factory Act Schedule VIII) C1. TK-482 Level Transmitter LT-482-01 - Calibration: OVERDUE by 45 days. Required every 6 months. Status: NON-COMPLIANT. Must complete by 30 March 2025. C2. HX-305 Temperature Instruments - Calibration: CURRENT. Status: COMPLIANT. C3. M-017 Motor Protection Relay - Calibration: CURRENT. Status: COMPLIANT. Section D: SOP and Procedure Review D1. SOP-PUMP-07 (Pump Startup and Shutdown) - Last reviewed: March 2024. Review cycle: 12 mon...\n\n[2] work_orders_clean.csv\nEquipment_ID: HX-305 OrderType: PM WorkOrderDescription: Heat Exchanger HX-101 annual inspection. Tube bundle inspection, gasket replacement and pressure test. OperationDescription: Drain and open channel head. Inspect tube sheet and tubes using boroscope. Replace gaskets on both heads. Hydraulic pressure test. Reinstate and commission. Maintenance_activity_type: PM02 CreatedDate: 2022-04-20 ActualStartDate: 20220531 ActualFinishDate: 2022-06-01 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_C\n\n[3] inspection_report_q1_2025.pdf\nin. No leakage at gland. No issues found. Next inspection: June 2025. P-201 - Condensate Extraction Pump [Risk: LOW] Vibration: 2.8 mm/s, well within OISD-137 limit. Bearing temperature 65 deg C. Seal flush pressure 0.95 bar, within 0.8 to 1.2 bar range. No issues found. Next inspection: June 2025. TK-482 - Feed Storage Tank [Risk: MEDIUM] Level transmitter LT-482-01 calibration is overdue by 45 days. Last calibration: October 2024. Per Factory Act Schedule VIII, level instruments on process tanks must be calibrated every 6 months. Tank shell shows no visible corrosion. Nitrogen blanket pressu..."
+      "failure_category": "pass",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] compliance_checklist_2025.pdf\ne June 2025. B3. P-201 - Vibration inspection: COMPLIANT. Reading 2.8 mm/s. Next due June 2025. Section C: Instrumentation Calibration (Factory Act Schedule VIII) C1. TK-482 Level Transmitter LT-482-01 - Calibration: OVERDUE by 45 days. Required every 6 months. Status: NON-COMPLIANT. Must complete by 30 March 2025. C2. HX-305 Temperature Instruments - Calibration: CURRENT. Status: COMPLIANT. C3. M-017 Motor Protection Relay - Calibration: CURRENT. Status: COMPLIANT. Section D: SOP and Procedure Review D1. SOP-PUMP-07 (Pump Startup and Shutdown) - Last reviewed: March 2024. Review cycle: 12 mon...\n\n[2] inspection_report_q1_2025.pdf\nin. No leakage at gland. No issues found. Next inspection: June 2025. P-201 - Condensate Extraction Pump [Risk: LOW] Vibration: 2.8 mm/s, well within OISD-137 limit. Bearing temperature 65 deg C. Seal flush pressure 0.95 bar, within 0.8 to 1.2 bar range. No issues found. Next inspection: June 2025. TK-482 - Feed Storage Tank [Risk: MEDIUM] Level transmitter LT-482-01 calibration is overdue by 45 days. Last calibration: October 2024. Per Factory Act Schedule VIII, level instruments on process tanks must be calibrated every 6 months. Tank shell shows no visible corrosion. Nitrogen blanket pressu...\n\n[3] work_orders_clean.csv\nEquipment_ID: HX-305 OrderType: PM WorkOrderDescription: Heat Exchanger HX-101 annual inspection. Tube bundle inspection, gasket replacement and pressure test. OperationDescription: Drain and open channel head. Inspect tube sheet and tubes using boroscope. Replace gaskets on both heads. Hydraulic pressure test. Reinstate and commission. Maintenance_activity_type: PM02 CreatedDate: 2022-04-20 ActualStartDate: 20220531 ActualFinishDate: 2022-06-01 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_C"
     },
     {
       "id": "Q31",
@@ -1571,8 +1644,9 @@
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": false,
-      "latency_ms": 137,
+      "latency_ms": 197,
       "status": "failed",
+      "failure_category": "expected_source_absent_from_corpus",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 quarterly lubrication service. Bearing grease replenishment and vibration baseline measurement. OperationDescription: Grease drive end and non-drive end bearings. Measure and record vibration signature. Check motor current at duty point. Inspect coupling spider for wear. Maintenance_activity_type: PM01 CreatedDate: 2023/12/19 ActualStartDate: 2024-02-05 ActualFinishDate: 2024-02-05 OrderStatus: REL MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] inspection_report_q1_2025.pdf\n[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Region P-101 - Cooling Water Pump [Risk: HIGH] Vibration at drive end bearing: 6.2 mm/s RMS. Exceeds OISD-137 limit of 4.5 mm/s. Visual inspection reveals slight misalignment of flexible coupling. Last seal replacement on 12 January 2025 per work order WO-20000019. Bearing temperature 71 deg C, within limit. Recommendation: perform laser alignment check within 48 hours. If vibration remains above 4.5 mm/s after alignment, replace drive end...\n\n[3] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm..."
     },
     {
@@ -1583,7 +1657,9 @@
       "expected_doc": "pump_oem_manual.pdf",
       "retrieved_docs": [
         "pump_oem_manual.pdf",
-        "work_orders_clean.csv"
+        "work_orders_clean.csv",
+        "inspection_report_q1_2025.pdf",
+        "sop_pump_startup.pdf"
       ],
       "citations": [
         {
@@ -1605,23 +1681,24 @@
           "snippet": "Equipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 six-monthly planned maintenance. Bearing inspection, mechanical seal check and co"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-83",
-          "snippet": "Equipment_ID: P-102 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 six-monthly planned maintenance. Bearing inspection, mechanical seal check and co"
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-0",
+          "snippet": "[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Reg"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "sop_pump_startup.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-11",
-          "snippet": "Equipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/"
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-0",
+          "snippet": "[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-2"
         }
       ],
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 135,
+      "latency_ms": 204,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[2] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 six-monthly planned maintenance. Bearing inspection, mechanical seal check and coupling alignment verification. OperationDescription: Inspect bearing condition and clearances. Replenish grease per lubrication schedule Castrol Tribol 800. Check coupling alignment. Verify seal flush flow rate. Update maintenance record. Maintenance_activity_type: PM01 CreatedDate: 2021-11-19 ActualStartDate: 2021-12-03 ActualFinishDate: 2021-12-03 OrderStatus: CLD MaintenanceWorkCenter: MECH_TEAM_B\n\n[3] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 six-monthly planned maintenance. Bearing inspection, mechanical seal check and coupling alignment verification. OperationDescription: Inspect bearing condition and clearances. Replenish grease per lubrication schedule Castrol Tribol 800. Check coupling alignment. Verify seal flush flow rate. Update maintenance record. Maintenance_activity_type: PM01 CreatedDate: 2023-02-10 ActualFinishDate: 2023-2-22 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B"
     },
     {
@@ -1670,8 +1747,9 @@
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": false,
-      "latency_ms": 130,
+      "latency_ms": 190,
       "status": "failed",
+      "failure_category": "expected_source_absent_from_corpus",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] pump_oem_manual.pdf\ne damage from dry running. Corrective action: replace cartridge seal MS-45-CR and verify alignment per SOP-PUMP-07. 2. Bearing overheating above 75 deg C: caused by over-greasing, under-greasing, or contaminated lubricant. Replace bearing 6309-2RS if temperature exceeds 85 deg C. 3. High vibration above 4.5 mm/s: caused by misalignment, cavitation, worn impeller, or unbalanced rotor. Check shaft alignment first, then verify NPSH available. 4. Cavitation: occurs when suction pressure drops below NPSHr of 3.2 m. Check suction strainer differential pressure and verify vessel level. 5. Motor overl...\n\n[2] sop_pump_startup.pdf\n[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-201 1. Pre-Startup Checks 1.1 Confirm maintenance work order is closed and equipment returned to service. 1.2 Verify all isolation valves on suction line are fully open. 1.3 Check mechanical seal flush line is open; flush pressure must read 0.8 to 1.2 bar. 1.4 Confirm bearing housing oil level is between MIN and MAX marks on sight glass. 1.5 Check coupling guard is fitted and all bolts are torqued. 1.6 Set discharge valve to 25 percent o...\n\n[3] work_orders_clean.csv\nEquipment_ID: R-201 OrderType: PM OperationDescription: Open reactor manways. Internal visual inspection for corrosion and erosion. Replace all manway gaskets. Calibrate all critical instruments. Update mechanical integrity record. Maintenance_activity_type: PM02 CreatedDate: 2023-02-09 ActualStartDate: 2023-04-03 ActualFinishDate: 223-04-04 OrderStatus: TECO MaintenanceWorkCenter: MECH_TEAM_D"
     },
     {
@@ -1711,17 +1789,18 @@
           "snippet": "Equipment_ID: P-102 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 annual overhaul. Full disassembly, wear measurement, impeller and seal replacemen"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-55",
-          "snippet": "Equipment_ID: P-102 OrderType: CM WorkOrderDescription: Centrifugal Pump P-102 low flow alarm active. Flow 214.1 m3/h below minimum process requirement. Operati"
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
+          "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
         }
       ],
       "top1_hit": false,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 130,
+      "latency_ms": 194,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[2] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: PM WorkOrderDescription: Centrifugal Pump P-101 annual overhaul. Full disassembly, wear measurement, impeller and seal replacement. OperationDescription: Full pump disassembly. Measure all wear components against tolerances. Replace impeller, wear rings, bearings and mechanical seal. Reassemble, align, and performance test. Maintenance_activity_type: PM02 CreatedDate: 2020-05-17 ActualFinishDate: 2020-05-28 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B\n\n[3] inspection_report_q1_2025.pdf\n[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Region P-101 - Cooling Water Pump [Risk: HIGH] Vibration at drive end bearing: 6.2 mm/s RMS. Exceeds OISD-137 limit of 4.5 mm/s. Visual inspection reveals slight misalignment of flexible coupling. Last seal replacement on 12 January 2025 per work order WO-20000019. Bearing temperature 71 deg C, within limit. Recommendation: perform laser alignment check within 48 hours. If vibration remains above 4.5 mm/s after alignment, replace drive end..."
     },
     {
@@ -1733,7 +1812,8 @@
       "retrieved_docs": [
         "work_orders_clean.csv",
         "inspection_report_q1_2025.pdf",
-        "compliance_checklist_2025.pdf"
+        "compliance_checklist_2025.pdf",
+        "sop_pump_startup.pdf"
       ],
       "citations": [
         {
@@ -1761,17 +1841,18 @@
           "snippet": "Equipment_ID: TK-482 OrderType: PM WorkOrderDescription: Storage Tank TK-101 annual calibration of all level and temperature instruments. OperationDescription: "
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "sop_pump_startup.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-210",
-          "snippet": "Equipment_ID: TK-482 OrderType: PM WorkOrderDescription: Storage Tank TK-02 annual calibration of all level and temperature instruments. OperationDescription: C"
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-2",
+          "snippet": "o a complete stop. 3.4 Close suction valve if pump is to be isolated for maintenance. 3.5 Depressurise and drain casing before any mechanical work begins. 4. Em"
         }
       ],
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": false,
-      "latency_ms": 142,
+      "latency_ms": 208,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: TK-482 OrderType: PM WorkOrderDescription: Storage Tank TK-101 annual calibration of all level and temperature instruments. OperationDescription: Calibrate all level transmitters against certified reference. Check temperature sensor accuracy. Verify high level alarm setpoints. Update calibration records. Maintenance_activity_type: P02 ActualStartDate: 2022-10-29 ActualFinishDate: 2022-10-29 OrderStatus: TECO MaintenanceWorkCenter: MECH_TEAM_D\n\n[2] inspection_report_q1_2025.pdf\n116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 April 2025. M-017 - Boiler Feed Motor [Risk: LOW] Insulation resistance: 85 MOhm (healthy, minimum 1 MOhm per IEC 60034). Winding temperature within limits. Terminal connections show no heat discolouration. Vibration at motor bearing: 2.2 mm/s. No issues found. Inspection Summary Total assets inspected: 8 Compliant (no issues): 4 - P-102, P-201, M-017, partial HX-305 Action required: 3 - P-101 vibration, TK-482 calibration, R-201 SRV tes...\n\n[3] compliance_checklist_2025.pdf\ne June 2025. B3. P-201 - Vibration inspection: COMPLIANT. Reading 2.8 mm/s. Next due June 2025. Section C: Instrumentation Calibration (Factory Act Schedule VIII) C1. TK-482 Level Transmitter LT-482-01 - Calibration: OVERDUE by 45 days. Required every 6 months. Status: NON-COMPLIANT. Must complete by 30 March 2025. C2. HX-305 Temperature Instruments - Calibration: CURRENT. Status: COMPLIANT. C3. M-017 Motor Protection Relay - Calibration: CURRENT. Status: COMPLIANT. Section D: SOP and Procedure Review D1. SOP-PUMP-07 (Pump Startup and Shutdown) - Last reviewed: March 2024. Review cycle: 12 mon..."
     },
     {
@@ -1783,7 +1864,8 @@
       "retrieved_docs": [
         "work_orders_clean.csv",
         "pump_oem_manual.pdf",
-        "sop_pump_startup.pdf"
+        "sop_pump_startup.pdf",
+        "inspection_report_q1_2025.pdf"
       ],
       "citations": [
         {
@@ -1811,17 +1893,18 @@
           "snippet": "Equipment_ID: P-102 OrderType: CM WorkOrderDescription: Centrifugal Pump P-102 high vibration alarm on drive end bearing. Amplitude 141.1 mm/s RMS exceeding tri"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-96",
-          "snippet": "Equipment_ID: P-102 OrderType: CM WorkOrderDescription: Centrifugal Pump P-102 high vibration alarm on drive end bearing. Amplitude 141.1 mm/s RMS exceeding tri"
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-3",
+          "snippet": "116, safety relief valves on process reactors must be bench-tested every 18 months. Test is due March 2025. Schedule bench test at approved facility before 30 A"
         }
       ],
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": true,
-      "latency_ms": 136,
+      "latency_ms": 199,
       "status": "failed",
+      "failure_category": "expected_source_absent_from_corpus",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-102 OrderType: PDM WorkOrderDescription: Centrifugal Pump P-102 vibration trending upward over 30 days. Broadband velocity 164.4 mm/s. Bearing defect frequency identified in spectrum. OperationDescription: Vibration analysis confirms bearing fault. Replace drive end bearing proactively. Re-baseline vibration signature after repair. Maintenance_activity_type: PDM1 CreatedDate: 2023-02-10 ActualStartDate: 2023-03-06 ActualFinishDate: 2023-03-06 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] sop_pump_startup.pdf\n[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-201 1. Pre-Startup Checks 1.1 Confirm maintenance work order is closed and equipment returned to service. 1.2 Verify all isolation valves on suction line are fully open. 1.3 Check mechanical seal flush line is open; flush pressure must read 0.8 to 1.2 bar. 1.4 Confirm bearing housing oil level is between MIN and MAX marks on sight glass. 1.5 Check coupling guard is fitted and all bolts are torqued. 1.6 Set discharge valve to 25 percent o..."
     },
     {
@@ -1871,8 +1954,9 @@
       "top1_hit": true,
       "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 131,
+      "latency_ms": 199,
       "status": "passed",
+      "failure_category": "pass",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[2] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: PM OperationDescription: Grease drive end and non-drive end bearings. Measure and record vibration signature. Check motor current at duty point. Inspect coupling spider for wear. Maintenance_activity_type: PM01 CreatedDate: 2020-05-16 ActualFinishDate: 2020-07-02 OrderStatus: REL MaintenanceWorkCenter: MECH_TEAM_B\n\n[3] sop_pump_startup.pdf\n[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-201 1. Pre-Startup Checks 1.1 Confirm maintenance work order is closed and equipment returned to service. 1.2 Verify all isolation valves on suction line are fully open. 1.3 Check mechanical seal flush line is open; flush pressure must read 0.8 to 1.2 bar. 1.4 Confirm bearing housing oil level is between MIN and MAX marks on sight glass. 1.5 Check coupling guard is fitted and all bolts are torqued. 1.6 Set discharge valve to 25 percent o..."
     },
     {
@@ -1884,8 +1968,8 @@
       "retrieved_docs": [
         "work_orders_clean.csv",
         "compliance_checklist_2025.pdf",
-        "inspection_report_q1_2025.pdf",
-        "sop_pump_startup.pdf"
+        "sop_pump_startup.pdf",
+        "inspection_report_q1_2025.pdf"
       ],
       "citations": [
         {
@@ -1901,16 +1985,16 @@
           "snippet": "e June 2025. B3. P-201 - Vibration inspection: COMPLIANT. Reading 2.8 mm/s. Next due June 2025. Section C: Instrumentation Calibration (Factory Act Schedule VII"
         },
         {
-          "file_name": "inspection_report_q1_2025.pdf",
-          "page": null,
-          "chunk_id": "950746b751784053a8cdae5689ad4f2b-0",
-          "snippet": "[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Reg"
-        },
-        {
           "file_name": "sop_pump_startup.pdf",
           "page": null,
           "chunk_id": "7348361058c246cbad72a343bf5c552a-0",
           "snippet": "[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-2"
+        },
+        {
+          "file_name": "inspection_report_q1_2025.pdf",
+          "page": null,
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-0",
+          "snippet": "[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Reg"
         },
         {
           "file_name": "work_orders_clean.csv",
@@ -1920,11 +2004,12 @@
         }
       ],
       "top1_hit": false,
-      "top3_hit": false,
+      "top3_hit": true,
       "asset_hit": false,
-      "latency_ms": 119,
-      "status": "failed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-101 annual statutory inspection. Internal and external inspection per local pressure vessel regulations. OperationDescription: Drain boiler. Descale waterside surfaces. Inspect fireside tubes and refractory. Inspect safety valve, pressure gauge and water level gauges. Prepare inspection report for regulatory authority. Maintenance_activity_type: PM02 CreatedDate: 2023-02-27 ActualStartDate: 2023-03-12 ActualFinishDate: 2023-03-13 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_D\n\n[2] compliance_checklist_2025.pdf\ne June 2025. B3. P-201 - Vibration inspection: COMPLIANT. Reading 2.8 mm/s. Next due June 2025. Section C: Instrumentation Calibration (Factory Act Schedule VIII) C1. TK-482 Level Transmitter LT-482-01 - Calibration: OVERDUE by 45 days. Required every 6 months. Status: NON-COMPLIANT. Must complete by 30 March 2025. C2. HX-305 Temperature Instruments - Calibration: CURRENT. Status: COMPLIANT. C3. M-017 Motor Protection Relay - Calibration: CURRENT. Status: COMPLIANT. Section D: SOP and Procedure Review D1. SOP-PUMP-07 (Pump Startup and Shutdown) - Last reviewed: March 2024. Review cycle: 12 mon...\n\n[3] inspection_report_q1_2025.pdf\n[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Region P-101 - Cooling Water Pump [Risk: HIGH] Vibration at drive end bearing: 6.2 mm/s RMS. Exceeds OISD-137 limit of 4.5 mm/s. Visual inspection reveals slight misalignment of flexible coupling. Last seal replacement on 12 January 2025 per work order WO-20000019. Bearing temperature 71 deg C, within limit. Recommendation: perform laser alignment check within 48 hours. If vibration remains above 4.5 mm/s after alignment, replace drive end..."
+      "latency_ms": 198,
+      "status": "passed",
+      "failure_category": "pass",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-101 annual statutory inspection. Internal and external inspection per local pressure vessel regulations. OperationDescription: Drain boiler. Descale waterside surfaces. Inspect fireside tubes and refractory. Inspect safety valve, pressure gauge and water level gauges. Prepare inspection report for regulatory authority. Maintenance_activity_type: PM02 CreatedDate: 2023-02-27 ActualStartDate: 2023-03-12 ActualFinishDate: 2023-03-13 OrderStatus: CLSD MaintenanceWorkCenter: MECH_TEAM_D\n\n[2] compliance_checklist_2025.pdf\ne June 2025. B3. P-201 - Vibration inspection: COMPLIANT. Reading 2.8 mm/s. Next due June 2025. Section C: Instrumentation Calibration (Factory Act Schedule VIII) C1. TK-482 Level Transmitter LT-482-01 - Calibration: OVERDUE by 45 days. Required every 6 months. Status: NON-COMPLIANT. Must complete by 30 March 2025. C2. HX-305 Temperature Instruments - Calibration: CURRENT. Status: COMPLIANT. C3. M-017 Motor Protection Relay - Calibration: CURRENT. Status: COMPLIANT. Section D: SOP and Procedure Review D1. SOP-PUMP-07 (Pump Startup and Shutdown) - Last reviewed: March 2024. Review cycle: 12 mon...\n\n[3] sop_pump_startup.pdf\n[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-201 1. Pre-Startup Checks 1.1 Confirm maintenance work order is closed and equipment returned to service. 1.2 Verify all isolation valves on suction line are fully open. 1.3 Check mechanical seal flush line is open; flush pressure must read 0.8 to 1.2 bar. 1.4 Confirm bearing housing oil level is between MIN and MAX marks on sight glass. 1.5 Check coupling guard is fitted and all bolts are torqued. 1.6 Set discharge valve to 25 percent o..."
     },
     {
       "id": "Q39",
@@ -1935,7 +2020,8 @@
       "retrieved_docs": [
         "work_orders_clean.csv",
         "pump_oem_manual.pdf",
-        "sop_pump_startup.pdf"
+        "sop_pump_startup.pdf",
+        "inspection_report_q1_2025.pdf"
       ],
       "citations": [
         {
@@ -1963,17 +2049,18 @@
           "snippet": "Equipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/"
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "inspection_report_q1_2025.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-11",
-          "snippet": "Equipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/"
+          "chunk_id": "950746b751784053a8cdae5689ad4f2b-0",
+          "snippet": "[Page 1] Quarterly Plant Inspection Report - Q1 2025 Inspection Date: 15 March 2025 | Inspector: R. Kumar (Senior Mechanical Engineer) | Building B02, North Reg"
         }
       ],
       "top1_hit": false,
       "top3_hit": false,
       "asset_hit": true,
-      "latency_ms": 142,
+      "latency_ms": 205,
       "status": "failed",
+      "failure_category": "correct_document_outside_top3",
       "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: P-101 OrderType: CM WorkOrderDescription: Centrifugal Pump P-101 mechanical seal failure. Product leakage observed at gland area estimated 60.6 L/h. OperationDescription: Replace complete mechanical seal cartridge. Flush seal chamber, pressure test at 19.1 bar. Return to service and monitor seal flush flow. Maintenance_activity_type: CM03 CreatedDate: 2023-02-09 ActualStartDate: 2023-02-10 ActualFinishDate: 2023-02-10 OrderStatus: CLD MaintenanceWorkCenter: MECH_TEAM_B\n\n[2] pump_oem_manual.pdf\n[Page 1] Centrifugal Pump Operations & Maintenance Manual Applies to: P-101, P-102, P-201 | Doc ID: OEM-PUMP-CM-001 | Rev: 5 | Date: 2024-01-10 1. Equipment Overview P-101, P-102, and P-201 are horizontal end-suction centrifugal pumps rated at 45 m3/h at 32 m head. Operating speed: 1450 RPM driven by 11 kW induction motors. Mechanical seal type: single cartridge spring-loaded, API Plan 11 flush. Bearing arrangement: drive end 6309-2RS, non-drive end 6206-2RS. 2. Startup Procedure Refer to SOP-PUMP-07 for the full startup sequence. Key pre-start checks: verify suction valve fully open, confirm...\n\n[3] sop_pump_startup.pdf\n[Page 1] Standard Operating Procedure: Centrifugal Pump Startup and Shutdown SOP ID: SOP-PUMP-07 | Rev: 3 | Approved: 2024-03-01 | Applies to: P-101, P-102, P-201 1. Pre-Startup Checks 1.1 Confirm maintenance work order is closed and equipment returned to service. 1.2 Verify all isolation valves on suction line are fully open. 1.3 Check mechanical seal flush line is open; flush pressure must read 0.8 to 1.2 bar. 1.4 Confirm bearing housing oil level is between MIN and MAX marks on sight glass. 1.5 Check coupling guard is fitted and all bolts are torqued. 1.6 Set discharge valve to 25 percent o..."
     },
     {
@@ -1984,7 +2071,9 @@
       "expected_doc": "compliance_checklist_2025.pdf",
       "retrieved_docs": [
         "work_orders_clean.csv",
-        "inspection_report_q1_2025.pdf"
+        "inspection_report_q1_2025.pdf",
+        "compliance_checklist_2025.pdf",
+        "sop_pump_startup.pdf"
       ],
       "citations": [
         {
@@ -2000,30 +2089,31 @@
           "snippet": "tube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bu"
         },
         {
+          "file_name": "compliance_checklist_2025.pdf",
+          "page": null,
+          "chunk_id": "139074d893994e4f9e5d2be80474f89e-2",
+          "snippet": "eviewed: January 2025. Status: COMPLIANT. Section E: Quality Non-Conformances (ISO 9001:2015) E1. HX-305 tube fouling - NCR raised 15 March 2025. RCA pending. T"
+        },
+        {
           "file_name": "work_orders_clean.csv",
           "page": null,
           "chunk_id": "0d627579f0c046eaa40d482e8a73840b-430",
           "snippet": "Equipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-01 annual statutory inspection. Internal and external inspection per local pressure vessel "
         },
         {
-          "file_name": "work_orders_clean.csv",
+          "file_name": "sop_pump_startup.pdf",
           "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-415",
-          "snippet": "Equipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-101 annual statutory inspection. Internal and external inspection per local pressure vessel"
-        },
-        {
-          "file_name": "work_orders_clean.csv",
-          "page": null,
-          "chunk_id": "0d627579f0c046eaa40d482e8a73840b-422",
-          "snippet": "Equipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-101 annual statutory inspection. Internal and external inspection per local pressure vessel"
+          "chunk_id": "7348361058c246cbad72a343bf5c552a-2",
+          "snippet": "o a complete stop. 3.4 Close suction valve if pump is to be isolated for maintenance. 3.5 Depressurise and drain casing before any mechanical work begins. 4. Em"
         }
       ],
       "top1_hit": false,
-      "top3_hit": false,
+      "top3_hit": true,
       "asset_hit": true,
-      "latency_ms": 119,
-      "status": "failed",
-      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-01 annual statutory inspection. Internal and external inspection per local pressure vessel regulations. OperationDescription: Drain boiler. Descale waterside surfaces. Inspect fireside tubes and refractory. Inspect safety valve, pressure gauge and water level gauges. Prepare inspection report for regulatory authority. Maintenance_activity_type: Pm02 CreatedDate: 2022-01-22 ActualFinishDate: 2022-02-17 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_D\n\n[2] inspection_report_q1_2025.pdf\ntube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bundle chemical cleaning recommended during next planned shutdown. No tube leakage detected. BLR-118 - Package Boiler [Risk: CRITICAL] Pressure test certificate expired on 01 February 2025. Under PESO regulations and Factories Act Section 31, a valid pressure test certificate is mandatory for boiler operation. Operating without a valid certificate constitutes a regulatory violation and exposes the facility to shutdown notice. Immediate ac...\n\n[3] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-01 annual statutory inspection. Internal and external inspection per local pressure vessel regulations. OperationDescription: Drain boiler. Descale waterside surfaces. Inspect fireside tubes and refractory. Inspect safety valve, pressure gauge and water level gauges. Prepare inspection report for regulatory authority. Maintenance_activity_type: PM02 CreatedDate: 2019-04-28 ActualStartDate: 2019-05-23 ActualFinishDate: 2019-05-24 MaintenanceWorkCenter: MECH_TEAM_D"
+      "latency_ms": 200,
+      "status": "passed",
+      "failure_category": "pass",
+      "actual_answer": "Based on the indexed documents, the most relevant evidence is (deterministic extraction \u2014 no LLM configured; see citations for full provenance):\n\n[1] work_orders_clean.csv\nEquipment_ID: BLR-118 OrderType: PM WorkOrderDescription: Boiler BLR-01 annual statutory inspection. Internal and external inspection per local pressure vessel regulations. OperationDescription: Drain boiler. Descale waterside surfaces. Inspect fireside tubes and refractory. Inspect safety valve, pressure gauge and water level gauges. Prepare inspection report for regulatory authority. Maintenance_activity_type: Pm02 CreatedDate: 2022-01-22 ActualFinishDate: 2022-02-17 OrderStatus: PCNF MaintenanceWorkCenter: MECH_TEAM_D\n\n[2] inspection_report_q1_2025.pdf\ntube fouling. Pressure drop across tube side increased from 0.8 bar to 1.4 bar since December 2024. Estimated heat transfer efficiency loss: 18 percent. Tube bundle chemical cleaning recommended during next planned shutdown. No tube leakage detected. BLR-118 - Package Boiler [Risk: CRITICAL] Pressure test certificate expired on 01 February 2025. Under PESO regulations and Factories Act Section 31, a valid pressure test certificate is mandatory for boiler operation. Operating without a valid certificate constitutes a regulatory violation and exposes the facility to shutdown notice. Immediate ac...\n\n[3] compliance_checklist_2025.pdf\neviewed: January 2025. Status: COMPLIANT. Section E: Quality Non-Conformances (ISO 9001:2015) E1. HX-305 tube fouling - NCR raised 15 March 2025. RCA pending. Target closure: 30 April 2025. E2. P-101 vibration exceedance - NCR raised 15 March 2025. Alignment check scheduled 17 March 2025. Target closure: 20 March 2025. E3. BLR-118 certificate lapse - NCR raised 01 February 2025. Inspection scheduled 25 March 2025. Target closure: 31 March 2025. Compliance Summary [Page 2] Total items checked: 16 Compliant: 9 Non-compliant: 3 - BLR-118 pressure cert, P-101 vibration, TK-482 calibration Action r..."
     }
   ]
 }

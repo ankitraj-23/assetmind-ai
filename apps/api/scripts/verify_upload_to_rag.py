@@ -146,10 +146,14 @@ def cleanup_markers() -> int:
         ]
         for document_id in marker_ids:
             _delete_document(session, document_id)
+        # Remove marker-only entities (ZZ-991 pump, TC-77 seal) but only when they
+        # are left with zero mentions, so official demo assets are never touched.
         asset_removed = _delete_orphan_marker_asset(session, MARKER_ASSET)
+        seal_removed = _delete_orphan_marker_asset(session, MARKER_SEAL)
     print(
         f"Cleanup: removed {len(marker_ids)} '{MARKER_FILENAME_PREFIX}*' document(s); "
-        f"ZZ-991 marker asset removed: {asset_removed}."
+        f"ZZ-991 marker asset removed: {asset_removed}; "
+        f"TC-77 marker seal removed: {seal_removed}."
     )
     return 0
 

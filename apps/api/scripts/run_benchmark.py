@@ -28,6 +28,33 @@ from app.db.session import get_database_url
 # The benchmark is only meaningful against the persistent Postgres index.
 config.settings.persistence_backend = "postgres"
 
+BENCHMARK_TOP_K = 5
+
+
+def _corpus_filenames() -> set[str]:
+    """Filenames of documents actually present in the seeded corpus."""
+    from app.db import repository as repo
+    from app.db.session import session_scope
+
+    with session_scope() as session:
+        return {doc["original_filename"] for doc in repo.list_documents(session=session)}
+
+
+def _failure_category(
+    expected_doc: str,
+    ranked_docs: list[str],
+    corpus: set[str],
+    top3_hit: bool,
+) -> str:
+    """Classify why a benchmark question passed or failed the Top-3 source check."""
+    if top3_hit:
+        return "pass"
+    if expected_doc not in corpus:
+        return "expected_source_absent_from_corpus"
+    if expected_doc in ranked_docs:
+        return "correct_document_outside_top3"
+    return "correct_document_not_retrieved"
+
 
 def _ranked_docs(citations) -> list[str]:
     """Ranked, de-duplicated list of source filenames from citations."""
@@ -70,7 +97,27 @@ def main() -> int:
     # Imported lazily so the config guard above runs first.
     from app.rag import answer as answer_service
     from app.rag import embeddings
+    from app.rag import retrieval
     from app.rag.chat import _apply_asset_scope, _normalize_asset_tag
+
+    corpus = _corpus_filenames()
+    if answer_service._gemini_available():
+        answer_provider, answer_model = "gemini", answer_service._generation_model()
+    else:
+        answer_provider, answer_model = "deterministic-fallback", "extractive-no-llm"
+    retrieval_config = {
+        "strategy": "hybrid_vector_keyword_rrf_rerank_mmr",
+        "top_k": BENCHMARK_TOP_K,
+        "vector_weight": retrieval.VECTOR_WEIGHT,
+        "keyword_weight": retrieval.KEYWORD_WEIGHT,
+        "rrf_k": retrieval.RRF_K,
+        "mmr_lambda": retrieval.MMR_LAMBDA,
+        "max_chunks_per_document": retrieval.MAX_CHUNKS_PER_DOCUMENT,
+        "filename_intent_boost": retrieval.FILENAME_INTENT_BOOST,
+        "metadata_boost_cap": retrieval.METADATA_BOOST_CAP,
+        "candidate_min": retrieval.MIN_CANDIDATES,
+        "candidate_max": retrieval.MAX_CANDIDATES,
+    }
 
     root = Path(__file__).resolve().parents[3]
     questions_path = root / "data" / "benchmark" / "questions.json"
@@ -87,6 +134,7 @@ def main() -> int:
     model = embeddings.active_model()
 
     results = []
+    latencies_ms: list[float] = []
     total_latency_ms = 0.0
     top1_hits = 0
     top3_hits = 0
@@ -105,10 +153,11 @@ def main() -> int:
 
         start_time = time.perf_counter()
         try:
-            response = answer_service.answer_question(scoped_question, top_k=5)
+            response = answer_service.answer_question(scoped_question, top_k=BENCHMARK_TOP_K)
         except Exception as exc:
             duration_ms = (time.perf_counter() - start_time) * 1000
             total_latency_ms += duration_ms
+            latencies_ms.append(duration_ms)
             failures += 1
             print(f"  [{q['id']}] ERROR: {exc}")
             results.append(
@@ -125,6 +174,7 @@ def main() -> int:
                     "asset_hit": False,
                     "latency_ms": int(duration_ms),
                     "status": "error",
+                    "failure_category": "retrieval_error",
                     "error": str(exc),
                     "actual_answer": "",
                 }
@@ -133,6 +183,7 @@ def main() -> int:
 
         duration_ms = (time.perf_counter() - start_time) * 1000
         total_latency_ms += duration_ms
+        latencies_ms.append(duration_ms)
 
         ranked_docs = _ranked_docs(response.citations)
         top1_hit = bool(ranked_docs) and ranked_docs[0] == q["source_doc"]
@@ -174,6 +225,9 @@ def main() -> int:
                 "asset_hit": asset_hit,
                 "latency_ms": int(duration_ms),
                 "status": status,
+                "failure_category": _failure_category(
+                    q["source_doc"], ranked_docs, corpus, top3_hit
+                ),
                 "actual_answer": response.answer,
             }
         )
@@ -184,6 +238,20 @@ def main() -> int:
         )
 
     n = len(questions)
+
+    def _p95(values: list[float]) -> float:
+        if not values:
+            return 0.0
+        ordered = sorted(values)
+        index = min(len(ordered) - 1, int(round(0.95 * (len(ordered) - 1))))
+        return ordered[index]
+
+    category_breakdown: dict[str, int] = {}
+    for item in results:
+        category_breakdown[item["failure_category"]] = (
+            category_breakdown.get(item["failure_category"], 0) + 1
+        )
+
     summary = {
         "total_questions": n,
         "top1_source_hit_rate": round(top1_hits / n, 4) if n else 0.0,
@@ -191,9 +259,16 @@ def main() -> int:
         "asset_hit_rate": round(asset_hits / asset_total, 4) if asset_total else 0.0,
         "asset_questions": asset_total,
         "average_latency_ms": round(total_latency_ms / n, 1) if n else 0.0,
+        "p95_latency_ms": round(_p95(latencies_ms), 1),
         "failed_questions_count": failures,
+        "corpus_document_count": len(corpus),
+        "corpus_documents": sorted(corpus),
         "embedding_provider": provider,
         "embedding_model": model,
+        "answer_provider": answer_provider,
+        "answer_model": answer_model,
+        "retrieval_config": retrieval_config,
+        "failure_category_breakdown": category_breakdown,
         "last_run_time": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -211,8 +286,12 @@ def main() -> int:
         f"({asset_hits}/{asset_total})"
     )
     print(f"  Avg Latency       : {summary['average_latency_ms']:.1f}ms")
+    print(f"  p95 Latency       : {summary['p95_latency_ms']:.1f}ms")
     print(f"  Failed Questions  : {summary['failed_questions_count']}")
-    print(f"  Provider / Model  : {provider} / {model}")
+    print(f"  Corpus Documents  : {summary['corpus_document_count']}")
+    print(f"  Embed Provider    : {provider} / {model}")
+    print(f"  Answer Provider   : {answer_provider} / {answer_model}")
+    print(f"  Failure Breakdown : {summary['failure_category_breakdown']}")
     print(f"  Results written   : {results_path}")
 
     return 0
