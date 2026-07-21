@@ -620,3 +620,113 @@ export async function performRca(
   return res.json() as Promise<ApiRcaResponse>;
 }
 
+// ---------------------------------------------------------------------------
+// Compliance & Evidence Package agents
+// ---------------------------------------------------------------------------
+
+/** One evidence snippet backing a compliance gap. Mirrors ComplianceEvidence. */
+export interface ApiComplianceEvidence {
+  source: string;
+  text: string;
+  document_id?: string | null;
+  chunk_id?: string | null;
+}
+
+/** A single explainable compliance gap. Mirrors ComplianceGap. */
+export interface ApiComplianceGap {
+  asset_tag: string;
+  gap_type: string;
+  severity: "high" | "medium" | "low";
+  reason: string;
+  standard_or_policy?: string | null;
+  evidence: ApiComplianceEvidence[];
+  recommended_action: string;
+}
+
+/** Response of GET /agents/compliance/gaps. Mirrors ComplianceGapsResponse. */
+export interface ApiComplianceGapsResponse {
+  count: number;
+  filters: Record<string, string>;
+  gaps: ApiComplianceGap[];
+  mode: string;
+  message?: string | null;
+}
+
+/** GET /agents/compliance/gaps — list gaps with optional filters. */
+export async function getComplianceGaps(params?: {
+  asset_tag?: string;
+  severity?: string;
+  gap_type?: string;
+}): Promise<ApiComplianceGapsResponse> {
+  const qs = new URLSearchParams();
+  if (params?.asset_tag) qs.set("asset_tag", params.asset_tag);
+  if (params?.severity) qs.set("severity", params.severity);
+  if (params?.gap_type) qs.set("gap_type", params.gap_type);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await fetch(`${API_BASE_URL}/agents/compliance/gaps${suffix}`);
+  await ensureOk(res, "Load compliance gaps");
+  return res.json() as Promise<ApiComplianceGapsResponse>;
+}
+
+/** GET /agents/compliance/assets/{tag} — gaps scoped to one asset. */
+export async function getComplianceGapsForAsset(
+  assetTag: string,
+): Promise<ApiComplianceGapsResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/agents/compliance/assets/${encodeURIComponent(assetTag)}`,
+  );
+  await ensureOk(res, "Load asset compliance gaps");
+  return res.json() as Promise<ApiComplianceGapsResponse>;
+}
+
+/** A source document included in an evidence package. */
+export interface ApiEvidenceDocumentRef {
+  document_id?: string | null;
+  filename?: string | null;
+  chunk_count?: number | null;
+}
+
+/** An inspection/maintenance evidence line in a package. */
+export interface ApiEvidenceFinding {
+  text: string;
+  source?: string | null;
+  document_id?: string | null;
+  chunk_id?: string | null;
+  category?: string | null;
+}
+
+/** Response of POST /agents/evidence-package. Mirrors EvidencePackageResponse. */
+export interface ApiEvidencePackageResponse {
+  package_id: string;
+  asset_tag: string;
+  package_type: string;
+  generated_at: string;
+  summary: string;
+  included_documents: ApiEvidenceDocumentRef[];
+  compliance_gaps: ApiComplianceGap[];
+  inspection_findings: ApiEvidenceFinding[];
+  maintenance_evidence: ApiEvidenceFinding[];
+  missing_evidence: string[];
+  recommended_actions: string[];
+  download_url: string;
+}
+
+/** POST /agents/evidence-package — generate a citation-backed package. */
+export async function generateEvidencePackage(
+  assetTag: string,
+  packageType = "audit",
+): Promise<ApiEvidencePackageResponse> {
+  const res = await fetch(`${API_BASE_URL}/agents/evidence-package`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ asset_tag: assetTag, package_type: packageType }),
+  });
+  await ensureOk(res, "Generate evidence package");
+  return res.json() as Promise<ApiEvidencePackageResponse>;
+}
+
+/** Absolute URL for a package download path returned by the API. */
+export function evidencePackageDownloadUrl(downloadPath: string): string {
+  return `${API_BASE_URL}${downloadPath}`;
+}
+

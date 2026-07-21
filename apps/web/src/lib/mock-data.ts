@@ -123,17 +123,6 @@ export const rcaCase = {
   ],
 };
 
-export const complianceItems = [
-  { id: "C-001", standard: "OSHA 1910.147 (LOTO)", asset: "P-101", status: "gap", finding: "Seal maintenance SOP missing LOTO sign-off field", due: "2026-07-10" },
-  { id: "C-002", standard: "API 682 (Seals)", asset: "P-101", status: "gap", finding: "Seal plan not upgraded for fouling service", due: "2026-07-20" },
-  { id: "C-003", standard: "ISO 10816 (Vibration)", asset: "C-220", status: "at-risk", finding: "Bearing vibration approaching alarm band", due: "2026-06-30" },
-  { id: "C-004", standard: "ISA 5.1 (Calibration)", asset: "V-310", status: "gap", finding: "Calibration record overdue by 41 days", due: "2026-06-25" },
-  { id: "C-005", standard: "NFPA 70E (Electrical)", asset: "M-118", status: "compliant", finding: "Insulation test within limits", due: "—" },
-  { id: "C-006", standard: "API 653 (Tanks)", asset: "T-401", status: "compliant", finding: "External inspection current", due: "—" },
-];
-
-export const complianceSummary = [
-  { label: "Compliant", value: 2, tone: "ok" as const },
-  { label: "At Risk", value: 1, tone: "warn" as const },
-  { label: "Open Gaps", value: 3, tone: "bad" as const },
-];
+// NOTE: Compliance findings are no longer mocked. The Compliance page renders
+// live, evidence-backed gaps from the /agents/compliance API (see
+// apps/web/src/app/compliance/page.tsx).

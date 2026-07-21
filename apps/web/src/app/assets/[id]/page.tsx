@@ -83,6 +83,15 @@ export default function AssetDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /* Deep-link: ?tab= opens a specific tab on mount (used by the guided flow). */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const tabParam = new URLSearchParams(window.location.search).get("tab");
+    if (tabParam && TABS.some((t) => t.key === tabParam)) {
+      setTab(tabParam as TabKey);
+    }
+  }, []);
+
   /* Graph visualization state */
   const [graphIncludeChunks, setGraphIncludeChunks] = useState(true);
   const [graphRelationType, setGraphRelationType] = useState("");
@@ -249,6 +258,55 @@ export default function AssetDetailPage() {
                 <dd className="mt-0.5 font-medium">{asset.created_at.slice(0, 10)}</dd>
               </div>
             </dl>
+          </Card>
+
+          {/* Reliability & Compliance Actions — all link to real workflows */}
+          <Card>
+            <h2 className="mb-4 text-lg font-semibold tracking-tight">
+              Reliability &amp; Compliance Actions
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Link href={`/copilot?asset=${encodeURIComponent(asset.tag)}`}>
+                <div className="flex h-full cursor-pointer flex-col items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 text-center transition hover:border-[var(--color-accent)]">
+                  <span className="mb-2 text-2xl">💬</span>
+                  <span className="text-sm font-semibold text-[var(--color-fg)]">
+                    Ask Copilot About This Asset
+                  </span>
+                  <span className="mt-1.5 text-[10px] leading-relaxed text-[var(--color-muted)]">
+                    Chat with the AI, scoped to this equipment
+                  </span>
+                </div>
+              </Link>
+              <Link href={`/rca?asset=${encodeURIComponent(asset.tag)}`}>
+                <div className="flex h-full cursor-pointer flex-col items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 text-center transition hover:border-[var(--color-accent)]">
+                  <span className="mb-2 text-2xl">🔍</span>
+                  <span className="text-sm font-semibold text-[var(--color-fg)]">Generate RCA</span>
+                  <span className="mt-1.5 text-[10px] leading-relaxed text-[var(--color-muted)]">
+                    Analyze failure evidence &amp; root causes
+                  </span>
+                </div>
+              </Link>
+              <Link href={`/compliance?asset=${encodeURIComponent(asset.tag)}`}>
+                <div className="flex h-full cursor-pointer flex-col items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 text-center transition hover:border-[var(--color-accent)]">
+                  <span className="mb-2 text-2xl">🛡️</span>
+                  <span className="text-sm font-semibold text-[var(--color-fg)]">Check Compliance</span>
+                  <span className="mt-1.5 text-[10px] leading-relaxed text-[var(--color-muted)]">
+                    Review evidence-backed compliance gaps
+                  </span>
+                </div>
+              </Link>
+              <Link href={`/compliance?asset=${encodeURIComponent(asset.tag)}&action=generate`}>
+                <div className="flex h-full cursor-pointer flex-col items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 text-center transition hover:border-[var(--color-accent)]">
+                  <span className="mb-2 text-2xl">📦</span>
+                  <span className="text-sm font-semibold text-[var(--color-fg)]">
+                    Generate Evidence Package
+                  </span>
+                  <span className="mt-1.5 text-[10px] leading-relaxed text-[var(--color-muted)]">
+                    Compile a citation-backed audit package
+                  </span>
+                </div>
+              </Link>
+            </div>
           </Card>
 
           {/* Timeline preview */}
