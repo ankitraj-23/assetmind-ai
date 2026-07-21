@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
@@ -70,6 +70,8 @@ __all__ = [
     "get_asset_graph_summary_by_tag",
     "get_asset_risk_summary",
     "get_dashboard_summary",
+    "get_asset_failure_intelligence",
+    "get_failure_hotspots",
 ]
 
 
@@ -1655,4 +1657,298 @@ def get_dashboard_summary(session: Session | None = None) -> dict[str, Any]:
             "repeated_failure_patterns": repeated_failure_patterns,
             "top_assets_by_mentions": top_assets_by_mentions,
             "risk_summary": risk_list[:5],
+        }
+
+
+# ---------------------------------------------------------------------------
+# Failure intelligence (Day 9)
+#
+# A read-only derived view over the same persisted asset-mention evidence used
+# by the timeline and risk heuristics. It never predicts future failures and
+# never writes knowledge edges (avoiding any duplicate-edge risk); every number
+# it reports is backed by a real document/chunk citation.
+# ---------------------------------------------------------------------------
+
+# Canonical failure modes mapped to the surface synonyms that evidence them.
+# Ordered longest-first inside each group so specific phrases win. Only modes
+# that our deterministic extraction can actually observe in the demo corpus are
+# listed — no speculative taxonomy.
+_FAILURE_MODES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("vibration", ("high vibration", "excessive vibration", "vibration")),
+    ("leakage", ("seal leak", "oil leak", "leakage", "leak")),
+    ("overheating", ("overheating", "overheat", "high temperature")),
+    ("cavitation", ("cavitation",)),
+    ("corrosion", ("corrosion", "corroded")),
+    ("bearing_wear", ("bearing failure", "bearing wear", "worn bearing")),
+    ("misalignment", ("misalignment", "misaligned")),
+    ("fouling", ("fouling", "fouled")),
+    ("seal_failure", ("seal failure", "seal damage")),
+    # "shutdown" alone is excluded — it appears in routine SOP checklists. Only
+    # unplanned/emergency shutdowns and trips are treated as failure signals.
+    ("alarm_trip", ("emergency shutdown", "unplanned shutdown", "alarm", "trip", "abnormal")),
+)
+
+# Keywords that mark a mention as a maintenance/repair action rather than the
+# failure itself. Kept aligned with the ``work_order`` timeline category.
+_MAINTENANCE_KEYWORDS: tuple[str, ...] = (
+    "work order",
+    "maintenance",
+    "repair",
+    "replaced",
+    "replacement",
+    "action taken",
+    "rework",
+    "overhaul",
+)
+
+
+def _detect_failure_modes(haystack: str) -> list[str]:
+    """Return the canonical failure modes evidenced in ``haystack`` (deduped)."""
+
+    found: list[str] = []
+    for mode, synonyms in _FAILURE_MODES:
+        if any(syn in haystack for syn in synonyms) and mode not in found:
+            found.append(mode)
+    return found
+
+
+def _is_maintenance(haystack: str) -> bool:
+    """True when the evidence text describes a maintenance/repair action."""
+
+    return any(kw in haystack for kw in _MAINTENANCE_KEYWORDS)
+
+
+def _failure_confidence(failure_event_count: int, document_count: int) -> str:
+    """Conservative coverage label tied to how much evidence exists.
+
+    Never implies certainty about future behaviour — it only describes how much
+    documented history backs the summary.
+    """
+
+    if failure_event_count >= 4 and document_count >= 2:
+        return "high"
+    if failure_event_count >= 2:
+        return "medium"
+    return "low"
+
+
+_FAILURE_DISCLAIMER = (
+    "Derived from documented historical evidence in the ingested corpus. "
+    "This is a retrospective summary, not a prediction or guarantee of future "
+    "failures."
+)
+
+
+def _build_failure_intelligence(
+    asset: Asset, rows: list[tuple[AssetMention, Document | None, DocumentChunk | None]]
+) -> dict[str, Any]:
+    """Assemble one asset's failure-intelligence view from its mention rows.
+
+    ``rows`` must already be ordered newest-first. Only mentions whose evidence
+    text shows a failure mode become failure events; each carries a citation.
+    """
+
+    failure_events: list[dict[str, Any]] = []
+    maintenance_actions: list[dict[str, Any]] = []
+    work_order_files: list[str] = []
+    documents_with_failures: set[str] = set()
+    mode_counter: dict[str, int] = {}
+    total_failure_events = 0
+    last_failure_date: str | None = None
+
+    for mention, document, chunk in rows:
+        filename = document.original_filename if document is not None else None
+        text = chunk.text if chunk is not None else None
+        haystack = " ".join(
+            part.lower() for part in (filename, text) if part
+        )
+        if not haystack:
+            continue
+
+        citation = {
+            "document_id": mention.document_id,
+            "chunk_id": mention.chunk_id,
+            "chunk_index": chunk.chunk_index if chunk is not None else None,
+            "filename": filename,
+        }
+        event_date = _iso(
+            document.created_at if document is not None else mention.created_at
+        )
+
+        if _is_maintenance(haystack) and len(maintenance_actions) < 8:
+            maintenance_actions.append(
+                {
+                    "date": event_date,
+                    "filename": filename,
+                    "text_preview": _text_preview(text),
+                    "citation": citation,
+                }
+            )
+            if filename and filename not in work_order_files:
+                work_order_files.append(filename)
+
+        modes = _detect_failure_modes(haystack)
+        if not modes:
+            continue
+
+        event_type, severity, reason_tags = _classify_timeline_event(filename, text)
+        total_failure_events += 1
+        if document is not None:
+            documents_with_failures.add(document.id)
+        for mode in modes:
+            mode_counter[mode] = mode_counter.get(mode, 0) + 1
+        if last_failure_date is None and event_date is not None:
+            last_failure_date = event_date  # rows are newest-first
+
+        if len(failure_events) < 8:
+            failure_events.append(
+                {
+                    "date": event_date,
+                    "event_type": event_type,
+                    "severity": severity,
+                    "failure_modes": modes,
+                    "reason_tags": reason_tags,
+                    "filename": filename,
+                    "text_preview": _text_preview(text),
+                    "citation": citation,
+                }
+            )
+
+    failure_modes = [
+        {"mode": mode, "count": count}
+        for mode, count in sorted(
+            mode_counter.items(), key=lambda kv: (-kv[1], kv[0])
+        )
+    ]
+    repeated_failure_modes = [fm["mode"] for fm in failure_modes if fm["count"] >= 2]
+    # Total failure-bearing mentions (uncounted by the display cap, so ranking
+    # and coverage reflect the full documented history). ``recent_failure_events``
+    # is the capped, citation-backed sample shown to users.
+    failure_event_count = total_failure_events
+    document_count = len(documents_with_failures)
+
+    return {
+        "asset_tag": asset.tag,
+        "asset": _asset_to_dict(asset),
+        "failure_event_count": failure_event_count,
+        "distinct_failure_modes": len(failure_modes),
+        "failure_modes": failure_modes,
+        "repeated_failure_modes": repeated_failure_modes,
+        "recent_failure_events": failure_events,
+        "maintenance_actions": maintenance_actions,
+        "work_order_references": work_order_files,
+        "document_count": document_count,
+        "last_failure_date": last_failure_date,
+        "coverage_confidence": _failure_confidence(failure_event_count, document_count),
+        "insufficient_data": failure_event_count == 0,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "disclaimer": _FAILURE_DISCLAIMER,
+    }
+
+
+def get_asset_failure_intelligence(
+    tag: str, session: Session | None = None
+) -> dict[str, Any] | None:
+    """Return the evidence-backed failure-intelligence view for one asset.
+
+    Returns ``None`` when the asset tag is unknown (route responds 404). A known
+    asset with no failure evidence returns a safe view with ``insufficient_data``
+    set and empty event lists — never fabricated findings.
+    """
+
+    normalized_tag = tag.strip().upper()
+    if not normalized_tag:
+        return None
+
+    with _unit_of_work(session) as active:
+        asset = active.execute(
+            select(Asset).where(Asset.tag == normalized_tag)
+        ).scalar_one_or_none()
+        if asset is None:
+            return None
+
+        rows = active.execute(
+            select(AssetMention, Document, DocumentChunk)
+            .outerjoin(Document, AssetMention.document_id == Document.id)
+            .outerjoin(DocumentChunk, AssetMention.chunk_id == DocumentChunk.id)
+            .where(AssetMention.asset_id == asset.id)
+            .order_by(
+                Document.created_at.desc().nullslast(),
+                DocumentChunk.chunk_index.asc().nullslast(),
+                AssetMention.created_at.desc(),
+            )
+        ).all()
+        return _build_failure_intelligence(asset, rows)
+
+
+def get_failure_hotspots(
+    limit: int = 10, session: Session | None = None
+) -> dict[str, Any]:
+    """Rank assets by documented failure-event count (evidence-supported).
+
+    Only assets with at least one failure-bearing mention appear. Each entry
+    carries its failure count, top/repeated failure modes, document count, most
+    recent failure date, and up to two supporting citations.
+    """
+
+    with _unit_of_work(session) as active:
+        rows = active.execute(
+            select(Asset, AssetMention, Document, DocumentChunk)
+            .join(AssetMention, AssetMention.asset_id == Asset.id)
+            .outerjoin(Document, AssetMention.document_id == Document.id)
+            .outerjoin(DocumentChunk, AssetMention.chunk_id == DocumentChunk.id)
+            .order_by(
+                Document.created_at.desc().nullslast(),
+                DocumentChunk.chunk_index.asc().nullslast(),
+                AssetMention.created_at.desc(),
+            )
+        ).all()
+
+        grouped: dict[str, dict[str, Any]] = {}
+        order: list[str] = []
+        for asset, mention, document, chunk in rows:
+            bucket = grouped.get(asset.id)
+            if bucket is None:
+                bucket = {"asset": asset, "rows": []}
+                grouped[asset.id] = bucket
+                order.append(asset.id)
+            bucket["rows"].append((mention, document, chunk))
+
+        hotspots: list[dict[str, Any]] = []
+        for asset_id in order:
+            bucket = grouped[asset_id]
+            view = _build_failure_intelligence(bucket["asset"], bucket["rows"])
+            if view["failure_event_count"] == 0:
+                continue
+            hotspots.append(
+                {
+                    "asset_tag": view["asset_tag"],
+                    "asset_type": view["asset"].get("asset_type"),
+                    "failure_event_count": view["failure_event_count"],
+                    "distinct_failure_modes": view["distinct_failure_modes"],
+                    "top_failure_modes": view["failure_modes"][:3],
+                    "repeated_failure_modes": view["repeated_failure_modes"],
+                    "document_count": view["document_count"],
+                    "last_failure_date": view["last_failure_date"],
+                    "coverage_confidence": view["coverage_confidence"],
+                    "evidence": [
+                        e["citation"] for e in view["recent_failure_events"][:2]
+                    ],
+                }
+            )
+
+        hotspots.sort(
+            key=lambda h: (
+                -h["failure_event_count"],
+                -h["distinct_failure_modes"],
+                h["asset_tag"],
+            )
+        )
+        top = hotspots if limit is None else hotspots[: max(0, limit)]
+        return {
+            "count": len(top),
+            "total_assets_with_failures": len(hotspots),
+            "hotspots": top,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "disclaimer": _FAILURE_DISCLAIMER,
         }
