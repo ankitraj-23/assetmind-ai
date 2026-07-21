@@ -1,4 +1,24 @@
-"""Gemini embedding wrapper used by the RAG pipeline."""
+"""Canonical embedding provider shared by ingestion, retrieval, and querying.
+
+This is the *single embedding contract* for the whole system. Both indexing
+(document ingestion, dataset ingestion, re-indexing) and querying (RAG chat /
+query / search, hybrid retrieval, benchmarks) must obtain their vectors here so
+that indexed and queried vectors are always produced by the *same* provider and
+model — never a Gemini query against a locally-hashed index or vice versa.
+
+Two providers are supported:
+
+* **gemini** — used whenever ``GEMINI_API_KEY`` is configured. Dense semantic
+  embeddings via ``gemini-embedding-2`` (or the configured model), fitted to
+  :data:`app.db.models.EMBEDDING_DIM`.
+* **local** — a deterministic, dependency-free ``local-hashing-v1`` fallback
+  (:func:`app.services.embeddings.embed_text`) used when Gemini is unavailable.
+  The *exact same* algorithm and model metadata are used for both indexing and
+  querying, so the local index stays internally comparable.
+
+:func:`active_provider` / :func:`active_model` report which is in effect so
+callers can tag stored vectors and filter retrieval to compatible vectors only.
+"""
 
 from __future__ import annotations
 
@@ -9,14 +29,40 @@ from typing import Callable
 
 from app.core.config import settings
 from app.db.models import EMBEDDING_DIM
+from app.services import embeddings as local_embeddings
 
 EMBEDDING_MODEL = "gemini-embedding-2"
 TARGET_EMBEDDING_DIMENSION = EMBEDDING_DIM
 CHUNK_EMBED_DELAY_SECONDS = 3.0
 
+# Metadata for the deterministic fallback. Kept identical to the algorithm in
+# app.services.embeddings so a vector's ``embedding_model`` unambiguously
+# identifies how it was produced.
+LOCAL_EMBEDDING_MODEL = local_embeddings.EMBEDDING_MODEL
+LOCAL_EMBEDDING_PROVIDER = "local"
+GEMINI_EMBEDDING_PROVIDER = "gemini"
+
 
 class MissingGeminiApiKeyError(RuntimeError):
     """Raised when a Gemini operation is requested without GEMINI_API_KEY."""
+
+
+def gemini_available() -> bool:
+    """Return True when a non-empty ``GEMINI_API_KEY`` is configured."""
+
+    return bool((settings.gemini_api_key or "").strip())
+
+
+def active_provider() -> str:
+    """Return the provider currently used for both indexing and querying."""
+
+    return GEMINI_EMBEDDING_PROVIDER if gemini_available() else LOCAL_EMBEDDING_PROVIDER
+
+
+def active_model() -> str:
+    """Return the model identifier stored alongside vectors from this provider."""
+
+    return _embedding_model() if gemini_available() else LOCAL_EMBEDDING_MODEL
 
 
 def _api_key() -> str:
@@ -30,9 +76,14 @@ def _api_key() -> str:
 
 
 def ensure_configured() -> None:
-    """Raise a clear error if Gemini credentials are missing."""
+    """No-op compatibility hook.
 
-    _api_key()
+    A deterministic local fallback is always available, so ingestion and
+    retrieval never hard-require Gemini. Retained for callers that used to gate
+    on Gemini configuration.
+    """
+
+    return None
 
 
 def _embedding_model() -> str:
@@ -93,6 +144,10 @@ def _embed(text: str, task_type: str) -> list[float]:
 
 
 def embed_text(text: str) -> list[float]:
+    """Embed a document/chunk for indexing with the active provider."""
+
+    if not gemini_available():
+        return local_embeddings.embed_text(text)
     return _embed(text, "retrieval_document")
 
 
@@ -116,4 +171,12 @@ def embed_texts(
 
 
 def embed_query(query: str) -> list[float]:
+    """Embed a query for retrieval with the active provider.
+
+    The provider and model must match those used at indexing time; the local
+    fallback uses the identical ``local-hashing-v1`` algorithm as the index.
+    """
+
+    if not gemini_available():
+        return local_embeddings.embed_text(query)
     return _embed(query, "retrieval_query")

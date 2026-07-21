@@ -54,10 +54,61 @@ export default function CopilotPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setUserId(getOrCreateUserId());
+    const uid = getOrCreateUserId();
+    setUserId(uid);
     listAssets()
       .then(setAssets)
       .catch(() => setAssets([]));
+
+    // Deep-link handling: ?asset= scopes the chat, ?q= prefills and runs a
+    // search. This is a deliberate search action (e.g. from the header), not an
+    // agent auto-execution.
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const assetParam = params.get("asset");
+    const queryParam = params.get("q");
+
+    const initialAsset = assetParam ? assetParam.toUpperCase() : "";
+    if (initialAsset) setSelectedAsset(initialAsset);
+
+    if (queryParam) {
+      setQuestion(queryParam);
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: queryParam,
+        assetTag: initialAsset || undefined,
+      };
+      setMessages([userMessage]);
+      setStatus("loading");
+      setError(null);
+      queryCopilot({
+        question: queryParam,
+        top_k: 7,
+        asset_tag: initialAsset || undefined,
+        user_id: uid || undefined,
+      })
+        .then((res) => {
+          setSessionId(res.session_id ?? null);
+          setResult(res);
+          setMessages((current) => [
+            ...current,
+            {
+              id: `assistant-${Date.now()}`,
+              role: "assistant",
+              content: res.answer,
+              assetTag: (res.asset_tag ?? initialAsset) || undefined,
+              result: res,
+            },
+          ]);
+          setStatus("done");
+          listCopilotChats(uid).then(setSessions).catch(() => {});
+        })
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : "Failed to run search.");
+          setStatus("error");
+        });
+    }
   }, []);
 
   useEffect(() => {

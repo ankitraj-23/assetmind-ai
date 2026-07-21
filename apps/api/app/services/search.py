@@ -14,6 +14,7 @@ import re
 
 from app.core import config
 from app.models.search import Citation, SearchResult
+from app.rag import embeddings as rag_embeddings
 from app.services import chunking, embeddings, ingestion
 
 # Similarity boost applied to chunks that mention the requested asset tag.
@@ -74,7 +75,9 @@ def search(
     Results are deduplicated (no repeated chunk_id) and capped per document.
     """
     top_k = max(1, top_k)
-    query_vector = embeddings.embed_text(query)
+    # Use the canonical provider so this path stays comparable with the vectors
+    # written at indexing time (the same single embedding contract Copilot uses).
+    query_vector = rag_embeddings.embed_query(query)
     if not any(query_vector):
         return []
 
@@ -150,10 +153,14 @@ def _search_postgres(
 ) -> list[SearchResult]:
     from app.db import repository as repo
 
+    active_model = rag_embeddings.active_model()
     scored: list[SearchResult] = []
     for record in repo.get_all_chunks_with_embeddings():
         vector = record.get("embedding")
         if not vector:
+            continue
+        # Never compare vectors produced by a different provider/model.
+        if record.get("embedding_model") != active_model:
             continue
         document = record.get("document") or {}
         filename = document.get("filename")
