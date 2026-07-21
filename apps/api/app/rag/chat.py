@@ -140,6 +140,12 @@ def rewrite_followup_question(
     question = latest_question.strip()
     if not memory_messages:
         return question
+    # Follow-up rewriting needs an LLM; without Gemini the raw question (already
+    # asset-scoped by the caller) is used directly.
+    from app.rag import embeddings
+
+    if not embeddings.gemini_available():
+        return question
 
     prompt = f"""
 Rewrite the latest AssetMind AI user question into a standalone retrieval query.

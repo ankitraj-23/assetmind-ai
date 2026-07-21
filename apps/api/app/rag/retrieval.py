@@ -87,6 +87,7 @@ def _retrieve_by_vector(query_vector: list[float], top_k: int) -> list[Retrieved
         select(DocumentChunk, Document, distance)
         .join(Document, DocumentChunk.document_id == Document.id)
         .where(DocumentChunk.embedding.isnot(None))
+        .where(DocumentChunk.embedding_model == embeddings.active_model())
         .order_by(distance.asc(), DocumentChunk.document_id.asc(), DocumentChunk.chunk_index.asc())
         .limit(top_k)
     )
@@ -114,6 +115,7 @@ def _retrieve_by_keyword(question: str, top_k: int) -> list[RetrievedChunk]:
         select(DocumentChunk, Document)
         .join(Document, DocumentChunk.document_id == Document.id)
         .where(DocumentChunk.embedding.isnot(None))
+        .where(DocumentChunk.embedding_model == embeddings.active_model())
         .order_by(DocumentChunk.document_id.asc(), DocumentChunk.chunk_index.asc())
     )
 

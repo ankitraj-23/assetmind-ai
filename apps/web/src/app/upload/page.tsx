@@ -158,7 +158,27 @@ export default function UploadPage() {
                     <dt className="text-[var(--color-muted)]">Indexed On</dt>
                     <dd className="text-[var(--color-fg)]">{result.created_at.slice(0, 19).replace("T", " ")}</dd>
                   </div>
+                  {(result.embedding_provider || result.embedding_model) && (
+                    <div className="flex justify-between border-b border-[var(--color-border)]/50 pb-1 col-span-2">
+                      <dt className="text-[var(--color-muted)]">Embeddings</dt>
+                      <dd className="font-mono text-[var(--color-fg)]">
+                        {result.embedding_provider} · {result.embedding_model}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
+                {result.warnings && result.warnings.length > 0 && (
+                  <ul className="mt-3 space-y-1">
+                    {result.warnings.map((w) => (
+                      <li
+                        key={w}
+                        className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-300"
+                      >
+                        {w}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               {/* Chunks section */}

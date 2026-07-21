@@ -23,6 +23,12 @@ export interface ApiDocument {
   storage_path: string;
   created_at: string;
   chunk_count: number;
+  // Ingestion result fields (present on the upload response).
+  embedding_provider?: string | null;
+  embedding_model?: string | null;
+  assets_extracted?: string[];
+  entities_extracted?: number;
+  warnings?: string[];
 }
 
 /** Mirrors app.models.chunk.Chunk */

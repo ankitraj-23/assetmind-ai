@@ -272,7 +272,7 @@ def ingest_dataset(
                         session=session,
                         chunk_id=parent.id,
                         vector=vector,
-                        embedding_model=embeddings._embedding_model(),
+                        embedding_model=embeddings.active_model(),
                     )
                 embedded_for_file += 1
                 embeddings_created += 1
