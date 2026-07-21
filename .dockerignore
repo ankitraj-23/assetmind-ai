@@ -1,0 +1,25 @@
+# Keep the backend image small and reproducible.
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.venv/
+**/venv/
+
+# Frontend — not part of the backend image.
+apps/web/node_modules/
+apps/web/.next/
+apps/web/out/
+
+# Local dev artefacts and secrets (never baked into an image).
+**/.env
+**/.env.local
+**/.env.production
+apps/api/storage/
+*.dump
+.git/
+.github/
+.snapshot-meta/
+analysis.ipynb
+
+# Large raw data (not needed by the demo seed).
+data/raw/

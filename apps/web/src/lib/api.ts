@@ -736,3 +736,79 @@ export function evidencePackageDownloadUrl(downloadPath: string): string {
   return `${API_BASE_URL}${downloadPath}`;
 }
 
+// ---------------------------------------------------------------------------
+// Evaluation (genuine benchmark results)
+// ---------------------------------------------------------------------------
+
+/** One citation recorded for a benchmark question. */
+export interface ApiEvalCitation {
+  file_name: string;
+  page: number | null;
+  chunk_id: string;
+  snippet: string;
+}
+
+/** A single per-question benchmark result. Mirrors run_benchmark output. */
+export interface ApiEvalResult {
+  id: string;
+  question: string;
+  category: string;
+  asset_tag: string | null;
+  expected_doc: string;
+  expected_answer: string;
+  expected_source_in_corpus: boolean;
+  retrieved_docs: string[];
+  citations: ApiEvalCitation[];
+  top1_hit: boolean;
+  top3_hit: boolean;
+  asset_hit: boolean;
+  latency_ms: number;
+  status: string;
+  failure_category: string;
+  actual_answer: string;
+}
+
+/** Summary metrics block written by run_benchmark. */
+export interface ApiEvalSummary {
+  corpus_name?: string;
+  total_questions: number;
+  answerable_questions: number;
+  absent_corpus_count: number;
+  top1_source_hit_rate: number;
+  top3_source_hit_rate: number;
+  asset_hit_rate: number;
+  asset_questions: number;
+  answerable_top1_source_hit_rate: number;
+  answerable_top3_source_hit_rate: number;
+  answerable_asset_hit_rate: number;
+  answerable_asset_questions: number;
+  average_latency_ms: number;
+  p95_latency_ms: number;
+  failed_questions_count: number;
+  corpus_document_count: number;
+  corpus_documents: string[];
+  embedding_provider: string;
+  embedding_model: string;
+  answer_provider: string;
+  answer_model: string;
+  retrieval_config: Record<string, unknown>;
+  failure_category_breakdown: Record<string, number>;
+  generated_at?: string;
+  last_run_time: string;
+}
+
+/** Response of GET /evaluation/latest. */
+export interface ApiEvaluationResponse {
+  available: boolean;
+  source_file: string;
+  summary: ApiEvalSummary;
+  results: ApiEvalResult[];
+}
+
+/** GET /evaluation/latest — the latest genuine benchmark report (read-only). */
+export async function getLatestEvaluation(): Promise<ApiEvaluationResponse> {
+  const res = await fetch(`${API_BASE_URL}/evaluation/latest`);
+  await ensureOk(res, "Load evaluation");
+  return res.json() as Promise<ApiEvaluationResponse>;
+}
+

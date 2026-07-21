@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     llm_provider: str | None = None
     rag_visual_storage_dir: str = "storage/extracted_visuals"
 
+    # Path to the latest genuine benchmark results JSON written by
+    # ``scripts.run_benchmark`` and served read-only by ``GET /evaluation/latest``.
+    # When unset the route resolves the in-repo ``data/benchmark/results_sample.json``.
+    benchmark_results_path: str | None = None
+
     # Browser origins allowed to call the API (the Next.js dev server by default).
     # Override with a comma-separated CORS_ORIGINS environment variable.
     cors_origins: list[str] = ["http://localhost:3000"]

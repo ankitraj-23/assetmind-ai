@@ -141,6 +141,15 @@ def main() -> int:
     asset_hits = 0
     asset_total = 0
     failures = 0
+    # "Answerable" subset = questions whose expected source document is present
+    # in the seeded corpus. Reported separately so absent-corpus questions never
+    # inflate or hide the real retrieval quality.
+    answerable_total = 0
+    answerable_top1 = 0
+    answerable_top3 = 0
+    answerable_asset_hits = 0
+    answerable_asset_total = 0
+    absent_corpus_count = 0
 
     print(
         f"Running benchmark on {len(questions)} questions "
@@ -150,6 +159,9 @@ def main() -> int:
     for q in questions:
         asset_tag = _normalize_asset_tag(q.get("asset_tag"))
         scoped_question = _apply_asset_scope(q["question"], asset_tag)
+        in_corpus = q["source_doc"] in corpus
+        if not in_corpus:
+            absent_corpus_count += 1
 
         start_time = time.perf_counter()
         try:
@@ -159,6 +171,8 @@ def main() -> int:
             total_latency_ms += duration_ms
             latencies_ms.append(duration_ms)
             failures += 1
+            if in_corpus:
+                answerable_total += 1
             print(f"  [{q['id']}] ERROR: {exc}")
             results.append(
                 {
@@ -167,6 +181,8 @@ def main() -> int:
                     "category": q.get("category", ""),
                     "asset_tag": q.get("asset_tag"),
                     "expected_doc": q["source_doc"],
+                    "expected_answer": q.get("expected_answer", ""),
+                    "expected_source_in_corpus": in_corpus,
                     "retrieved_docs": [],
                     "citations": [],
                     "top1_hit": False,
@@ -199,6 +215,17 @@ def main() -> int:
         if top3_hit:
             top3_hits += 1
 
+        if in_corpus:
+            answerable_total += 1
+            if top1_hit:
+                answerable_top1 += 1
+            if top3_hit:
+                answerable_top3 += 1
+            if asset_tag:
+                answerable_asset_total += 1
+                if asset_hit:
+                    answerable_asset_hits += 1
+
         status = "passed" if top3_hit else "failed"
         if not top3_hit:
             failures += 1
@@ -210,6 +237,8 @@ def main() -> int:
                 "category": q.get("category", ""),
                 "asset_tag": q.get("asset_tag"),
                 "expected_doc": q["source_doc"],
+                "expected_answer": q.get("expected_answer", ""),
+                "expected_source_in_corpus": in_corpus,
                 "retrieved_docs": ranked_docs,
                 "citations": [
                     {
@@ -252,12 +281,30 @@ def main() -> int:
             category_breakdown.get(item["failure_category"], 0) + 1
         )
 
+    generated_at = datetime.now(timezone.utc).isoformat()
     summary = {
+        "corpus_name": "AssetMind AI demo plant",
         "total_questions": n,
+        "answerable_questions": answerable_total,
+        "absent_corpus_count": absent_corpus_count,
         "top1_source_hit_rate": round(top1_hits / n, 4) if n else 0.0,
         "top3_source_hit_rate": round(top3_hits / n, 4) if n else 0.0,
         "asset_hit_rate": round(asset_hits / asset_total, 4) if asset_total else 0.0,
         "asset_questions": asset_total,
+        # Metrics over just the answerable subset (expected source present in the
+        # seeded corpus). Equal to the "all" metrics once the corpus is complete.
+        "answerable_top1_source_hit_rate": (
+            round(answerable_top1 / answerable_total, 4) if answerable_total else 0.0
+        ),
+        "answerable_top3_source_hit_rate": (
+            round(answerable_top3 / answerable_total, 4) if answerable_total else 0.0
+        ),
+        "answerable_asset_hit_rate": (
+            round(answerable_asset_hits / answerable_asset_total, 4)
+            if answerable_asset_total
+            else 0.0
+        ),
+        "answerable_asset_questions": answerable_asset_total,
         "average_latency_ms": round(total_latency_ms / n, 1) if n else 0.0,
         "p95_latency_ms": round(_p95(latencies_ms), 1),
         "failed_questions_count": failures,
@@ -269,7 +316,8 @@ def main() -> int:
         "answer_model": answer_model,
         "retrieval_config": retrieval_config,
         "failure_category_breakdown": category_breakdown,
-        "last_run_time": datetime.now(timezone.utc).isoformat(),
+        "generated_at": generated_at,
+        "last_run_time": generated_at,
     }
 
     report = {"summary": summary, "results": results}
@@ -279,11 +327,19 @@ def main() -> int:
 
     print("\nBenchmark Run Complete:")
     print(f"  Total Questions   : {summary['total_questions']}")
+    print(
+        f"  Answerable Qs     : {summary['answerable_questions']} "
+        f"(absent-corpus: {summary['absent_corpus_count']})"
+    )
     print(f"  Top-1 Hit Rate    : {summary['top1_source_hit_rate']*100:.1f}%")
     print(f"  Top-3 Hit Rate    : {summary['top3_source_hit_rate']*100:.1f}%")
     print(
         f"  Asset Hit Rate    : {summary['asset_hit_rate']*100:.1f}% "
         f"({asset_hits}/{asset_total})"
+    )
+    print(
+        f"  Answerable Top-3  : {summary['answerable_top3_source_hit_rate']*100:.1f}% "
+        f"| Asset {summary['answerable_asset_hit_rate']*100:.1f}%"
     )
     print(f"  Avg Latency       : {summary['average_latency_ms']:.1f}ms")
     print(f"  p95 Latency       : {summary['p95_latency_ms']:.1f}ms")
