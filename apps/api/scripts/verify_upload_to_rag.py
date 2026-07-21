@@ -14,23 +14,47 @@ Run (Postgres backend required)::
 
 Exit code 0 means every check passed. The script is safe to re-run: each run
 uploads a uniquely named file and never mutates prior documents.
+
+Cleanup
+-------
+This proof persists a ``final_e2e_marker_*.txt`` document (with ZZ-991 marker
+data) on every run. To keep the acceptance database clean:
+
+* ``--cleanup`` deletes *only* the document uploaded by this specific run (and
+  the ZZ-991 marker asset if it becomes orphaned), so a run leaves no trace.
+* ``--cleanup-markers`` deletes every ``final_e2e_marker_*.txt`` document and
+  the orphaned ZZ-991 marker asset, then exits without running the proof.
+
+Both options identify records strictly by the unique test filename prefix / this
+run's document id and never touch unrelated documents.
 """
 
 from __future__ import annotations
 
+import argparse
 import sys
 import time
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
+from sqlalchemy import delete as sa_delete
+from sqlalchemy import func
 
 from app.core import config
-from app.db.models import Asset, AssetMention, DocumentChunk
+from app.db.models import (
+    Asset,
+    AssetMention,
+    Document,
+    DocumentChunk,
+    DocumentPage,
+    ExtractedEntity,
+)
 from app.db.session import session_scope
 from app.main import app
 from app.rag import embeddings
 
 MARKER_ASSET = "ZZ-991"
+MARKER_FILENAME_PREFIX = "final_e2e_marker_"
 MARKER_SEAL = "TC-77"
 MARKER_COOLDOWN = "41 minute"
 CONTENT = (
@@ -82,7 +106,55 @@ def _citation_filenames(chat_response: dict) -> list[str]:
     return [c.get("file_name") for c in chat_response.get("citations", [])]
 
 
-def main() -> int:
+def _delete_document(session, document_id: str) -> None:
+    """Delete a single document and its dependent rows (chunks, pages, entities,
+    asset mentions). Scoped strictly to ``document_id`` — nothing else."""
+    session.execute(sa_delete(AssetMention).where(AssetMention.document_id == document_id))
+    session.execute(sa_delete(ExtractedEntity).where(ExtractedEntity.document_id == document_id))
+    session.execute(sa_delete(DocumentChunk).where(DocumentChunk.document_id == document_id))
+    session.execute(sa_delete(DocumentPage).where(DocumentPage.document_id == document_id))
+    session.execute(sa_delete(Document).where(Document.id == document_id))
+
+
+def _delete_orphan_marker_asset(session, tag: str) -> bool:
+    """Delete the marker asset only if it has no remaining mentions."""
+    asset = session.query(Asset).filter(Asset.tag == tag).one_or_none()
+    if asset is None:
+        return False
+    remaining = (
+        session.query(func.count(AssetMention.id))
+        .filter(AssetMention.asset_id == asset.id)
+        .scalar()
+    )
+    if remaining:
+        return False
+    session.delete(asset)
+    return True
+
+
+def cleanup_markers() -> int:
+    """Delete all E2E marker documents and the orphaned ZZ-991 marker asset."""
+    if not config.use_postgres():
+        print("ERROR: PERSISTENCE_BACKEND=postgres is required for cleanup.")
+        return 2
+    with session_scope() as session:
+        marker_ids = [
+            row[0]
+            for row in session.query(Document.id)
+            .filter(Document.original_filename.like(f"{MARKER_FILENAME_PREFIX}%"))
+            .all()
+        ]
+        for document_id in marker_ids:
+            _delete_document(session, document_id)
+        asset_removed = _delete_orphan_marker_asset(session, MARKER_ASSET)
+    print(
+        f"Cleanup: removed {len(marker_ids)} '{MARKER_FILENAME_PREFIX}*' document(s); "
+        f"ZZ-991 marker asset removed: {asset_removed}."
+    )
+    return 0
+
+
+def main(cleanup: bool = False) -> int:
     if not config.use_postgres():
         print("ERROR: PERSISTENCE_BACKEND=postgres is required for this proof.")
         return 2
@@ -200,6 +272,15 @@ def main() -> int:
         f"{chunk_count_after_first} -> {chunk_count_repeat}",
     )
 
+    if cleanup:
+        with session_scope() as session:
+            _delete_document(session, document_id)
+            asset_removed = _delete_orphan_marker_asset(session, MARKER_ASSET)
+        print(
+            f"\nCleanup: removed this run's document {filename} ({document_id})"
+            f"{'; orphaned ZZ-991 marker asset removed' if asset_removed else ''}."
+        )
+
     print()
     if report.failures:
         print(f"RESULT: FAILED ({len(report.failures)} check(s) failed)")
@@ -212,4 +293,19 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--cleanup",
+        action="store_true",
+        help="Delete only the document created by this run after verifying.",
+    )
+    parser.add_argument(
+        "--cleanup-markers",
+        action="store_true",
+        help="Delete all final_e2e_marker_* documents and the ZZ-991 marker asset, then exit.",
+    )
+    args = parser.parse_args()
+
+    if args.cleanup_markers:
+        sys.exit(cleanup_markers())
+    sys.exit(main(cleanup=args.cleanup))

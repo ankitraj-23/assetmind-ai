@@ -1,25 +1,33 @@
-"""Verify asset-scoped retrieval, query intent detection, and related assets.
+"""Verify asset-scoped retrieval and citations via the production RAG path.
 
-Requires documents to be ingested first. Run from apps/api/ with JSON backend:
-    python -m scripts.verify_ingestion      # ingest test data
-    python -m scripts.verify_asset_scoped_retrieval
+This exercises the *same* retrieval, embedding-provider and citation logic used
+by the ``/rag/chat`` endpoint (``app.rag.retrieval.retrieve_relevant_chunks``,
+``app.rag.answer.answer_question`` and ``app.rag.chat._apply_asset_scope``). The
+removed ``app.services.query.answer_question`` helper is intentionally *not*
+used — there is a single production query architecture.
+
+Runs against the seeded local Postgres acceptance database:
+
+    PERSISTENCE_BACKEND=postgres \
+    DATABASE_URL=postgresql+psycopg://assetmind:assetmind@127.0.0.1:5432/assetmind \
+    .venv/bin/python -m scripts.verify_asset_scoped_retrieval
 """
 
 from __future__ import annotations
 
-import asyncio
-import io
 import os
 import sys
 
-os.environ.setdefault("PERSISTENCE_BACKEND", "json")
+os.environ.setdefault("PERSISTENCE_BACKEND", "postgres")
 
-import pandas as pd
-from fastapi import UploadFile
+from app.core import config
+from app.rag import embeddings
+from app.rag.answer import answer_question
+from app.rag.chat import _apply_asset_scope, _normalize_asset_tag
+from app.rag.retrieval import retrieve_relevant_chunks
+from app.services.search import _mentions_tag
 
-from app.services.ingestion import ingest_csv, ingest_upload
-from app.services.query import answer_question, detect_intent
-from app.services.search import search, _mentions_tag
+config.settings.persistence_backend = "postgres"
 
 
 def _ok(msg: str) -> None:
@@ -32,195 +40,107 @@ def _fail(msg: str) -> None:
 
 
 def _section(title: str) -> None:
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  {title}")
     print("=" * 60)
 
 
-# ── setup: ingest sample docs ─────────────────────────────────────────────────
-
-async def _setup() -> None:
-    """Ingest sample data if not already present."""
-    from app.services.ingestion import list_documents
-
-    existing = {d.filename for d in list_documents()}
-
-    if "work_orders_clean.csv" not in existing:
-        csv_path = "../../data/documents/work_orders_clean.csv"
-        with open(csv_path, "rb") as f:
-            data = f.read()
-        doc = await ingest_csv(UploadFile(filename="work_orders_clean.csv", file=io.BytesIO(data)))
-        print(f"  ingested work_orders_clean.csv: {doc.chunk_count} chunks")
-
-    if "pump_oem_manual.pdf" not in existing:
-        pdf_path = "../../data/documents/pump_oem_manual.pdf"
-        with open(pdf_path, "rb") as f:
-            data = f.read()
-        doc = await ingest_upload(UploadFile(filename="pump_oem_manual.pdf", file=io.BytesIO(data)))
-        print(f"  ingested pump_oem_manual.pdf: {doc.chunk_count} chunks")
-
-    if "inspection_report_q1_2025.pdf" not in existing:
-        pdf_path = "../../data/documents/inspection_report_q1_2025.pdf"
-        with open(pdf_path, "rb") as f:
-            data = f.read()
-        doc = await ingest_upload(UploadFile(filename="inspection_report_q1_2025.pdf", file=io.BytesIO(data)))
-        print(f"  ingested inspection_report_q1_2025.pdf: {doc.chunk_count} chunks")
+ASSET = "P-101"
 
 
-# ── intent detection ──────────────────────────────────────────────────────────
+def test_environment() -> None:
+    _section("Environment / provider")
+    if not config.use_postgres():
+        _fail("PERSISTENCE_BACKEND must be postgres for this verifier")
+    _ok("persistence backend = postgres")
+    _ok(f"embedding provider = {embeddings.active_provider()}")
+    _ok(f"embedding model = {embeddings.active_model()}")
 
-def test_intent_detection() -> None:
-    _section("Query intent detection")
 
-    cases = [
-        ("How do I start P-101 after maintenance?",        "procedure"),
-        ("Steps to shutdown P-201 safely",                 "procedure"),
-        ("Why is P-101 vibrating after seal replacement?", "failure_rca"),
-        ("Root cause of P-101 cavitation",                 "failure_rca"),
-        ("What maintenance was done on P-101 last year?",  "maintenance_history"),
-        ("Work orders for HX-305 last month",              "maintenance_history"),
-        ("What were the inspection findings for P-101?",   "inspection"),
-        ("Quarterly inspection reading for BLR-118",       "inspection"),
-        ("Is P-101 compliant with OISD-137?",              "compliance"),
-        ("PESO compliance status of TK-482",               "compliance"),
-        ("What documents do we have?",                     "general"),
+def test_asset_scoped_retrieval() -> None:
+    _section(f"Asset-scoped retrieval ({ASSET})")
+
+    global_chunks = retrieve_relevant_chunks("vibration seal bearing", top_k=5)
+    if not global_chunks:
+        _fail("global retrieval returned no results — is the database seeded?")
+    _ok(f"global retrieval: {len(global_chunks)} chunks")
+
+    scoped_question = _apply_asset_scope(
+        "vibration seal bearing", _normalize_asset_tag(ASSET)
+    )
+    scoped_chunks = retrieve_relevant_chunks(scoped_question, top_k=5)
+    if not scoped_chunks:
+        _fail("asset-scoped retrieval returned no results")
+    _ok(f"asset-scoped retrieval: {len(scoped_chunks)} chunks")
+
+    # The asset must appear somewhere in the retrieved evidence.
+    mentions = [
+        c for c in scoped_chunks
+        if _mentions_tag(c.content, ASSET)
+        or any(t.upper() == ASSET for t in c.asset_tags)
     ]
+    if not mentions:
+        _fail(f"no retrieved chunk mentions {ASSET}")
+    _ok(f"{len(mentions)}/{len(scoped_chunks)} retrieved chunks mention {ASSET}")
 
-    all_ok = True
-    for question, expected in cases:
-        got = detect_intent(question)
-        if got == expected:
-            _ok(f"[{got:20s}] {question[:55]}")
-        else:
-            print(f"  [FAIL] expected [{expected}] got [{got}]: {question}")
-            all_ok = False
-
-    if not all_ok:
-        _fail("intent detection failures above")
-
-
-# ── asset-scoped search ───────────────────────────────────────────────────────
-
-def test_asset_scoped_search() -> None:
-    _section("Asset-scoped vector search (P-101)")
-
-    # Global search (no asset_tag)
-    global_results = search("vibration seal bearing", top_k=5)
-    if not global_results:
-        _fail("global search returned no results")
-    _ok(f"global search: {len(global_results)} results")
-
-    # Asset-scoped search
-    scoped_results = search("vibration seal bearing", top_k=5, asset_tag="P-101")
-    if not scoped_results:
-        _fail("asset-scoped search returned no results")
-    _ok(f"asset-scoped search: {len(scoped_results)} results")
-
-    # Scoped results should lead with P-101 mentions
-    p101_at_top = _mentions_tag(scoped_results[0].text, "P-101")
-    if not p101_at_top:
-        print("  [WARN] top result does not mention P-101 — boost may be insufficient")
+    if _mentions_tag(scoped_chunks[0].content, ASSET):
+        _ok(f"top result mentions {ASSET}")
     else:
-        _ok("top result mentions P-101")
+        print(f"  [WARN] top result does not mention {ASSET} — boost may be weak")
 
-    # No duplicate chunk_ids
-    chunk_ids = [r.chunk_id for r in scoped_results]
+    chunk_ids = [c.chunk_id for c in scoped_chunks]
     if len(chunk_ids) != len(set(chunk_ids)):
-        _fail("duplicate chunk_ids in results")
+        _fail("duplicate chunk_ids in retrieval results")
     _ok("no duplicate chunk_ids")
 
-    # Source diversity: at most MAX_PER_DOCUMENT per document
-    from app.services.search import MAX_PER_DOCUMENT
-    from collections import Counter
 
-    doc_counts = Counter(r.document_id for r in scoped_results)
-    for doc_id, count in doc_counts.items():
-        if count > MAX_PER_DOCUMENT:
-            _fail(f"document {doc_id} appears {count} times (max {MAX_PER_DOCUMENT})")
-    _ok(f"source diversity respected (max {MAX_PER_DOCUMENT} per doc)")
+def test_full_query_citations() -> None:
+    _section("Full query: citations + confidence via answer_question")
 
-
-# ── full query with asset_tag ─────────────────────────────────────────────────
-
-def test_query_with_asset_tag() -> None:
-    _section("Full query: asset_tag + intent + citations + related_assets")
-
-    resp = answer_question(
-        "Why is P-101 repeatedly vibrating?",
-        top_k=5,
-        asset_tag="P-101",
+    scoped = _apply_asset_scope(
+        "Why is P-101 repeatedly vibrating after a seal replacement?",
+        _normalize_asset_tag(ASSET),
     )
+    resp = answer_question(scoped, top_k=5)
 
-    if resp.query_intent != "failure_rca":
-        _fail(f"expected intent=failure_rca, got {resp.query_intent}")
-    _ok(f"query_intent = {resp.query_intent}")
+    if not resp.retrieved_chunks:
+        _fail("answer_question returned no retrieved_chunks")
+    _ok(f"retrieved_chunks = {len(resp.retrieved_chunks)}")
 
     if not resp.citations:
         _fail("expected at least one citation")
     _ok(f"citations count = {len(resp.citations)}")
 
-    # No duplicate citations
     cids = [c.chunk_id for c in resp.citations]
     if len(cids) != len(set(cids)):
         _fail("duplicate chunk_ids in citations")
     _ok("no duplicate chunk_ids in citations")
 
-    # All citations have required fields
     for c in resp.citations:
-        if not c.document_id or not c.chunk_id:
-            _fail(f"citation missing document_id or chunk_id: {c}")
-        if c.score is None:
-            _fail(f"citation missing score: {c}")
-        if not c.text_preview:
-            _fail(f"citation missing text_preview: {c}")
-    _ok("all citations have required fields")
+        if not c.chunk_id or not c.file_name:
+            _fail(f"citation missing chunk_id or file_name: {c}")
+        if not c.snippet:
+            _fail(f"citation missing snippet: {c}")
+    _ok("all citations have chunk_id, file_name and snippet")
 
-    _ok(f"related_assets = {resp.related_assets}")
+    if not 0.0 <= resp.confidence <= 1.0:
+        _fail(f"confidence out of range: {resp.confidence}")
     _ok(f"confidence = {resp.confidence}")
 
-    # Print summary for inspection
+    top = resp.citations[0]
     print(f"\n  Answer preview: {resp.answer[:120]}...")
-    print(f"  Top citation: [{resp.citations[0].filename}] page={resp.citations[0].page_number}")
+    print(f"  Top citation: [{top.file_name}] page={top.page}")
 
 
-# ── intent source priority ────────────────────────────────────────────────────
-
-def test_intent_source_priority() -> None:
-    _section("Intent-based source prioritisation")
-
-    # procedure question → should prefer SOP/manual docs
-    resp = answer_question("How do I start P-101?", top_k=5, asset_tag="P-101")
-    if resp.query_intent != "procedure":
-        _fail(f"expected procedure intent, got {resp.query_intent}")
-    _ok(f"procedure intent detected")
-
-    # Check that citations are present
-    if not resp.citations:
-        _fail("no citations returned for procedure query")
-    _ok(f"citations returned: {len(resp.citations)}")
-
-    # failure_rca query
-    resp2 = answer_question("Root cause of P-101 bearing failure", top_k=5, asset_tag="P-101")
-    if resp2.query_intent != "failure_rca":
-        _fail(f"expected failure_rca, got {resp2.query_intent}")
-    _ok(f"failure_rca intent detected for RCA question")
-
-
-# ── main ──────────────────────────────────────────────────────────────────────
-
-async def main() -> None:
-    print("\nverify_asset_scoped_retrieval: running against JSON backend")
-    print("Setting up test documents...")
-    await _setup()
-
-    test_intent_detection()
-    test_asset_scoped_search()
-    test_query_with_asset_tag()
-    test_intent_source_priority()
+def main() -> None:
+    print("\nverify_asset_scoped_retrieval: production RAG path against Postgres")
+    test_environment()
+    test_asset_scoped_retrieval()
+    test_full_query_citations()
 
     _section("Summary")
     print("  ALL CHECKS PASSED")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
