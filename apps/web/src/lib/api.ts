@@ -574,3 +574,49 @@ export async function getCopilotChat(
   return res.json() as Promise<ApiChatHistoryResponse>;
 }
 
+// ---------------------------------------------------------------------------
+// RCA (Root Cause Analysis) Agent
+// ---------------------------------------------------------------------------
+
+/** A single piece of grounding evidence attached to a likely cause. */
+export interface ApiRcaEvidence {
+  source: string;
+  text: string;
+  document_id?: string | null;
+  chunk_id?: string | null;
+}
+
+/** One candidate root cause with confidence and supporting evidence. */
+export interface ApiLikelyCause {
+  cause: string;
+  confidence: number;
+  evidence: ApiRcaEvidence[];
+}
+
+/** Response shape of POST /agents/rca. */
+export interface ApiRcaResponse {
+  asset_tag: string;
+  symptom: string;
+  summary: string;
+  likely_causes: ApiLikelyCause[];
+  recommended_actions: string[];
+  missing_information: string[];
+}
+
+/** POST /agents/rca — run the root cause analysis agent for an asset symptom. */
+export async function performRca(
+  assetTag: string,
+  symptom: string,
+): Promise<ApiRcaResponse> {
+  const res = await fetch(`${API_BASE_URL}/agents/rca`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      asset_tag: assetTag,
+      symptom,
+    }),
+  });
+  await ensureOk(res, "Perform RCA");
+  return res.json() as Promise<ApiRcaResponse>;
+}
+
