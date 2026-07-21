@@ -34,7 +34,8 @@
 
 ## Database (host category: **Neon**, no credentials shown)
 
-- Host: `ep-steep-hat-…ap-southeast-1.aws.neon.tech`, db `neondb`, SSL: **yes**.
+- Host: managed Postgres (Neon, `ap-southeast-1`), SSL: **yes**. (Specific endpoint
+  and credentials are kept out of the repo.)
 - Active embedding provider/model: **local / local-hashing-v1** (no Gemini key locally).
 - Counts: documents **8**, pages **7**, chunks **497**, entities **896**, assets **60**,
   mentions **896**, knowledge edges **2688**.
@@ -84,15 +85,14 @@
 | D9 Failure intelligence | `/assets/{tag}/failure-intelligence`, `/dashboard/failure-hotspots`, evidence-backed, UI | **absent** | **build endpoints + tests + UI** | routes/assets.py, routes/dashboard.py, services, web | pytest + verifier | ❌ Missing |
 | D10 Testing + cleanup | tests/build pass, working lint, no dead/mock/secret | tests+build pass | broken `next lint` | apps/web/package.json | npm run lint | ⚠️ Lint fix |
 | D11 Deployment | Verified Vercel+Render+Neon, docs | live + current; `docs/deployment.md` | verify smoke test | docs/deployment.md | final_smoke_test.sh | ✅ Verify |
-| D12 Submission materials | architecture/deck/script/runbook/checklists | architecture, deck-outline, final-demo-script, runbook present | 3 checklists missing | docs/*.md | files exist | ⚠️ 3 docs |
+| D12 Submission materials | architecture/deck/runbook/checklists | architecture, deck-outline, runbook present | 3 checklists missing | docs/*.md | files exist | ⚠️ 3 docs |
 
 ## Remaining gaps (actionable)
 
 1. **Day 9** — Add evidence-backed failure-intelligence (`GET /assets/{tag}/failure-intelligence`,
    `GET /dashboard/failure-hotspots`) + tests + verifier + minimal UI surface.
 2. **Day 10** — Repair the broken `next lint` script (Next 16 removed `next lint`).
-3. **Day 12** — Create `final-submission-checklist.md`, `screenshot-checklist.md`,
-   `rehearsal-checklist.md`.
+3. **Day 12** — Create `final-submission-checklist.md`, `screenshot-checklist.md`.
 4. Commit the preserved benchmark re-run and refresh the served results.
 
 No critical blockers: DB identity confirmed (Neon), no secret exposure, no destructive

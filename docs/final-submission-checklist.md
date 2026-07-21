@@ -44,8 +44,8 @@ All metrics are **deterministic local mode** (`local-hashing-v1`, no Gemini) ove
 
 - [x] `docs/architecture.md` (Mermaid pipeline diagram)
 - [x] `docs/deck-outline.md` (10 slides, speaker notes)
-- [x] `docs/final-demo-script.md` · `docs/final-demo-runbook.md`
-- [x] `docs/screenshot-checklist.md` · `docs/rehearsal-checklist.md`
+- [x] `docs/final-demo-runbook.md`
+- [x] `docs/screenshot-checklist.md`
 - [x] `docs/deployment.md` (Render/Vercel/Neon, rollback, reindex, smoke test)
 - [x] `docs/project-state-audit.md`
 
@@ -55,7 +55,7 @@ All metrics are **deterministic local mode** (`local-hashing-v1`, no Gemini) ove
       (empty `/rag/chat` citations). Current code returns 7 citations on the same
       Neon DB. Redeploy from latest `main`; no code change needed.
 - [ ] **Demo video recording** — human-only; cannot be automated.
-- [ ] **Final live rehearsal** — see `rehearsal-checklist.md`.
+- [ ] **Final live rehearsal** — human-only; cannot be automated.
 - [ ] Merge order: `feature/final-12-day-completion` → `dev` → `main` (PR, not pushed here).
 
 ## Claims we must NOT make

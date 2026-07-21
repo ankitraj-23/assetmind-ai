@@ -35,3 +35,11 @@ node_modules/
 data/raw/sensor_tags.csv
 *.tsbuildinfo
 .snapshot-meta/
+
+# Private presentation material — keep exact narration, judge-prep notes and
+# internal team strategy out of the repo (see README).
+docs/private/
+private-notes/
+*-private-demo-script.md
+*-judge-notes.md
+*-exact-narration.md
