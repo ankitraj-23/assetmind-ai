@@ -3,106 +3,221 @@
 import { useEffect, useState } from "react";
 import { Card, PageHeader, Badge, SectionTitle, StatCard } from "@/components/ui";
 import Link from "next/link";
-import { listDocuments, type ApiDocument } from "@/lib/api";
-import sampleData from "@/data/benchmark/results_sample.json";
-import questions from "@/data/benchmark/questions.json";
+import {
+  getLatestEvaluation,
+  listDocuments,
+  type ApiDocument,
+  type ApiEvaluationResponse,
+} from "@/lib/api";
+
+const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
 export default function EvaluationPage() {
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+  const [data, setData] = useState<ApiEvaluationResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [docs, setDocs] = useState<ApiDocument[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    getLatestEvaluation()
+      .then((res) => {
+        if (active) {
+          setData(res);
+          setError(null);
+        }
+      })
+      .catch((e: Error) => active && setError(e.message))
+      .finally(() => active && setLoading(false));
     listDocuments().then(setDocs).catch(() => {});
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const { summary, results } = sampleData;
+  // ── Loading / error / empty states ─────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="RAG Evaluation" subtitle="Loading the latest genuine benchmark…" />
+        <Card>
+          <div className="animate-pulse text-sm text-[var(--color-muted)]">
+            Fetching /evaluation/latest…
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
-  const stats = [
-    { label: "Benchmark Questions", value: summary.total_questions, hint: "questions.json" },
-    { label: "Top-1 Source Hit Rate", value: `${(summary.top1_source_hit_rate * 100).toFixed(1)}%`, hint: "target doc in rank 1" },
-    { label: "Top-3 Source Hit Rate", value: `${(summary.top3_source_hit_rate * 100).toFixed(1)}%`, hint: "target doc in top 3" },
-    { label: "Asset Hit Rate", value: `${(summary.asset_hit_rate * 100).toFixed(1)}%`, hint: "target tag resolved" },
-    { label: "Average Latency", value: `${summary.average_latency_ms.toFixed(1)}ms`, hint: "embedding + retrieval" },
-    { label: "Failed Questions", value: summary.failed_questions_count, hint: "below context threshold" },
+  if (error || !data) {
+    const isMissing = (error ?? "").includes("404");
+    return (
+      <div className="space-y-6">
+        <PageHeader title="RAG Evaluation" subtitle="Genuine benchmark results" />
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-amber-300">
+          <p className="text-sm font-semibold">
+            {isMissing ? "No benchmark results yet" : "Could not load evaluation"}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed opacity-90">
+            {isMissing
+              ? "Run the benchmark to generate results:"
+              : `Backend error: ${error}`}
+          </p>
+          {isMissing && (
+            <pre className="mt-2 rounded bg-black/30 px-2 py-1 font-mono text-[11px]">
+              cd apps/api && python -m scripts.run_benchmark
+            </pre>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const { summary, results } = data;
+  const generatedAt = summary.generated_at ?? summary.last_run_time;
+  const deterministic = summary.answer_provider.includes("deterministic");
+  const selected = results.find((r) => r.id === selectedId);
+
+  const allStats = [
+    { label: "Top-1 Source Hit", value: pct(summary.top1_source_hit_rate), hint: "target doc rank 1" },
+    { label: "Top-3 Source Hit", value: pct(summary.top3_source_hit_rate), hint: "target doc in top 3" },
+    { label: "Asset Hit Rate", value: pct(summary.asset_hit_rate), hint: `${summary.asset_questions} asset Qs` },
+    { label: "Avg Latency", value: `${summary.average_latency_ms.toFixed(0)}ms`, hint: `p95 ${summary.p95_latency_ms.toFixed(0)}ms` },
   ];
 
-  const selectedResult = results.find((r) => r.id === selectedQuestionId);
+  const failureEntries = Object.entries(summary.failure_category_breakdown).sort(
+    (a, b) => b[1] - a[1],
+  );
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="RAG Evaluation Dashboard"
-        subtitle="Benchmark metrics comparing system answers against curated expected output."
+        title="RAG Evaluation"
+        subtitle="Live benchmark results — retrieval measured against the seeded index."
       />
 
-      {/* ── Sample Data Disclaimer Card ────────────────────────────── */}
-      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-300">
-        <div className="flex gap-3">
-          <span className="text-xl">📊</span>
-          <div>
-            <p className="text-sm font-semibold">Live System Benchmark Evaluation</p>
-            <p className="mt-1 text-xs leading-relaxed opacity-90">
-              The metrics shown below are calculated directly by executing standard benchmark Q&A pairs against the active database index.
-              Report log: <code className="bg-emerald-950/40 px-1 py-0.5 rounded font-mono text-[10px]">data/benchmark/results_sample.json</code>.
-              Last evaluated: <span className="font-semibold">{new Date(summary.last_run_time).toUTCString()}</span>.
-            </p>
-          </div>
+      {/* ── Provenance ────────────────────────────────────────────────── */}
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+          <span className="flex items-center gap-1.5">
+            <Badge tone="ok">LIVE</Badge>
+            <span className="text-[var(--color-muted)]">
+              from <code className="font-mono">{data.source_file}</code>
+            </span>
+          </span>
+          <span className="text-[var(--color-muted)]">
+            Generated: <span className="font-semibold text-[var(--color-fg)]">{new Date(generatedAt).toUTCString()}</span>
+          </span>
+          <span className="text-[var(--color-muted)]">
+            Corpus: <span className="font-semibold text-[var(--color-fg)]">{summary.corpus_document_count} docs</span>
+          </span>
+          <span className="text-[var(--color-muted)]">
+            Embedding: <span className="font-mono text-[var(--color-fg)]">{summary.embedding_provider}/{summary.embedding_model}</span>
+          </span>
+          <span className="text-[var(--color-muted)]">
+            Generation: <span className="font-mono text-[var(--color-fg)]">{summary.answer_provider}/{summary.answer_model}</span>
+          </span>
+        </div>
+        {deterministic && (
+          <p className="mt-2 text-[11px] leading-relaxed text-amber-300/90">
+            Running in deterministic local mode (hashing embeddings, extractive answers, no Gemini call).
+            Scores reflect the offline fallback, not live Gemini performance.
+          </p>
+        )}
+      </div>
+
+      {/* ── All-questions metrics ─────────────────────────────────────── */}
+      <div>
+        <SectionTitle
+          title={`All benchmark questions (${summary.total_questions})`}
+          subtitle="Every question in questions.json, including any whose source is absent from the corpus."
+        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {allStats.map((s) => (
+            <StatCard key={s.label} {...s} />
+          ))}
         </div>
       </div>
 
-      {/* ── KPI Stat Cards ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {stats.map((s) => (
-          <StatCard key={s.label} {...s} />
-        ))}
+      {/* ── Answerable subset + absent-corpus disclosure ──────────────── */}
+      <div>
+        <SectionTitle
+          title={`Answerable-corpus questions (${summary.answerable_questions})`}
+          subtitle="Questions whose expected source document is present in the seeded corpus."
+        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Answerable Top-3" value={pct(summary.answerable_top3_source_hit_rate)} hint="of answerable Qs" />
+          <StatCard label="Answerable Asset Hit" value={pct(summary.answerable_asset_hit_rate)} hint={`${summary.answerable_asset_questions} asset Qs`} />
+          <StatCard label="Failed Questions" value={summary.failed_questions_count} hint="target doc not in top-3" />
+          <StatCard
+            label="Absent-Corpus Qs"
+            value={summary.absent_corpus_count}
+            hint={summary.absent_corpus_count === 0 ? "corpus complete" : "expected source missing"}
+          />
+        </div>
+        {summary.absent_corpus_count > 0 && (
+          <p className="mt-2 text-[11px] text-amber-300/90">
+            {summary.absent_corpus_count} question(s) reference a document not in the corpus and cannot be answered — counted as failures above, not hidden.
+          </p>
+        )}
       </div>
 
-      {/* ── Grid Layout: Results table & side panel inspector ───────── */}
+      {/* ── Failure-category breakdown ────────────────────────────────── */}
+      <Card>
+        <SectionTitle title="Failure-category breakdown" subtitle="Why each question passed or failed the Top-3 source check" />
+        <div className="flex flex-wrap gap-2">
+          {failureEntries.map(([cat, count]) => (
+            <span
+              key={cat}
+              className={`rounded-full border px-3 py-1 text-xs ${
+                cat === "pass"
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                  : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+              }`}
+            >
+              {cat.replace(/_/g, " ")}: <span className="font-semibold">{count}</span>
+            </span>
+          ))}
+        </div>
+      </Card>
+
+      {/* ── Per-question table + inspector ────────────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Table of benchmark runs */}
         <Card className="lg:col-span-2">
-          <SectionTitle
-            title="Benchmark Run Items"
-            subtitle="Click on any row to inspect expected vs. actual answers"
-          />
-          <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
+          <SectionTitle title="Per-question results" subtitle="Click a row to compare expected source and actual citations" />
+          <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
             <table className="w-full text-sm">
               <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
                 <tr>
                   <th className="px-3 py-2 font-medium">ID</th>
-                  <th className="px-3 py-2 font-medium">Category</th>
-                  <th className="px-3 py-2 font-medium">Target Doc</th>
-                  <th className="px-3 py-2 font-medium text-center">Top 1</th>
-                  <th className="px-3 py-2 font-medium text-center">Top 3</th>
-                  <th className="px-3 py-2 font-medium text-center">Asset Hit</th>
-                  <th className="px-3 py-2 font-medium text-right">Latency</th>
-                  <th className="px-3 py-2 font-medium text-center">Status</th>
+                  <th className="px-3 py-2 font-medium">Expected Source</th>
+                  <th className="px-3 py-2 text-center font-medium">T1</th>
+                  <th className="px-3 py-2 text-center font-medium">T3</th>
+                  <th className="px-3 py-2 text-center font-medium">Asset</th>
+                  <th className="px-3 py-2 text-center font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {results.map((r) => (
                   <tr
                     key={r.id}
-                    onClick={() => setSelectedQuestionId(r.id)}
-                    className={`cursor-pointer border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)] transition ${
-                      selectedQuestionId === r.id ? "bg-[var(--color-surface-2)]" : ""
+                    onClick={() => setSelectedId(r.id)}
+                    className={`cursor-pointer border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)] ${
+                      selectedId === r.id ? "bg-[var(--color-surface-2)]" : ""
                     }`}
                   >
                     <td className="px-3 py-3 font-mono font-medium">{r.id}</td>
-                    <td className="px-3 py-3">
-                      <span className="text-[10px] bg-[var(--color-surface-2)] px-1.5 py-0.5 rounded border border-[var(--color-border)] font-mono text-[var(--color-muted)] uppercase">
-                        {r.category.replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-xs max-w-[120px] truncate" title={r.expected_doc}>
+                    <td className="max-w-[160px] truncate px-3 py-3 text-xs" title={r.expected_doc}>
                       {r.expected_doc}
+                      {!r.expected_source_in_corpus && (
+                        <span className="ml-1 rounded bg-amber-500/10 px-1 text-[9px] text-amber-400">absent</span>
+                      )}
                     </td>
                     <td className="px-3 py-3 text-center">{r.top1_hit ? "✅" : "❌"}</td>
                     <td className="px-3 py-3 text-center">{r.top3_hit ? "✅" : "❌"}</td>
                     <td className="px-3 py-3 text-center">{r.asset_hit ? "✅" : "❌"}</td>
-                    <td className="px-3 py-3 text-right font-mono text-xs text-[var(--color-muted)]">
-                      {r.latency_ms}ms
-                    </td>
                     <td className="px-3 py-3 text-center">
                       <Badge tone={r.status === "passed" ? "ok" : "bad"}>{r.status}</Badge>
                     </td>
@@ -113,77 +228,65 @@ export default function EvaluationPage() {
           </div>
         </Card>
 
-        {/* Selected Result Detail Panel */}
         <Card className="flex flex-col">
-          <SectionTitle title="Run Inspector" subtitle="Detailed retrieval comparison" />
-
-          {!selectedResult ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center py-12 text-[var(--color-muted)] border-2 border-dashed border-[var(--color-border)] rounded-xl px-4 mt-2 bg-[var(--color-surface-2)]/20">
-              <span className="text-2xl mb-2">📋</span>
-              <p className="text-xs">Select any question row on the left to inspect expected answers, extracted entities, and actual grounding text results.</p>
+          <SectionTitle title="Run inspector" subtitle="Expected vs actual retrieval" />
+          {!selected ? (
+            <div className="mt-2 flex flex-1 flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-2)]/20 px-4 py-12 text-center text-[var(--color-muted)]">
+              <span className="mb-2 text-2xl">📋</span>
+              <p className="text-xs">Select a question to inspect its expected source, expected answer, and actual citations.</p>
             </div>
           ) : (
-            <div className="flex-1 space-y-4 mt-2 text-xs">
+            <div className="mt-2 flex-1 space-y-4 text-xs">
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <Badge tone={selectedResult.status === "passed" ? "ok" : "bad"}>{selectedResult.status}</Badge>
-                  <span className="font-mono text-[var(--color-muted)]">{selectedResult.id}</span>
+                <div className="mb-1.5 flex items-center gap-2">
+                  <Badge tone={selected.status === "passed" ? "ok" : "bad"}>{selected.status}</Badge>
+                  <span className="font-mono text-[var(--color-muted)]">{selected.id}</span>
+                  <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] uppercase text-[var(--color-muted)]">
+                    {selected.category.replace(/_/g, " ")}
+                  </span>
                 </div>
-                <h3 className="text-xs font-semibold leading-relaxed text-[var(--color-fg)]">
-                  &ldquo;{selectedResult.question}&rdquo;
-                </h3>
+                <h3 className="text-xs font-semibold leading-relaxed">&ldquo;{selected.question}&rdquo;</h3>
               </div>
 
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-[var(--color-muted)] font-medium">Target Asset Tag</dt>
-                  <dd className="font-mono font-semibold text-sm text-[var(--color-accent)] mt-0.5">
-                    {selectedResult.asset_tag}
+                  <dt className="font-medium text-[var(--color-muted)]">Target Asset</dt>
+                  <dd className="mt-0.5 font-mono text-sm font-semibold text-[var(--color-accent)]">{selected.asset_tag ?? "—"}</dd>
+                </div>
+
+                <div>
+                  <dt className="font-medium text-[var(--color-muted)]">Expected Source</dt>
+                  <dd className="mt-0.5 font-mono">
+                    {selected.expected_doc}
+                    {!selected.expected_source_in_corpus && (
+                      <span className="ml-1 text-amber-400">(absent from corpus)</span>
+                    )}
                   </dd>
                 </div>
 
                 <div>
-                  <dt className="text-[var(--color-muted)] font-medium">Expected Source Document</dt>
-                  <dd className="font-mono mt-0.5">
-                    {(() => {
-                      const match = docs.find((d) => d.filename === selectedResult.expected_doc);
-                      return match ? (
-                        <Link href={`/documents/${match.id}`} className="text-[var(--color-accent)] hover:underline">
-                          {selectedResult.expected_doc}
-                        </Link>
-                      ) : (
-                        selectedResult.expected_doc
-                      );
-                    })()}
-                  </dd>
-                </div>
-
-                <div>
-                  <dt className="text-[var(--color-muted)] font-medium">Retrieved Documents (Top-k)</dt>
+                  <dt className="font-medium text-[var(--color-muted)]">Actual Citations (ranked)</dt>
                   <dd className="mt-1 space-y-1">
-                    {selectedResult.retrieved_docs.map((doc, idx) => {
-                      const match = docs.find((d) => d.filename === doc);
+                    {selected.citations.length === 0 && <span className="text-[var(--color-muted)]">No citations retrieved.</span>}
+                    {selected.citations.map((c, i) => {
+                      const match = docs.find((d) => d.filename === c.file_name);
+                      const isTarget = c.file_name === selected.expected_doc;
                       return (
-                        <div key={doc} className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-[var(--color-muted)] font-mono">[{idx + 1}]</span>
+                        <div key={`${c.chunk_id}-${i}`} className="flex items-center gap-1.5">
+                          <span className="font-mono text-[10px] text-[var(--color-muted)]">[{i + 1}]</span>
                           {match ? (
                             <Link
                               href={`/documents/${match.id}`}
-                              className={`hover:underline ${
-                                doc === selectedResult.expected_doc ? "text-emerald-300 font-semibold" : "text-[var(--color-accent)]"
-                              }`}
+                              className={`hover:underline ${isTarget ? "font-semibold text-emerald-300" : "text-[var(--color-accent)]"}`}
                             >
-                              {doc}
+                              {c.file_name}
                             </Link>
                           ) : (
-                            <span className={doc === selectedResult.expected_doc ? "text-emerald-300 font-semibold" : ""}>
-                              {doc}
-                            </span>
+                            <span className={isTarget ? "font-semibold text-emerald-300" : ""}>{c.file_name}</span>
                           )}
-                          {doc === selectedResult.expected_doc && (
-                            <span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1 rounded border border-emerald-500/20">
-                              Target Hit
-                            </span>
+                          {c.page != null && <span className="text-[10px] text-[var(--color-muted)]">p{c.page}</span>}
+                          {isTarget && (
+                            <span className="rounded border border-emerald-500/20 bg-emerald-500/10 px-1 text-[9px] text-emerald-400">target</span>
                           )}
                         </div>
                       );
@@ -191,17 +294,17 @@ export default function EvaluationPage() {
                   </dd>
                 </div>
 
-                <div className="pt-2 border-t border-[var(--color-border)]">
-                  <dt className="text-[var(--color-muted)] font-medium mb-1">Expected Answer</dt>
-                  <dd className="bg-[var(--color-surface-2)] p-2.5 rounded border border-[var(--color-border)] leading-relaxed text-[var(--color-muted)]">
-                    {questions.find((q) => q.id === selectedResult.id)?.expected_answer || "—"}
+                <div className="border-t border-[var(--color-border)] pt-2">
+                  <dt className="mb-1 font-medium text-[var(--color-muted)]">Expected Answer</dt>
+                  <dd className="rounded border border-[var(--color-border)] bg-[var(--color-surface-2)] p-2.5 leading-relaxed text-[var(--color-muted)]">
+                    {selected.expected_answer || "—"}
                   </dd>
                 </div>
 
-                <div className="pt-2 border-t border-[var(--color-border)]">
-                  <dt className="text-[var(--color-muted)] font-medium mb-1">Actual System Output</dt>
-                  <dd className="bg-[var(--color-surface-2)] p-2.5 rounded border border-[var(--color-border)] leading-relaxed italic text-[var(--color-fg)]">
-                    &ldquo;{selectedResult.actual_answer}&rdquo;
+                <div className="border-t border-[var(--color-border)] pt-2">
+                  <dt className="mb-1 font-medium text-[var(--color-muted)]">Actual System Output</dt>
+                  <dd className="rounded border border-[var(--color-border)] bg-[var(--color-surface-2)] p-2.5 italic leading-relaxed">
+                    &ldquo;{selected.actual_answer || "—"}&rdquo;
                   </dd>
                 </div>
               </dl>

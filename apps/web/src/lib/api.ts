@@ -23,6 +23,12 @@ export interface ApiDocument {
   storage_path: string;
   created_at: string;
   chunk_count: number;
+  // Ingestion result fields (present on the upload response).
+  embedding_provider?: string | null;
+  embedding_model?: string | null;
+  assets_extracted?: string[];
+  entities_extracted?: number;
+  warnings?: string[];
 }
 
 /** Mirrors app.models.chunk.Chunk */
@@ -572,5 +578,237 @@ export async function getCopilotChat(
   );
   await ensureOk(res, "Load chat history");
   return res.json() as Promise<ApiChatHistoryResponse>;
+}
+
+// ---------------------------------------------------------------------------
+// RCA (Root Cause Analysis) Agent
+// ---------------------------------------------------------------------------
+
+/** A single piece of grounding evidence attached to a likely cause. */
+export interface ApiRcaEvidence {
+  source: string;
+  text: string;
+  document_id?: string | null;
+  chunk_id?: string | null;
+}
+
+/** One candidate root cause with confidence and supporting evidence. */
+export interface ApiLikelyCause {
+  cause: string;
+  confidence: number;
+  evidence: ApiRcaEvidence[];
+}
+
+/** Response shape of POST /agents/rca. */
+export interface ApiRcaResponse {
+  asset_tag: string;
+  symptom: string;
+  summary: string;
+  likely_causes: ApiLikelyCause[];
+  recommended_actions: string[];
+  missing_information: string[];
+}
+
+/** POST /agents/rca — run the root cause analysis agent for an asset symptom. */
+export async function performRca(
+  assetTag: string,
+  symptom: string,
+): Promise<ApiRcaResponse> {
+  const res = await fetch(`${API_BASE_URL}/agents/rca`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      asset_tag: assetTag,
+      symptom,
+    }),
+  });
+  await ensureOk(res, "Perform RCA");
+  return res.json() as Promise<ApiRcaResponse>;
+}
+
+// ---------------------------------------------------------------------------
+// Compliance & Evidence Package agents
+// ---------------------------------------------------------------------------
+
+/** One evidence snippet backing a compliance gap. Mirrors ComplianceEvidence. */
+export interface ApiComplianceEvidence {
+  source: string;
+  text: string;
+  document_id?: string | null;
+  chunk_id?: string | null;
+}
+
+/** A single explainable compliance gap. Mirrors ComplianceGap. */
+export interface ApiComplianceGap {
+  asset_tag: string;
+  gap_type: string;
+  severity: "high" | "medium" | "low";
+  reason: string;
+  standard_or_policy?: string | null;
+  evidence: ApiComplianceEvidence[];
+  recommended_action: string;
+}
+
+/** Response of GET /agents/compliance/gaps. Mirrors ComplianceGapsResponse. */
+export interface ApiComplianceGapsResponse {
+  count: number;
+  filters: Record<string, string>;
+  gaps: ApiComplianceGap[];
+  mode: string;
+  message?: string | null;
+}
+
+/** GET /agents/compliance/gaps — list gaps with optional filters. */
+export async function getComplianceGaps(params?: {
+  asset_tag?: string;
+  severity?: string;
+  gap_type?: string;
+}): Promise<ApiComplianceGapsResponse> {
+  const qs = new URLSearchParams();
+  if (params?.asset_tag) qs.set("asset_tag", params.asset_tag);
+  if (params?.severity) qs.set("severity", params.severity);
+  if (params?.gap_type) qs.set("gap_type", params.gap_type);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await fetch(`${API_BASE_URL}/agents/compliance/gaps${suffix}`);
+  await ensureOk(res, "Load compliance gaps");
+  return res.json() as Promise<ApiComplianceGapsResponse>;
+}
+
+/** GET /agents/compliance/assets/{tag} — gaps scoped to one asset. */
+export async function getComplianceGapsForAsset(
+  assetTag: string,
+): Promise<ApiComplianceGapsResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/agents/compliance/assets/${encodeURIComponent(assetTag)}`,
+  );
+  await ensureOk(res, "Load asset compliance gaps");
+  return res.json() as Promise<ApiComplianceGapsResponse>;
+}
+
+/** A source document included in an evidence package. */
+export interface ApiEvidenceDocumentRef {
+  document_id?: string | null;
+  filename?: string | null;
+  chunk_count?: number | null;
+}
+
+/** An inspection/maintenance evidence line in a package. */
+export interface ApiEvidenceFinding {
+  text: string;
+  source?: string | null;
+  document_id?: string | null;
+  chunk_id?: string | null;
+  category?: string | null;
+}
+
+/** Response of POST /agents/evidence-package. Mirrors EvidencePackageResponse. */
+export interface ApiEvidencePackageResponse {
+  package_id: string;
+  asset_tag: string;
+  package_type: string;
+  generated_at: string;
+  summary: string;
+  included_documents: ApiEvidenceDocumentRef[];
+  compliance_gaps: ApiComplianceGap[];
+  inspection_findings: ApiEvidenceFinding[];
+  maintenance_evidence: ApiEvidenceFinding[];
+  missing_evidence: string[];
+  recommended_actions: string[];
+  download_url: string;
+}
+
+/** POST /agents/evidence-package — generate a citation-backed package. */
+export async function generateEvidencePackage(
+  assetTag: string,
+  packageType = "audit",
+): Promise<ApiEvidencePackageResponse> {
+  const res = await fetch(`${API_BASE_URL}/agents/evidence-package`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ asset_tag: assetTag, package_type: packageType }),
+  });
+  await ensureOk(res, "Generate evidence package");
+  return res.json() as Promise<ApiEvidencePackageResponse>;
+}
+
+/** Absolute URL for a package download path returned by the API. */
+export function evidencePackageDownloadUrl(downloadPath: string): string {
+  return `${API_BASE_URL}${downloadPath}`;
+}
+
+// ---------------------------------------------------------------------------
+// Evaluation (genuine benchmark results)
+// ---------------------------------------------------------------------------
+
+/** One citation recorded for a benchmark question. */
+export interface ApiEvalCitation {
+  file_name: string;
+  page: number | null;
+  chunk_id: string;
+  snippet: string;
+}
+
+/** A single per-question benchmark result. Mirrors run_benchmark output. */
+export interface ApiEvalResult {
+  id: string;
+  question: string;
+  category: string;
+  asset_tag: string | null;
+  expected_doc: string;
+  expected_answer: string;
+  expected_source_in_corpus: boolean;
+  retrieved_docs: string[];
+  citations: ApiEvalCitation[];
+  top1_hit: boolean;
+  top3_hit: boolean;
+  asset_hit: boolean;
+  latency_ms: number;
+  status: string;
+  failure_category: string;
+  actual_answer: string;
+}
+
+/** Summary metrics block written by run_benchmark. */
+export interface ApiEvalSummary {
+  corpus_name?: string;
+  total_questions: number;
+  answerable_questions: number;
+  absent_corpus_count: number;
+  top1_source_hit_rate: number;
+  top3_source_hit_rate: number;
+  asset_hit_rate: number;
+  asset_questions: number;
+  answerable_top1_source_hit_rate: number;
+  answerable_top3_source_hit_rate: number;
+  answerable_asset_hit_rate: number;
+  answerable_asset_questions: number;
+  average_latency_ms: number;
+  p95_latency_ms: number;
+  failed_questions_count: number;
+  corpus_document_count: number;
+  corpus_documents: string[];
+  embedding_provider: string;
+  embedding_model: string;
+  answer_provider: string;
+  answer_model: string;
+  retrieval_config: Record<string, unknown>;
+  failure_category_breakdown: Record<string, number>;
+  generated_at?: string;
+  last_run_time: string;
+}
+
+/** Response of GET /evaluation/latest. */
+export interface ApiEvaluationResponse {
+  available: boolean;
+  source_file: string;
+  summary: ApiEvalSummary;
+  results: ApiEvalResult[];
+}
+
+/** GET /evaluation/latest — the latest genuine benchmark report (read-only). */
+export async function getLatestEvaluation(): Promise<ApiEvaluationResponse> {
+  const res = await fetch(`${API_BASE_URL}/evaluation/latest`);
+  await ensureOk(res, "Load evaluation");
+  return res.json() as Promise<ApiEvaluationResponse>;
 }
 

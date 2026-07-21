@@ -15,6 +15,10 @@ MIN_CONTEXT_SCORE = 0.15
 MAX_VISUALS_PER_ANSWER = 8
 
 
+def _gemini_available() -> bool:
+    return bool((settings.gemini_api_key or "").strip())
+
+
 def _api_key() -> str:
     key = (settings.gemini_api_key or "").strip()
     if not key:
@@ -99,6 +103,51 @@ def _conversation_context(messages: list[dict[str, str]] | None) -> str:
     return "\n".join(lines) if lines else "No prior conversation context."
 
 
+def _chunk_location(chunk: RetrievedChunk) -> str:
+    page = chunk.page_start or chunk.page_number
+    row = chunk.row_start or chunk.row_number
+    if row:
+        return f"row {row}"
+    if page:
+        return f"page {page}"
+    return ""
+
+
+def _fallback_answer(question: str, chunks: list[RetrievedChunk]) -> str:
+    """Deterministic, grounded answer used when Gemini is not configured.
+
+    No LLM is available, so this faithfully reports the strongest retrieved
+    evidence verbatim (with source markers) instead of synthesising prose. The
+    evidence itself carries the factual content, and citations provide full
+    provenance.
+    """
+
+    evidence_blocks: list[str] = []
+    for index, chunk in enumerate(chunks[:3], start=1):
+        raw_text = (chunk.raw_text or chunk.content or "").strip()
+        if not raw_text:
+            continue
+        location = _chunk_location(chunk)
+        header = f"[{index}] {chunk.file_name}" + (f" ({location})" if location else "")
+        evidence_blocks.append(f"{header}\n{snippet_for_fallback(raw_text)}")
+
+    if not evidence_blocks:
+        return INSUFFICIENT_ANSWER
+
+    return (
+        "Based on the indexed documents, the most relevant evidence is "
+        "(deterministic extraction — no LLM configured; see citations for full "
+        "provenance):\n\n" + "\n\n".join(evidence_blocks)
+    )
+
+
+def snippet_for_fallback(text: str, limit: int = 600) -> str:
+    collapsed = " ".join(text.split())
+    if len(collapsed) <= limit:
+        return collapsed
+    return collapsed[:limit].rstrip() + "..."
+
+
 def _generate_answer(
     question: str,
     chunks: list[RetrievedChunk],
@@ -111,6 +160,8 @@ def _generate_answer(
         if standalone_question and standalone_question.strip() != question.strip()
         else question.strip()
     )
+    if not _gemini_available():
+        return _fallback_answer(question, chunks)
     prompt = f"""
 You answer questions for AssetMind AI using only the supplied document context.
 If the context does not contain enough evidence, answer exactly:

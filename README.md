@@ -1,192 +1,168 @@
 # AssetMind AI
 
-**AssetMind AI** turns scattered industrial documents — maintenance records, inspection reports, OEM manuals, SOPs, and compliance checklists — into an asset-centric operations brain that is queryable, citation-backed, and continuously updated.
+**AssetMind AI** turns scattered industrial documents — maintenance work orders,
+inspection reports, OEM manuals, SOPs, compliance checklists, datasheets and RCA
+findings — into an **asset-centric operations brain**: queryable, citation-backed,
+and explainable. Built for the ET AI Hackathon 2026 (PS 8 — Unified Asset &
+Operations Brain). See [docs/project-brief.md](docs/project-brief.md).
 
-> Week 1 establishes the RAG foundation: ingest documents, extract and chunk text, embed the chunks, and answer questions with citations back to the source files.
+Everything below runs **fully locally and deterministically** — no external API
+keys required. Adding a `GEMINI_API_KEY` upgrades embeddings and answer
+generation to Gemini without any code change (see [Modes](#modes)).
 
 ---
 
-## Week 1 Capabilities
+## What it does
 
-### Backend (`apps/api` — FastAPI)
+- **Canonical ingestion** — one pipeline for PDF / TXT / CSV / XLSX. Uploads via
+  `POST /documents` and the demo seed use the *same* code path and the *same*
+  embedding contract, so uploaded documents are immediately visible to Copilot.
+- **Knowledge graph** — extracts equipment tags → assets, entities, mentions and
+  `asset → document / chunk / entity` edges in Postgres + pgvector.
+- **Copilot (RAG)** — hybrid vector + keyword retrieval (RRF → rerank → MMR) with
+  grounded, filename-level citations. `POST /rag/chat` and a compatible `POST /query`.
+- **Agents** — evidence-backed **RCA**, deterministic **compliance** gap analysis,
+  and a real Markdown **evidence package** with a working download.
+- **Evaluation** — a genuine benchmark runner that reuses the production retrieval
+  path, plus `GET /evaluation/latest` and a live Evaluation page.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/documents` | Upload a PDF/text file; extract, chunk, and embed it |
-| `GET` | `/documents` | List all ingested documents |
-| `GET` | `/documents/{id}/chunks` | View a document's text chunks |
-| `GET` | `/documents/{id}/embeddings` | View embedding metadata and vector previews |
-| `GET` | `/search?q=...` | Retrieve most similar chunks for a query |
-| `POST` | `/query` | Citation-backed answer assembled from retrieved chunks |
+| `GET`  | `/health` | Liveness probe |
+| `GET`  | `/dashboard/summary` | Live corpus / risk counts |
+| `POST` | `/documents` | Upload + ingest a document |
+| `GET`  | `/assets/{tag}` `/documents` `/timeline` `/facts` `/graph` | Asset views |
+| `POST` | `/rag/chat` | Copilot answer with citations |
+| `POST` | `/query` | Backward-compatible RAG answer |
+| `POST` | `/agents/rca` | Root-cause analysis |
+| `GET`  | `/agents/compliance/assets/{tag}` | Compliance gaps for an asset |
+| `POST` | `/agents/evidence-package` | Generate a citation-backed package |
+| `GET`  | `/evaluation/latest` | Latest genuine benchmark result |
 
-See `docs/api-contract.md` for the full endpoint contract.
-
-### Week 2 Backend — Knowledge Graph (`apps/api`)
-
-Read-only asset knowledge-graph layer (Postgres mode): per-asset documents, classified
-timeline, facts, a derived asset→document/chunk/entity graph (+ summary), a deterministic
-risk summary, and a dashboard v2 summary. See `docs/week2-knowledge-graph.md` and the
-Week 2 section of `docs/api-contract.md`; run/verify steps are in `apps/api/README.md`.
-
-### Frontend (`apps/web` — Next.js + TypeScript + Tailwind)
-
-- **Upload page** — wired to `POST /documents`
-- **Documents page** — wired to `GET /documents`
-- **Document Detail page** — shows chunks and embeddings for a document
-- **Copilot page** — wired to `POST /query` with filename-based citations
-- **Dashboard / Assets / RCA / Compliance** — mock demo views
+Full contract: [docs/api-contract.md](docs/api-contract.md).
+Architecture + diagram: [docs/architecture.md](docs/architecture.md).
 
 ---
 
-## Repository Structure
+## Setup — the one authoritative path
+
+Prerequisites: **Python 3.12+**, **Node 18+**, **Docker** (for local Postgres),
+`curl` and `jq` (for the smoke test).
+
+```bash
+# 1. Clone
+git clone <this-repo> assetmind-ai && cd assetmind-ai
+
+# 2. Create the backend virtual environment
+cd apps/api
+python -m venv .venv
+source .venv/bin/activate                 # Windows: .venv\Scripts\activate
+
+# 3. Install runtime + dev requirements
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# 4. Start Postgres (pgvector) — from the repo root, in another shell
+cd ../.. && docker compose up -d db
+
+# 5. Configure env + migrate  (placeholder local credentials only)
+export PERSISTENCE_BACKEND=postgres
+export DATABASE_URL=postgresql+psycopg://assetmind:assetmind@127.0.0.1:5432/assetmind
+cd apps/api && alembic upgrade head
+
+# 6. Seed the demo corpus (idempotent; --reset for a demo-only clean)
+python -m scripts.seed_demo
+
+# 7. Run the backend
+uvicorn app.main:app --reload --port 8000     # http://127.0.0.1:8000/docs
+
+# 8. Run the frontend (another shell)
+cd ../../apps/web && npm install && npm run dev  # http://localhost:3000
+
+# 9. Run the genuine benchmark (writes data/benchmark/results_sample.json)
+cd ../../apps/api && python -m scripts.run_benchmark
+
+# 10. Run the end-to-end smoke test (backend must be running)
+cd ../.. && API_BASE_URL=http://127.0.0.1:8000 ./scripts/final_smoke_test.sh
+```
+
+A copy-paste demo walkthrough is in
+[docs/final-demo-runbook.md](docs/final-demo-runbook.md).
+
+---
+
+## Modes
+
+| | Deterministic local (default) | Gemini |
+|---|---|---|
+| Trigger | `GEMINI_API_KEY` unset | `GEMINI_API_KEY` set |
+| Embeddings | `local-hashing-v1` (384-dim) | `gemini-embedding-2` |
+| Answers | extractive, no LLM | `gemini-2.5-flash` |
+| External calls | none | Gemini API |
+
+The **embedding contract is unified**: whatever provider indexes a document is
+the provider used to query it, so uploads are always retrievable. Switching modes
+requires **no re-code** — only re-seeding/re-indexing under the new provider.
+
+---
+
+## Benchmark (genuine, deterministic local mode)
+
+Retrieval is measured with the *same* production pipeline as `/rag/chat`; no
+metrics are fabricated. Latest run over the full 8-document demo corpus:
+
+| Metric | All 40 questions | Answerable (40) |
+|--------|------------------|-----------------|
+| Top-1 source hit | 35.0% | 35.0% |
+| Top-3 source hit | 72.5% | 72.5% |
+| Asset hit | 87.5% (35/40) | 87.5% |
+| Absent-corpus questions | 0 | — |
+
+See [docs/evaluation.md](docs/evaluation.md) for methodology and the corpus decision.
+
+---
+
+## Synthetic demo data
+
+The demo plant is **synthetic hackathon data**. Three documents complete the
+compressor (C-220) and RCA scenarios and are generated reproducibly by
+[data/generate_extended_corpus.py](data/generate_extended_corpus.py):
+
+- `compressor_datasheet.xlsx`, `rca_findings_2025.csv`, `sop_compressor_operations.pdf`
+
+The pump PDFs are generated by [data/generate_pdfs.py](data/generate_pdfs.py).
+No proprietary or copyrighted standard text is reproduced — standards (API 617,
+ISO 10816, OISD-137, Factories Act) are referenced by number only.
+
+---
+
+## Repository structure
 
 ```
 apps/
-  api/          FastAPI backend (document ingestion + RAG endpoints)
-  web/          Next.js frontend
-
+  api/          FastAPI backend (ingestion, RAG, agents, evaluation)
+    scripts/    seed_demo.py, run_benchmark.py, verify_*.py, backfill_*.py
+    alembic/    database migrations
+  web/          Next.js + TypeScript + Tailwind frontend
 data/
-  raw/          Original downloaded datasets (gitignored large files)
-  documents/    Cleaned CSV + generated PDFs used for ingestion
-  benchmark/    Benchmark Q&A pairs for evaluation
-  asset_registry.py   Single source of truth for all plant asset tags
-  generate_pdfs.py    Script to regenerate all synthetic PDFs
-  analysis.ipynb      Dataset cleaning and exploration notebook
-
-docs/           Project brief, API contract, and demo flow
-sample-data/    Small synthetic industrial sample data for quick demos
-infra/          Deployment and infrastructure notes
+  documents/    the 8-document demo corpus (5 real synthetic + 3 extended)
+  benchmark/    questions.json + results_sample.json (genuine benchmark output)
+  generate_*.py reproducible document generators
+docs/           architecture, deployment, runbook, demo script, deck outline, evaluation
+scripts/        final_smoke_test.sh
+docker-compose.yml   local Postgres (pgvector)
 ```
 
 ---
 
-## Dataset
+## Deployment
 
-AssetMind AI uses a curated industrial dataset assembled from two sources:
+Backend Dockerfile, migration/start commands, health check, CORS and the
+ephemeral evidence-export limitation are documented in
+[docs/deployment.md](docs/deployment.md).
 
-### 1. Work Orders — `data/documents/work_orders_clean.csv`
+## Security
 
-**Source:** [Industrial Maintenance Synthetic Dataset — jvachier (Kaggle)](https://www.kaggle.com/datasets/jvachier/industrial-maintenance-synthetic-dataset)
-
-The original dataset contains 1 million synthetic maintenance work orders across 37 industrial equipment types. The `WorkOrderDescription` and `OperationDescription` columns contain full English sentences describing failures and corrective actions — exactly what the RAG pipeline needs to chunk, embed, and retrieve.
-
-**Cleaning steps** (see `data/analysis.ipynb`):
-
-1. Normalise `Equipment_ID` — strip whitespace, uppercase, remove leading/trailing spaces
-2. Normalise `OrderType` — strip spaces, map dirty variants (`pdm`, `DPM`, `PMD`, `PPDM`) to canonical `CM / PM / PDM`
-3. Filter `Equipment_ID` to standard industrial tag format using regex: `P-101`, `TK-482`, `HX-305`, etc. — drops 638K rows with garbage IDs like `dp-017`, `P119`, `SC0-18`
-4. Select 8 demo assets (see Asset Registry below)
-5. Sample 60 rows per asset, keep only text columns, drop numeric sensor columns
-
-**Output:** 465 rows across 8 assets, saved to `data/documents/work_orders_clean.csv`
-
-**Why not Kaggle/UCI numeric datasets:** Datasets like AI4I 2020 contain sensor readings (`Air temp [K]: 298.1`). The RAG pipeline embeds text and retrieves by semantic similarity — there is no text to retrieve from a float column. The jvachier dataset has rich sentence-level descriptions that produce meaningful citations.
-
-### 2. Sensor Tags — `data/raw/sensor_tags.csv`
-
-Also from the jvachier dataset. Contains sensor tag names, descriptions, units, and `Equipment_ID` — the same tag format as the work orders. Used in **Week 2** to build knowledge graph edges between assets and their sensor readings. Not ingested in Week 1.
-
-### 3. Synthetic PDFs — `data/documents/`
-
-Four PDF documents generated by `data/generate_pdfs.py` using `fpdf2`. All asset tags inside the PDFs are pulled from the Asset Registry, ensuring entity extraction finds consistent `P-101`-style tags across every document type.
-
-| File | Contents | Covers |
-|------|----------|--------|
-| `pump_oem_manual.pdf` | Startup procedure, maintenance schedule, failure modes, spare parts, OISD-137 vibration standard | P-101, P-102, P-201 |
-| `sop_pump_startup.pdf` | 10-step pre-start checklist, startup sequence, shutdown, emergency stop, LOTO safety | P-101, P-102, P-201 |
-| `inspection_report_q1_2025.pdf` | Per-asset findings with actual readings, risk levels, and recommendations | All 8 assets |
-| `compliance_checklist_2025.pdf` | Regulatory status per asset — Factory Act, OISD-116, OISD-137, PESO, ISO 9001 | All 8 assets |
-
-To regenerate all PDFs from scratch:
-```bash
-pip install fpdf2
-python data/generate_pdfs.py
-```
-
-### Asset Registry — `data/asset_registry.py`
-
-The single source of truth for all plant asset tags. Every CSV row, every PDF, and every benchmark question references these exact tags. This is what makes the knowledge graph edges connect across document types.
-
-| Tag | Name | Type |
-|-----|------|------|
-| `P-101` | Cooling Water Pump | centrifugal_pump |
-| `P-102` | Feed Transfer Pump | centrifugal_pump |
-| `P-201` | Condensate Extraction Pump | centrifugal_pump |
-| `TK-482` | Feed Storage Tank | tank |
-| `M-017` | Boiler Feed Motor | motor |
-| `HX-305` | Shell and Tube Heat Exchanger | heat_exchanger |
-| `R-201` | Process Reactor | reactor |
-| `BLR-118` | Package Boiler | boiler |
-
-### Benchmark Questions — `data/benchmark/questions.json`
-
-12 Q&A pairs written against the actual document content. Used to evaluate citation accuracy, retrieval quality, and answer correctness on the evaluation page.
-
-| ID | Question | Source |
-|----|----------|--------|
-| Q01 | Vibration limit for P-101 per OISD-137? | OEM manual |
-| Q02 | Part number for P-101 mechanical seal? | OEM manual |
-| Q03 | Bearing specs for P-102? | OEM manual |
-| Q04 | What causes cavitation in P-201? | OEM manual |
-| Q05 | Pre-start checks before starting P-101? | SOP-PUMP-07 |
-| Q06 | What to do if P-102 vibration exceeds 4.5 mm/s? | SOP-PUMP-07 |
-| Q07 | Current vibration reading for P-101? | Inspection report |
-| Q08 | Which asset has CRITICAL risk in Q1 2025? | Inspection report |
-| Q09 | Compliance issue with TK-482? | Inspection report |
-| Q10 | Which assets are non-compliant in 2025? | Compliance checklist |
-| Q11 | Which regulations apply to BLR-118? | Compliance checklist |
-| Q12 | What action was taken for P-101 vibration alarm? | Work orders CSV |
-
-Questions span all 4 document types so evaluation scores reflect retrieval across heterogeneous sources.
-
----
-
-## Backend Setup and Run
-
-```bash
-cd apps/api
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
-
-- Health check: `http://127.0.0.1:8000/health`
-- Interactive docs: `http://127.0.0.1:8000/docs`
-
----
-
-## Frontend Setup and Run
-
-```bash
-cd apps/web
-npm install
-npm run dev
-```
-
-Open `http://localhost:3000`. Set `NEXT_PUBLIC_API_BASE_URL` if the backend is not on `http://localhost:8000`.
-
----
-
-## Demo Flow
-
-**Upload → Documents → Document Detail → Copilot**
-
-1. Start backend and frontend (commands above)
-2. Upload `sample-data/demo_plant/pump_p101_note.txt`
-3. Open **Documents** and confirm it appears
-4. Open **Document Detail** to view chunks and embeddings
-5. On the **Copilot** page, ask: *"Why is Pump P-101 vibrating?"*
-6. Confirm the answer cites `pump_p101_note.txt` by filename
-
-A step-by-step runbook is in `docs/demo-flow.md`.
-
----
-
-## Notes
-
-**Local storage is gitignored.** Uploaded originals and ingestion metadata are written to local `storage/` directories excluded from version control.
-
-**Deterministic local placeholders.** Current embeddings (`local-hashing-v1`, 384-dim) and query answers are deterministic local placeholders with no external model calls. Designed to be swapped for real embedding/LLM models without changing the API contract.
-
-**Raw dataset files are gitignored.** `data/raw/maintenance.csv` and `data/raw/sensor_tags.csv` are too large for version control. Download them from the [jvachier Kaggle dataset](https://www.kaggle.com/datasets/jvachier/industrial-maintenance-synthetic-dataset) and place them in `data/raw/`. Then run `data/analysis.ipynb` to regenerate `work_orders_clean.csv`.
+No secrets are committed. `.env` files are gitignored; the demo uses placeholder
+local Postgres credentials only. Set real credentials via environment variables
+on your platform.

@@ -19,6 +19,11 @@ MIN_CANDIDATES = 50
 MAX_CANDIDATES = 150
 METADATA_BOOST_CAP = 0.55
 MMR_LAMBDA = 0.72
+# Source-diversity cap: at most this many chunks from any single source document
+# may occupy the final ranked list, so a high-volume file (e.g. a work-order CSV
+# with hundreds of row-chunks) cannot crowd out the correct source document.
+# Slots that cannot be filled under the cap fall back to the next-best chunks.
+MAX_CHUNKS_PER_DOCUMENT = 2
 STOPWORDS = {
     "a",
     "an",
@@ -49,6 +54,59 @@ STOPWORDS = {
 TOKEN_RE = re.compile(r"[a-z0-9][a-z0-9_.-]*", re.IGNORECASE)
 ASSET_RE = re.compile(r"\b[A-Z]{1,8}-[A-Z0-9-]*\d[A-Z0-9-]*\b")
 
+# Filename / document-type boost by query intent. When a question implies a
+# document type (a procedure question → an SOP/manual, a compliance question →
+# a checklist/certificate, etc.), chunks whose source filename matches that type
+# get a small additive boost. These are generic document-type cues, not
+# per-question rules, and mirror the intent→source-priority already used by the
+# project's query service.
+FILENAME_INTENT_BOOST = 0.12
+_INTENT_FILENAME_HINTS: list[tuple[re.Pattern, tuple[str, ...]]] = [
+    (
+        re.compile(
+            r"\b(step|steps|procedure|start|starting|startup|shut\s*down|shutdown|"
+            r"isolation|loto|lockout|commission\w*|checklist before)\b",
+            re.I,
+        ),
+        ("sop", "manual", "procedure", "startup", "oem"),
+    ),
+    (
+        re.compile(
+            r"\b(compliance|recertif\w*|certificat\w*|standard|regulat\w*|audit|"
+            r"deadline|govern\w*|oisd|peso|non.?compliant|expired?)\b",
+            re.I,
+        ),
+        ("compliance", "checklist", "certificate"),
+    ),
+    (
+        re.compile(
+            r"\b(reading|readings|vibration|inspection|finding|findings|"
+            r"measurement|measurements|pending|current|acceptable limit)\b",
+            re.I,
+        ),
+        ("inspection", "report"),
+    ),
+    (
+        re.compile(
+            r"\b(work\s*order|maintenance|repair\w*|replaced|replacement|history|"
+            r"past|previous|seal failure)\b",
+            re.I,
+        ),
+        ("work_order", "work-order", "maintenance", "rca"),
+    ),
+]
+
+
+def _filename_intent_boost(question: str, file_name: str | None) -> float:
+    """Boost chunks whose filename matches the document type a question implies."""
+    fname = (file_name or "").lower()
+    if not fname:
+        return 0.0
+    for pattern, hints in _INTENT_FILENAME_HINTS:
+        if pattern.search(question) and any(hint in fname for hint in hints):
+            return FILENAME_INTENT_BOOST
+    return 0.0
+
 
 @dataclass
 class CandidateScores:
@@ -59,6 +117,7 @@ class CandidateScores:
     keyword_rank: int | None = None
     rrf_score: float = 0.0
     metadata_boost: float = 0.0
+    filename_boost: float = 0.0
     raw_hybrid_score: float = 0.0
 
 
@@ -87,6 +146,7 @@ def _retrieve_by_vector(query_vector: list[float], top_k: int) -> list[Retrieved
         select(DocumentChunk, Document, distance)
         .join(Document, DocumentChunk.document_id == Document.id)
         .where(DocumentChunk.embedding.isnot(None))
+        .where(DocumentChunk.embedding_model == embeddings.active_model())
         .order_by(distance.asc(), DocumentChunk.document_id.asc(), DocumentChunk.chunk_index.asc())
         .limit(top_k)
     )
@@ -114,6 +174,7 @@ def _retrieve_by_keyword(question: str, top_k: int) -> list[RetrievedChunk]:
         select(DocumentChunk, Document)
         .join(Document, DocumentChunk.document_id == Document.id)
         .where(DocumentChunk.embedding.isnot(None))
+        .where(DocumentChunk.embedding_model == embeddings.active_model())
         .order_by(DocumentChunk.document_id.asc(), DocumentChunk.chunk_index.asc())
     )
 
@@ -216,11 +277,13 @@ def _hybrid_rank(
     for entry in candidates.values():
         entry.rrf_score = _rrf_score(entry.vector_rank, entry.keyword_rank)
         entry.metadata_boost = _metadata_boost(question, entry.chunk)
+        entry.filename_boost = _filename_intent_boost(question, entry.chunk.file_name)
         entry.raw_hybrid_score = (
             VECTOR_WEIGHT * entry.vector_score
             + KEYWORD_WEIGHT * entry.keyword_score
             + entry.rrf_score
             + entry.metadata_boost
+            + entry.filename_boost
         )
 
     ranked = sorted(
@@ -255,6 +318,7 @@ def _hybrid_rank(
                 "keyword_score": round(entry.keyword_score, 6),
                 "rrf_score": round(entry.rrf_score, 6),
                 "metadata_boost": round(entry.metadata_boost, 6),
+                "filename_boost": round(entry.filename_boost, 6),
                 "raw_hybrid_score": round(entry.raw_hybrid_score, 6),
             },
             "hybrid_ranks": {
@@ -279,15 +343,23 @@ def _mmr_select(
 ) -> list[tuple[CandidateScores, float]]:
     remaining = list(ranked)
     selected: list[tuple[CandidateScores, float]] = []
+    per_document: dict[str, int] = {}
+
+    def _document_key(candidate: CandidateScores) -> str:
+        return candidate.chunk.file_name
+
     while remaining and len(selected) < top_k:
         if not selected:
             first = remaining.pop(0)
             selected.append((first, first.raw_hybrid_score))
+            per_document[_document_key(first)] = 1
             continue
 
-        best_index = 0
+        best_index: int | None = None
         best_score = float("-inf")
         for index, candidate in enumerate(remaining):
+            if per_document.get(_document_key(candidate), 0) >= MAX_CHUNKS_PER_DOCUMENT:
+                continue
             max_similarity = max(
                 _candidate_similarity(candidate.chunk, chosen.chunk)
                 for chosen, _ in selected
@@ -299,7 +371,18 @@ def _mmr_select(
             if mmr_score > best_score:
                 best_score = mmr_score
                 best_index = index
-        selected.append((remaining.pop(best_index), best_score))
+        if best_index is None:
+            # Every remaining candidate is from a document already at its cap;
+            # relax the cap to fill the remaining slots by raw hybrid rank.
+            break
+        chosen = remaining.pop(best_index)
+        selected.append((chosen, best_score))
+        per_document[_document_key(chosen)] = per_document.get(_document_key(chosen), 0) + 1
+
+    for candidate in remaining:
+        if len(selected) >= top_k:
+            break
+        selected.append((candidate, candidate.raw_hybrid_score))
     return selected
 
 

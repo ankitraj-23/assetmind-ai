@@ -1,26 +1,19 @@
 """RAG-style query answering with asset scoping, intent detection, and deduplication.
-
-Pipeline
---------
-1. Classify query intent deterministically (procedure / failure_rca /
-   maintenance_history / inspection / compliance / general).
-2. Retrieve chunks via asset-scoped vector search (boost chunks mentioning
-   the requested asset tag, prioritise doc type by intent).
-3. Deduplicate citations (no repeated chunk_id; enforced in search layer).
-4. Compose a temporary extractive answer (no LLM — placeholder until a real
-   model is wired in, designed to be swapped without changing the contract).
-5. Surface related asset tags found in the retrieved chunks.
 """
 
 from __future__ import annotations
 
+import logging
 import re
+from typing import Any, Dict, List, Optional
 
 from app.models.query import QueryCitation, QueryResponse
 from app.models.search import SearchResult
 from app.services import search as search_service
 from app.services.entity_extraction import extract_equipment_tags
 from app.services.fact_extraction import page_number_from_text
+
+logger = logging.getLogger(__name__)
 
 # ── confidence thresholds ─────────────────────────────────────────────────────
 HIGH_CONFIDENCE_SCORE = 0.60
@@ -66,7 +59,6 @@ _INTENT_PATTERNS: list[tuple[str, list[re.Pattern]]] = [
         re.compile(r"\bexpired?\b|\boverdue\b|\bnon.?compliant\b", re.I),
     ]),
 ]
-
 
 def detect_intent(question: str) -> str:
     """Classify question into one of six intent categories.
@@ -178,7 +170,7 @@ NO_CONTEXT_ANSWER = (
 
 # ── main entry point ──────────────────────────────────────────────────────────
 
-def answer_question(
+async def query(
     question: str,
     top_k: int = 5,
     asset_tag: str | None = None,
@@ -189,13 +181,14 @@ def answer_question(
     ----------
     question:
         The natural-language question.
-    top_k:
+    top_k: int
         Maximum number of chunks to retrieve.
-    asset_tag:
+    asset_tag: str | None
         Optional equipment tag. Retrieval is biased towards chunks mentioning
         this tag, and it is excluded from the ``related_assets`` list.
     """
     intent = detect_intent(question)
+    logger.info(f"Answering question with intent '{intent}': '{question}'")
 
     results = search_service.search(question, top_k=top_k, asset_tag=asset_tag)
 
@@ -241,3 +234,31 @@ def answer_question(
         query_intent=intent,
         related_assets=related_assets,
     )
+
+
+async def get_evidence_for_rca(
+    question: str,
+    asset_tag: Optional[str] = None,
+    top_k: int = 10,
+) -> List[Dict[str, Any]]:
+    """
+    Retrieve evidence chunks specifically for the RCA agent.
+
+    This function bypasses the main `query` answer-composition pipeline and
+    returns raw search results in the format required by the RCA agent,
+    including the full chunk text.
+    """
+    intent = detect_intent(question)
+    logger.info(f"Getting RCA evidence with intent '{intent}': '{question}'")
+
+    results = search_service.search(question, top_k=top_k, asset_tag=asset_tag)
+
+    if results and intent in _INTENT_SOURCE_PRIORITY:
+        results = _boost_by_source(results, intent)
+        results.sort(key=lambda r: (-r.score, r.document_id, r.chunk_index))
+        results = results[:top_k]
+
+    return [
+        {"text": r.text, "filename": r.filename, "document_id": r.document_id, "chunk_id": r.chunk_id}
+        for r in results
+    ]

@@ -26,9 +26,68 @@ from app.core.config import settings
 from app.models.chunk import Chunk
 from app.models.document import Document
 from app.models.embedding import ChunkEmbedding
+from app.rag import embeddings as rag_embeddings
 from app.services import chunking, embeddings
 
 logger = logging.getLogger(__name__)
+
+
+def _embed_chunks(document_id: str, chunks: list[Chunk]) -> list[ChunkEmbedding]:
+    """Embed chunks with the canonical provider used by Copilot retrieval.
+
+    Vectors are tagged with the *active* provider's model so uploaded documents
+    are indexed with exactly the embedding the query side will use — the single
+    embedding contract that makes uploads visible to ``/rag/chat``.
+    """
+    model = rag_embeddings.active_model()
+    result: list[ChunkEmbedding] = []
+    for chunk in chunks:
+        vector = rag_embeddings.embed_text(chunk.text)
+        result.append(
+            ChunkEmbedding(
+                chunk_id=chunk.id,
+                document_id=document_id,
+                chunk_index=chunk.chunk_index,
+                model=model,
+                dimension=len(vector),
+                vector=vector,
+            )
+        )
+    return result
+
+
+def _ingestion_warnings() -> list[str]:
+    warnings: list[str] = []
+    if rag_embeddings.active_provider() == rag_embeddings.LOCAL_EMBEDDING_PROVIDER:
+        warnings.append(
+            "GEMINI_API_KEY not configured — used the deterministic "
+            f"{rag_embeddings.LOCAL_EMBEDDING_MODEL} embedding fallback for both "
+            "indexing and retrieval."
+        )
+    return warnings
+
+
+def _summary_from_facts(chunk_facts: dict[str, dict]) -> dict:
+    """Best-effort asset/entity summary for the JSON fallback backend."""
+    assets: set[str] = set()
+    for record in chunk_facts.values():
+        tag = (record.get("facts") or {}).get("equipment_tag")
+        if tag:
+            assets.add(str(tag).strip().upper())
+    return {"assets": assets, "entities": len(assets)}
+
+
+def _finalize_document(document: Document, summary: dict) -> Document:
+    """Attach embedding provider/model and extraction counts to the response."""
+    return document.model_copy(
+        update={
+            "embedding_provider": rag_embeddings.active_provider(),
+            "embedding_model": rag_embeddings.active_model(),
+            "assets_extracted": sorted(summary.get("assets", set())),
+            "entities_extracted": int(summary.get("entities", 0)),
+            "warnings": _ingestion_warnings(),
+        }
+    )
 
 
 def _progress(message: str) -> None:
@@ -277,7 +336,7 @@ def _row_to_text(row: dict, sheet_name: str | None = None) -> str:
 
 # ── Postgres persistence (shared by all formats) ──────────────────────────────
 
-def _persist_chunk_entities(session, document_id: str, chunk: Chunk) -> None:
+def _persist_chunk_entities(session, document_id: str, chunk: Chunk) -> set[str]:
     from app.db import repository as repo
     from app.services import entity_extraction
 
@@ -286,6 +345,7 @@ def _persist_chunk_entities(session, document_id: str, chunk: Chunk) -> None:
         document_id=document_id,
         chunk_id=chunk.id,
     )
+    persisted_tags: set[str] = set()
     for tag in tags:
         entity = repo.store_extracted_entity(
             session=session,
@@ -315,17 +375,22 @@ def _persist_chunk_entities(session, document_id: str, chunk: Chunk) -> None:
             page_number=tag.page_number,
             confidence=tag.confidence,
         )
+        if tag.normalized_value:
+            persisted_tags.add(tag.normalized_value.strip().upper())
+    return persisted_tags
 
 
 def _persist_postgres(
     document: Document,
     chunks: list[Chunk],
     chunk_embeddings: list[ChunkEmbedding],
-) -> None:
+) -> dict:
     from app.db import repository as repo
     from app.db.session import session_scope
 
     embeddings_by_chunk = {emb.chunk_id: emb for emb in chunk_embeddings}
+    assets: set[str] = set()
+    entities = 0
 
     with session_scope() as session:
         repo.create_document(
@@ -359,14 +424,18 @@ def _persist_postgres(
                     vector=emb.vector,
                     embedding_model=emb.model,
                 )
-            _persist_chunk_entities(session, document.id, chunk)
+            chunk_tags = _persist_chunk_entities(session, document.id, chunk)
+            assets |= chunk_tags
+            entities += len(chunk_tags)
+
+    return {"assets": assets, "entities": entities}
 
 
 def _persist_postgres_bulk(
     document: Document,
     chunks: list[Chunk],
     chunk_embeddings: list[ChunkEmbedding],
-) -> None:
+) -> dict:
     """Persist a tabular document (CSV/XLSX) with a few batched flushes.
 
     The generic :func:`_persist_postgres` path flushes and refreshes once per
@@ -527,6 +596,8 @@ def _persist_postgres_bulk(
         f"{len(mentions)} asset mention(s) persisted."
     )
 
+    return {"assets": set(tag_to_asset_id.keys()), "entities": len(entities)}
+
 
 # ── CSV ingestion ─────────────────────────────────────────────────────────────
 
@@ -594,7 +665,7 @@ async def ingest_csv(upload: UploadFile) -> Document:
         }
         char_cursor += len(text) + 1  # +1 for the newline between chunks
 
-    chunk_embeddings = embeddings.embed_chunks(doc_id, chunks)
+    chunk_embeddings = _embed_chunks(doc_id, chunks)
     total_chars = sum(len(c.text) for c in chunks)
 
     document = Document(
@@ -615,15 +686,16 @@ async def ingest_csv(upload: UploadFile) -> Document:
     )
 
     if config.use_postgres():
-        _persist_postgres_bulk(document, chunks, chunk_embeddings)
+        summary = _persist_postgres_bulk(document, chunks, chunk_embeddings)
     else:
         chunking.save_chunks(doc_id, chunks)
         embeddings.save_embeddings(doc_id, chunk_embeddings)
         _save_chunk_facts(chunk_facts)
         _append_metadata(document)
+        summary = _summary_from_facts(chunk_facts)
 
     _progress(f"CSV ingestion '{sanitized}' complete: {len(chunks)} chunk(s).")
-    return document
+    return _finalize_document(document, summary)
 
 
 # ── XLSX ingestion ────────────────────────────────────────────────────────────
@@ -696,7 +768,7 @@ async def ingest_xlsx(upload: UploadFile) -> Document:
             char_cursor += len(text) + 1
             global_index += 1
 
-    chunk_embeddings = embeddings.embed_chunks(doc_id, chunks)
+    chunk_embeddings = _embed_chunks(doc_id, chunks)
     total_chars = sum(len(c.text) for c in chunks)
 
     document = Document(
@@ -717,15 +789,16 @@ async def ingest_xlsx(upload: UploadFile) -> Document:
     )
 
     if config.use_postgres():
-        _persist_postgres_bulk(document, chunks, chunk_embeddings)
+        summary = _persist_postgres_bulk(document, chunks, chunk_embeddings)
     else:
         chunking.save_chunks(doc_id, chunks)
         embeddings.save_embeddings(doc_id, chunk_embeddings)
         _save_chunk_facts(chunk_facts)
         _append_metadata(document)
+        summary = _summary_from_facts(chunk_facts)
 
     _progress(f"XLSX ingestion '{sanitized}' complete: {len(chunks)} chunk(s).")
-    return document
+    return _finalize_document(document, summary)
 
 
 # ── main upload entry point ───────────────────────────────────────────────────
@@ -762,7 +835,7 @@ async def ingest_upload(upload: UploadFile) -> Document:
     source_type = ext.lstrip(".")
 
     chunks = chunking.chunk_text(doc_id, text)
-    chunk_embeddings = embeddings.embed_chunks(doc_id, chunks)
+    chunk_embeddings = _embed_chunks(doc_id, chunks)
 
     # Extract structured facts from each chunk's text and record page numbers
     # derived from the [Page N] markers embedded by _extract_text for PDFs.
@@ -794,13 +867,14 @@ async def ingest_upload(upload: UploadFile) -> Document:
     )
 
     if config.use_postgres():
-        _persist_postgres(document, chunks, chunk_embeddings)
+        summary = _persist_postgres(document, chunks, chunk_embeddings)
     else:
         chunking.save_chunks(doc_id, chunks)
         embeddings.save_embeddings(doc_id, chunk_embeddings)
         _save_chunk_facts(chunk_facts)
         _append_metadata(document)
-    return document
+        summary = _summary_from_facts(chunk_facts)
+    return _finalize_document(document, summary)
 
 
 # ── document listing ──────────────────────────────────────────────────────────

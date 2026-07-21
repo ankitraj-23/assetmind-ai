@@ -34,7 +34,15 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     gemini_embedding_model: str = "gemini-embedding-2"
     gemini_generation_model: str = "gemini-2.5-flash"
+    # LLM provider for agents like RCA. Set to 'gemini' to enable.
+    # If unset, agents will use a deterministic fallback.
+    llm_provider: str | None = None
     rag_visual_storage_dir: str = "storage/extracted_visuals"
+
+    # Path to the latest genuine benchmark results JSON written by
+    # ``scripts.run_benchmark`` and served read-only by ``GET /evaluation/latest``.
+    # When unset the route resolves the in-repo ``data/benchmark/results_sample.json``.
+    benchmark_results_path: str | None = None
 
     # Browser origins allowed to call the API (the Next.js dev server by default).
     # Override with a comma-separated CORS_ORIGINS environment variable.
