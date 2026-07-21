@@ -413,6 +413,58 @@ export async function getAssetGraph(
   return res.json() as Promise<ApiAssetGraphResponse>;
 }
 
+export interface ApiFailureCitation {
+  document_id: string | null;
+  chunk_id: string | null;
+  chunk_index: number | null;
+  filename: string | null;
+}
+
+export interface ApiFailureEvent {
+  date: string | null;
+  event_type: string;
+  severity: string;
+  failure_modes: string[];
+  reason_tags: string[];
+  filename: string | null;
+  text_preview: string | null;
+  citation: ApiFailureCitation;
+}
+
+export interface ApiFailureIntelligence {
+  asset_tag: string;
+  asset: ApiAsset;
+  failure_event_count: number;
+  distinct_failure_modes: number;
+  failure_modes: { mode: string; count: number }[];
+  repeated_failure_modes: string[];
+  recent_failure_events: ApiFailureEvent[];
+  maintenance_actions: {
+    date: string | null;
+    filename: string | null;
+    text_preview: string | null;
+    citation: ApiFailureCitation;
+  }[];
+  work_order_references: string[];
+  document_count: number;
+  last_failure_date: string | null;
+  coverage_confidence: string;
+  insufficient_data: boolean;
+  generated_at: string;
+  disclaimer: string;
+}
+
+/** GET /assets/{tag}/failure-intelligence — evidence-backed failure summary. */
+export async function getAssetFailureIntelligence(
+  tag: string,
+): Promise<ApiFailureIntelligence> {
+  const res = await fetch(
+    `${API_BASE_URL}/assets/${encodeURIComponent(tag)}/failure-intelligence`,
+  );
+  await ensureOk(res, "Load failure intelligence");
+  return res.json() as Promise<ApiFailureIntelligence>;
+}
+
 /** GET /assets/{tag}/facts — get compact fact sheet for this asset. */
 export async function getAssetFacts(tag: string): Promise<ApiAssetFacts> {
   const res = await fetch(

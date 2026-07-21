@@ -11,6 +11,7 @@ import {
   getAssetTimeline,
   getAssetGraph,
   getAssetFacts,
+  getAssetFailureIntelligence,
   queryCopilot,
   type ApiAsset,
   type ApiAssetMentionsResponse,
@@ -18,6 +19,7 @@ import {
   type ApiAssetTimelineEvent,
   type ApiAssetGraphResponse,
   type ApiAssetFacts,
+  type ApiFailureIntelligence,
   type ApiQueryResponse,
 } from "@/lib/api";
 import type { Risk } from "@/lib/mock-data";
@@ -27,6 +29,7 @@ const TABS = [
   { key: "overview", label: "Overview" },
   { key: "documents", label: "Related Documents" },
   { key: "timeline", label: "Timeline" },
+  { key: "failure", label: "Failure Intelligence" },
   { key: "mentions", label: "Evidence Mentions" },
   { key: "graph", label: "Knowledge Graph" },
   { key: "facts", label: "Facts" },
@@ -80,6 +83,7 @@ export default function AssetDetailPage() {
   const [timeline, setTimeline] = useState<ApiAssetTimelineEvent[] | null>(null);
   const [graph, setGraph] = useState<ApiAssetGraphResponse | null>(null);
   const [facts, setFacts] = useState<ApiAssetFacts | null>(null);
+  const [failure, setFailure] = useState<ApiFailureIntelligence | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -127,8 +131,9 @@ export default function AssetDetailPage() {
       getAssetTimeline(tag),
       getAssetGraph(tag),
       getAssetFacts(tag),
+      getAssetFailureIntelligence(tag),
     ])
-      .then(([a, m, d, t, g, f]) => {
+      .then(([a, m, d, t, g, f, fi]) => {
         if (!active) return;
         setAsset(a);
         setMentions(m);
@@ -136,6 +141,7 @@ export default function AssetDetailPage() {
         setTimeline(t.events);
         setGraph(g);
         setFacts(f);
+        setFailure(fi);
       })
       .catch((err) => {
         if (!active) return;
@@ -472,6 +478,140 @@ export default function AssetDetailPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* ── Failure Intelligence tab ─────────────────────────────── */}
+      {tab === "failure" && (
+        <Card>
+          <SectionTitle
+            title="Failure Intelligence"
+            subtitle={`Evidence-backed failure history for ${asset.tag}`}
+          />
+          {!failure || failure.insufficient_data ? (
+            <p className="py-6 text-center text-sm text-[var(--color-muted)]">
+              No documented failure evidence for {asset.tag} yet. Upload work orders,
+              RCA findings, or inspection reports mentioning {asset.tag} to build its
+              failure history.
+            </p>
+          ) : (
+            <div className="space-y-5">
+              {/* Summary stats */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <StatCard label="Failure events" value={String(failure.failure_event_count)} />
+                <StatCard label="Distinct modes" value={String(failure.distinct_failure_modes)} />
+                <StatCard label="Source documents" value={String(failure.document_count)} />
+                <StatCard label="Evidence coverage" value={failure.coverage_confidence} />
+              </div>
+
+              {/* Failure modes */}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">
+                  Failure modes (by documented occurrences)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {failure.failure_modes.map((m) => (
+                    <Badge
+                      key={m.mode}
+                      tone={failure.repeated_failure_modes.includes(m.mode) ? "bad" : "neutral"}
+                    >
+                      {m.mode.replace(/_/g, " ")} · {m.count}
+                    </Badge>
+                  ))}
+                </div>
+                {failure.repeated_failure_modes.length > 0 && (
+                  <p className="mt-2 text-xs text-[var(--color-muted)]">
+                    Highlighted modes recur across multiple evidence items.
+                  </p>
+                )}
+              </div>
+
+              {/* Recent failure events */}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">
+                  Recent failure events
+                </p>
+                <div className="space-y-3">
+                  {failure.recent_failure_events.map((e, i) => {
+                    const dateStr = e.date ? new Date(e.date).toISOString().slice(0, 10) : "—";
+                    return (
+                      <div
+                        key={`${e.citation.chunk_id ?? "x"}-${i}`}
+                        className="rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] p-4"
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className="font-mono font-medium text-[var(--color-fg)]">{dateStr}</span>
+                          <span className="text-[var(--color-muted)]">|</span>
+                          <Badge tone="neutral">{e.event_type.replace(/_/g, " ")}</Badge>
+                          <span className="ml-auto"><Badge tone={severityTone(e.severity)}>{e.severity}</Badge></span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {e.failure_modes.map((m) => (
+                            <Badge key={m} tone="warn">{m.replace(/_/g, " ")}</Badge>
+                          ))}
+                        </div>
+                        {e.text_preview && (
+                          <p className="mt-2 rounded-md bg-[var(--color-surface-2)] px-3 py-2 text-xs leading-relaxed text-[var(--color-muted)]">
+                            &ldquo;{e.text_preview}&rdquo;
+                          </p>
+                        )}
+                        {e.filename && e.citation.document_id && (
+                          <p className="mt-3 text-xs text-[var(--color-muted)]">
+                            <strong className="text-[var(--color-accent-2)]">Source:</strong>{" "}
+                            <Link
+                              href={`/documents/${e.citation.document_id}`}
+                              className="font-mono text-[var(--color-accent)] hover:underline"
+                            >
+                              {e.filename}
+                            </Link>
+                            {e.citation.chunk_index != null && (
+                              <span> · chunk {e.citation.chunk_index}</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Maintenance actions */}
+              {failure.maintenance_actions.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">
+                    Documented maintenance actions
+                  </p>
+                  <div className="space-y-2">
+                    {failure.maintenance_actions.map((a, i) => (
+                      <div
+                        key={`${a.citation.chunk_id ?? "m"}-${i}`}
+                        className="rounded-md border border-[var(--color-border)] bg-[var(--color-base)] px-3 py-2 text-xs"
+                      >
+                        {a.text_preview && (
+                          <p className="text-[var(--color-muted)]">&ldquo;{a.text_preview}&rdquo;</p>
+                        )}
+                        {a.filename && a.citation.document_id && (
+                          <p className="mt-1 text-[var(--color-muted)]">
+                            <strong className="text-[var(--color-accent-2)]">Source:</strong>{" "}
+                            <Link
+                              href={`/documents/${a.citation.document_id}`}
+                              className="font-mono text-[var(--color-accent)] hover:underline"
+                            >
+                              {a.filename}
+                            </Link>
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <p className="border-t border-[var(--color-border)] pt-3 text-xs italic text-[var(--color-muted)]">
+                {failure.disclaimer}
+              </p>
             </div>
           )}
         </Card>
