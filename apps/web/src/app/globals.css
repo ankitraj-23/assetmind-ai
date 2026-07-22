@@ -5,15 +5,19 @@
   --color-surface: #111826;
   --color-surface-2: #161f30;
   --color-border: #1f2a3d;
+  --color-fg: #e6edf7;
   --color-muted: #8a99b3;
   --color-accent: #2dd4bf;
   --color-accent-2: #38bdf8;
+  --color-ring: #2dd4bf;
 }
 
 html,
 body {
   background-color: var(--color-base);
-  color: #e6edf7;
+  color: var(--color-fg);
+  /* Backstop only — real layout must fit; nothing here should hide oversized shell elements. */
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
 }
 
