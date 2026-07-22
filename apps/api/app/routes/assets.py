@@ -152,6 +152,31 @@ def get_asset_facts(tag: str) -> dict[str, Any]:
 
 # Declared before ``/{tag}/graph`` so the extra ``/summary`` segment is matched
 # explicitly and never shadowed by the broader graph (or ``/{tag}``) route.
+@router.get("/{tag}/failure-intelligence")
+def get_asset_failure_intelligence(tag: str) -> dict[str, Any]:
+    """Return an evidence-backed failure-intelligence view for an asset.
+
+    Aggregates the asset's documented failure events, repeated failure modes,
+    recent events, and maintenance actions — every item backed by a real
+    document/chunk citation. This is a retrospective summary, never a prediction.
+
+    Responds with 404 when the asset is unknown, or when running in JSON mode
+    where assets are not persisted (mirrors ``GET /assets/{tag}/facts``). A known
+    asset with no failure evidence returns a safe view with ``insufficient_data``.
+    """
+    if not config.use_postgres():
+        raise HTTPException(
+            status_code=404,
+            detail="Assets are only available when PERSISTENCE_BACKEND=postgres.",
+        )
+    from app.db import repository as repo
+
+    intelligence = repo.get_asset_failure_intelligence(tag)
+    if intelligence is None:
+        raise HTTPException(status_code=404, detail="Asset not found.")
+    return intelligence
+
+
 @router.get("/{tag}/graph/summary")
 def get_asset_graph_summary(tag: str) -> dict[str, Any]:
     """Return aggregate counts for an asset's derived knowledge graph.

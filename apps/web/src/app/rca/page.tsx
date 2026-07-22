@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Card, PageHeader, SectionTitle, Badge } from "@/components/ui";
+import { AlertIcon, CompassIcon, DocumentIcon } from "@/components/icons";
 import {
   listAssets,
   performRca,
@@ -40,19 +41,6 @@ function severityTone(s: string): "ok" | "warn" | "bad" | "neutral" {
   if (s === "medium") return "warn";
   if (s === "low") return "ok";
   return "neutral";
-}
-
-/* Helper to map event types to icons */
-function eventIcon(type: string): string {
-  const m: Record<string, string> = {
-    inspection: "🔍",
-    work_order: "🔧",
-    procedure: "📋",
-    compliance: "🛡️",
-    failure: "⚠️",
-    evidence_mention: "📎",
-  };
-  return m[type] ?? "•";
 }
 
 export default function RcaPage() {
@@ -205,7 +193,7 @@ export default function RcaPage() {
               <button
                 type="submit"
                 disabled={status === "loading"}
-                className="w-full cursor-pointer rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-center text-sm font-semibold text-[#0b0f17] hover:bg-[var(--color-accent)]/80 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 transition"
+                className="w-full cursor-pointer rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-center text-sm font-semibold text-[var(--color-accent-fg)] transition-colors hover:bg-[var(--color-accent-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {status === "loading" ? "Generating RCA..." : "Generate RCA"}
               </button>
@@ -225,13 +213,13 @@ export default function RcaPage() {
                       key={demo.asset}
                       type="button"
                       onClick={() => applyDemo(demo.asset, demo.symptom)}
-                      className={`text-left text-xs px-2.5 py-2 rounded-md transition border hover:bg-[var(--color-surface-2)] hover:border-[var(--color-accent)]/40 ${
+                      className={`text-left text-xs px-2.5 py-2 rounded-md transition-colors border hover:bg-[var(--color-surface-2)] hover:border-[var(--color-border-strong)] ${
                         active
-                          ? "bg-[var(--color-surface-2)] border-[var(--color-accent)] text-[var(--color-accent)] font-semibold"
-                          : "border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-muted)]"
+                          ? "bg-[var(--color-accent-soft)] border-[var(--color-accent)] text-[var(--color-accent)] font-semibold"
+                          : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)]"
                       }`}
                     >
-                      🚀 {demo.label}
+                      {demo.label}
                     </button>
                   );
                 })}
@@ -263,7 +251,7 @@ export default function RcaPage() {
                     return (
                       <li key={t.id} className="relative group">
                         <span className="absolute -left-[21px] mt-1.5 h-2.5 w-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-base)] transition-colors group-hover:bg-[var(--color-accent)]" />
-                        <div className="flex items-center gap-2 text-[10px] text-[var(--color-muted)]">
+                        <div className="flex items-center gap-2 text-[11px] text-[var(--color-muted)]">
                           <span className="font-mono font-medium">{dateStr}</span>
                           <span>•</span>
                           <span className="capitalize">
@@ -276,11 +264,10 @@ export default function RcaPage() {
                           </span>
                         </div>
                         <p className="mt-1 text-xs font-semibold text-[var(--color-fg)]">
-                          <span className="mr-1">{eventIcon(t.event_type)}</span>
                           {t.title}
                         </p>
                         {t.filename && (
-                          <p className="text-[10px] text-[var(--color-muted)] mt-0.5">
+                          <p className="wrap-anywhere text-[11px] text-[var(--color-muted)] mt-0.5">
                             Source:{" "}
                             {t.document_id ? (
                               <Link
@@ -321,9 +308,9 @@ export default function RcaPage() {
           )}
 
           {status === "error" && (
-            <Card className="border-red-500/30 bg-red-500/5 py-10 text-center space-y-4">
-              <p className="text-lg">⚠️</p>
-              <h3 className="text-sm font-semibold text-red-300">
+            <Card className="border-red-200 bg-red-50 py-10 text-center space-y-4">
+              <AlertIcon className="mx-auto h-7 w-7 text-red-600" />
+              <h3 className="text-sm font-semibold text-red-700">
                 RCA Diagnostic Failed
               </h3>
               <p className="text-xs text-[var(--color-muted)] max-w-md mx-auto">
@@ -333,7 +320,7 @@ export default function RcaPage() {
               <button
                 type="button"
                 onClick={() => handleRcaTrigger(selectedAsset, symptom)}
-                className="cursor-pointer rounded bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-300 border border-red-500/30 hover:bg-red-500/30 transition"
+                className="cursor-pointer rounded-lg bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-red-700 border border-red-200 hover:bg-red-100 transition-colors"
               >
                 Retry Request
               </button>
@@ -343,24 +330,20 @@ export default function RcaPage() {
           {status === "done" && result && (
             <div className="space-y-6">
               {/* Summary Block */}
-              <div className="rounded-xl border border-[var(--color-border)] bg-gradient-to-r from-[var(--color-surface)] to-[var(--color-surface-2)] p-5 relative overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-2)]" />
-
+              <div className="rounded-xl border border-[var(--color-border)] border-l-4 border-l-[var(--color-accent)] bg-[var(--color-surface)] p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-accent)]">
                       RCA Summary
                     </span>
                     <h2 className="text-lg font-semibold mt-0.5">
                       RCA findings for {result.asset_tag}
                     </h2>
                   </div>
-                  <span className="text-[10px] bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30 rounded-full px-2 py-0.5 font-semibold">
-                    Live Analysis
-                  </span>
+                  <Badge tone="ok">Live Analysis</Badge>
                 </div>
 
-                <p className="mt-3.5 text-sm leading-relaxed text-[#e6edf7] font-medium bg-[var(--color-base)]/50 border border-[var(--color-border)]/50 rounded-lg p-3.5">
+                <p className="mt-3.5 text-sm leading-relaxed text-[var(--color-fg)] bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg p-3.5">
                   &ldquo;{result.summary}&rdquo;
                 </p>
               </div>
@@ -404,7 +387,7 @@ export default function RcaPage() {
                                   className={`text-xs font-bold ${
                                     isHigh
                                       ? "text-[var(--color-accent)]"
-                                      : "text-amber-400"
+                                      : "text-amber-600"
                                   }`}
                                 >
                                   {pct}% Confidence
@@ -425,7 +408,7 @@ export default function RcaPage() {
 
                           {/* Evidence Block */}
                           <div className="space-y-3 pt-3 border-t border-[var(--color-border)]/55">
-                            <h5 className="text-[10px] uppercase tracking-wider font-bold text-[var(--color-muted)]">
+                            <h5 className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-muted)]">
                               Supporting Citations ({item.evidence.length})
                             </h5>
 
@@ -453,7 +436,7 @@ export default function RcaPage() {
                                     key={evIdx}
                                     className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg p-3 text-xs space-y-2.5"
                                   >
-                                    <p className="italic leading-relaxed text-[var(--color-fg)]/90 relative pl-4">
+                                    <p className="wrap-anywhere italic leading-relaxed text-[var(--color-fg)]/90 relative pl-4">
                                       <span className="absolute left-0 top-0 text-sm font-serif text-[var(--color-accent)] opacity-60">
                                         &ldquo;
                                       </span>
@@ -463,9 +446,10 @@ export default function RcaPage() {
                                       </span>
                                     </p>
 
-                                    <div className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-muted)] pt-1.5 border-t border-[var(--color-border)]/40 font-mono">
-                                      <span>
-                                        📁 Source:{" "}
+                                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px] text-[var(--color-muted)] pt-1.5 border-t border-[var(--color-border)]/40 font-mono">
+                                      <span className="inline-flex min-w-0 items-center gap-1 wrap-anywhere">
+                                        <DocumentIcon className="h-3 w-3 shrink-0" />
+                                        Source:{" "}
                                         {linkId ? (
                                           <Link
                                             href={`/documents/${linkId}`}
@@ -528,7 +512,7 @@ export default function RcaPage() {
                     <ul className="space-y-3 text-xs leading-relaxed text-[var(--color-muted)]">
                       {result.missing_information.map((gap, idx) => (
                         <li key={idx} className="flex gap-2.5 items-start">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold border border-amber-500/30 mt-0.5">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600 text-[11px] font-bold border border-amber-200 mt-0.5">
                             ?
                           </span>
                           <span className="mt-0.5">{gap}</span>
@@ -543,7 +527,7 @@ export default function RcaPage() {
 
           {status === "idle" && (
             <Card className="py-20 text-center space-y-2">
-              <p className="text-2xl">🧭</p>
+              <CompassIcon className="mx-auto h-8 w-8 text-[var(--color-subtle)]" />
               <p className="text-sm font-semibold text-[var(--color-fg)]">
                 No analysis yet
               </p>

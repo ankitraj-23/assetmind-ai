@@ -148,7 +148,7 @@ data/
   documents/    the 8-document demo corpus (5 real synthetic + 3 extended)
   benchmark/    questions.json + results_sample.json (genuine benchmark output)
   generate_*.py reproducible document generators
-docs/           architecture, deployment, runbook, demo script, deck outline, evaluation
+docs/           architecture, deployment, runbook, deck outline, evaluation
 scripts/        final_smoke_test.sh
 docker-compose.yml   local Postgres (pgvector)
 ```
@@ -166,3 +166,6 @@ ephemeral evidence-export limitation are documented in
 No secrets are committed. `.env` files are gitignored; the demo uses placeholder
 local Postgres credentials only. Set real credentials via environment variables
 on your platform.
+
+Keep exact presentation narration, judge-preparation notes and internal team
+strategy outside the repository.

@@ -61,7 +61,7 @@ cd ../.. && API_BASE_URL=http://127.0.0.1:8000 ./scripts/final_smoke_test.sh
 
 Expect **All 14 smoke-test checks passed.**
 
-## 7. Click-through (matches the demo script)
+## 7. Click-through
 
 1. **Dashboard** — live counts, risk breakdown.
 2. **Assets → P-101** — documents, timeline, facts, graph.

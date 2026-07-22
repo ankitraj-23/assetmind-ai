@@ -40,7 +40,9 @@ claim consistent with the demo and the genuine benchmark.
 - One pipeline for PDF / TXT / CSV / XLSX; tabular rows become row-chunks.
 - Equipment-tag extraction → assets, entities, mentions, `asset→doc/chunk/entity` edges.
 - Postgres + pgvector; migrations via Alembic; idempotent seed.
-- **Visual:** a document decomposing into graph nodes for P-101.
+- **Failure intelligence** derived from this graph: per-asset failure modes +
+  hotspots ranking, every item citation-backed (retrospective, not predictive).
+- **Visual:** a document decomposing into graph nodes for P-101 + a failure-mode panel.
 - **Speaker note:** The graph is what makes answers asset-scoped and traceable.
 
 ## 6. Copilot, RCA & compliance

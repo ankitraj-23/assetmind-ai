@@ -3,7 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, PageHeader, Badge } from "@/components/ui";
+import {
+  Card,
+  PageHeader,
+  Badge,
+  TableScrollRegion,
+  MobileDataCard,
+  DataRow,
+  LoadingState,
+  EmptyState,
+  ErrorState,
+} from "@/components/ui";
 import { listDocuments, type ApiDocument } from "@/lib/api";
 
 export default function DocumentsPage() {
@@ -29,7 +39,7 @@ export default function DocumentsPage() {
         action={
           <Link
             href="/upload"
-            className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-base)] hover:opacity-90"
+            className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-accent-fg)] hover:bg-[var(--color-accent-hover)]"
           >
             + Upload Document
           </Link>
@@ -38,65 +48,86 @@ export default function DocumentsPage() {
 
       <Card>
         {error ? (
-          <p className="px-1 py-6 text-center text-sm text-red-400">{error}</p>
+          <ErrorState title="Could not load documents" detail={error} />
         ) : docs === null ? (
-          <p className="px-1 py-6 text-center text-sm text-[var(--color-muted)]">
-            Loading documents…
-          </p>
+          <LoadingState label="Loading documents…" />
         ) : docs.length === 0 ? (
-          <div className="px-1 py-10 text-center">
-            <p className="text-sm font-medium">No documents yet</p>
-            <p className="mt-1 text-xs text-[var(--color-muted)] max-w-md mx-auto">
-              Upload industrial PDFs, text notes, work order CSVs, or spreadsheet records to start parsing equipment tags and compliance facts.
-            </p>
-            <Link
-              href="/upload"
-              className="mt-4 inline-block rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-base)] hover:opacity-90"
-            >
-              + Upload Document
-            </Link>
-          </div>
+          <EmptyState
+            title="No documents yet"
+            description="Upload industrial PDFs, text notes, work order CSVs, or spreadsheet records to start parsing equipment tags and compliance facts."
+            action={
+              <Link
+                href="/upload"
+                className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-accent-fg)] hover:bg-[var(--color-accent-hover)]"
+              >
+                + Upload Document
+              </Link>
+            }
+          />
         ) : (
-          <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
-            <table className="w-full text-sm">
-              <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Document</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Chunks</th>
-                  <th className="px-4 py-3 font-medium">Characters</th>
-                  <th className="px-4 py-3 font-medium">Indexed On</th>
-                </tr>
-              </thead>
-              <tbody>
-                {docs.map((d) => (
-                  <tr
-                    key={d.id}
-                    onClick={() => router.push(`/documents/${d.id}`)}
-                    className="cursor-pointer border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]"
-                  >
-                    <td className="px-4 py-3 font-medium">{d.filename}</td>
-                    <td className="px-4 py-3">
-                      <Badge>{d.content_type}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-[var(--color-muted)]">
-                      {d.status}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--color-muted)]">
-                      {d.chunk_count}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--color-muted)]">
-                      {d.text_char_count.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--color-muted)]">
-                      {d.created_at.slice(0, 10)}
-                    </td>
+          <>
+            {/* Desktop / tablet: semantic table (md+) */}
+            <TableScrollRegion label="Documents" className="hidden md:block">
+              <table className="w-full text-sm">
+                <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Document</th>
+                    <th className="px-4 py-3 font-medium">Type</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Chunks</th>
+                    <th className="px-4 py-3 font-medium">Characters</th>
+                    <th className="px-4 py-3 font-medium">Indexed On</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {docs.map((d) => (
+                    <tr
+                      key={d.id}
+                      onClick={() => router.push(`/documents/${d.id}`)}
+                      className="cursor-pointer border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]"
+                    >
+                      <td className="max-w-[22rem] truncate px-4 py-3 font-medium" title={d.filename}>
+                        {d.filename}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge>{d.content_type}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-muted)]">
+                        {d.status}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-muted)]">
+                        {d.chunk_count}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-muted)]">
+                        {d.text_char_count.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-muted)]">
+                        {d.created_at.slice(0, 10)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableScrollRegion>
+
+            {/* Mobile: stacked document cards (below md) */}
+            <div className="space-y-3 md:hidden">
+              {docs.map((d) => (
+                <MobileDataCard key={d.id} onClick={() => router.push(`/documents/${d.id}`)}>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 truncate font-medium" title={d.filename}>
+                      {d.filename}
+                    </p>
+                    <Badge>{d.content_type}</Badge>
+                  </div>
+                  <DataRow label="Status">{d.status}</DataRow>
+                  <DataRow label="Chunks">{d.chunk_count}</DataRow>
+                  <DataRow label="Characters">{d.text_char_count.toLocaleString()}</DataRow>
+                  <DataRow label="Indexed">{d.created_at.slice(0, 10)}</DataRow>
+                </MobileDataCard>
+              ))}
+            </div>
+          </>
         )}
       </Card>
     </div>

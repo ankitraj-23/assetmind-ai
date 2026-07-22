@@ -27,11 +27,13 @@ flowchart TD
         RET --> CMP[Compliance agent]
         RCA --> EVP[Evidence package]
         CMP --> EVP
+        GRAPH --> FAIL[Failure intelligence<br/>evidence-backed failure history + hotspots]
         RET --> EVAL[Evaluation<br/>GET /evaluation/latest]
     end
 
     EVP -->|Markdown download| FE
     COP -->|answer + citations| FE
+    FAIL -->|per-asset + hotspots| FE
     EVAL -->|benchmark metrics| FE
 ```
 
@@ -53,8 +55,13 @@ flowchart TD
    evidence layer, so every answer is grounded in real chunks.
 8. The **evidence package** compiles compliance gaps + inspection/maintenance
    evidence into a downloadable Markdown report.
-9. **Evaluation** replays the benchmark through the production retrieval path and
-   is served read-only at `/evaluation/latest`.
+9. **Failure intelligence** (`GET /assets/{tag}/failure-intelligence`,
+   `GET /dashboard/failure-hotspots`) is a read-only derived view over persisted
+   mentions: documented failure modes, repeated modes, recent events and
+   maintenance actions — every item citation-backed. It is retrospective, never a
+   prediction, and writes no graph edges (so it cannot create duplicates).
+10. **Evaluation** replays the benchmark through the production retrieval path and
+    is served read-only at `/evaluation/latest`.
 
 ## Deterministic local mode vs Gemini mode
 

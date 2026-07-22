@@ -64,4 +64,4 @@ This walkthrough guides you through demonstrating the live Week 2 features of As
 ### Step 6: RAG Evaluation Dashboard (`/evaluation`)
 * **Show:** The RAG Evaluation tab from the sidebar.
 * **Highlight:** Global Top-1/Top-3 hit rates and average latency.
-* **Interactive Run Inspector:** Click on a question row to show judges the exact grounding chunks, expected answer, and actual output comparison.
+* **Interactive Run Inspector:** Click on a question row to show the exact grounding chunks, expected answer, and actual output comparison.
