@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import Link from "next/link";
 import type { Risk } from "@/lib/mock-data";
+import { ChevronDownIcon } from "@/components/icons";
 
 export function Card({
   children,
@@ -192,7 +193,9 @@ export function TableScrollRegion({
   );
 }
 
-/* A single record rendered as a stacked card on small screens. */
+/* A single record rendered as a stacked card on small screens. When `href`
+   is set the whole card is a real, keyboard-focusable link (preferred for
+   navigable rows); `onClick` remains for non-navigational actions. */
 export function MobileDataCard({
   children,
   href,
@@ -204,13 +207,23 @@ export function MobileDataCard({
   onClick?: () => void;
   className?: string;
 }) {
-  const base = `block rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 ${className}`;
+  const interactive = Boolean(href || onClick);
+  const base = `block rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 ${
+    interactive ? "cursor-pointer transition hover:border-[var(--color-accent)]" : ""
+  } ${className}`;
   const content = <div className="space-y-1.5">{children}</div>;
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={`${base} outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]`}
+      >
+        {content}
+      </Link>
+    );
+  }
   return (
-    <div
-      onClick={onClick}
-      className={`${base} ${onClick || href ? "cursor-pointer transition hover:border-[var(--color-accent)]" : ""}`}
-    >
+    <div onClick={onClick} className={base}>
       {content}
     </div>
   );
@@ -359,5 +372,104 @@ export function PageHeader({
       </div>
       {action}
     </div>
+  );
+}
+
+/* ── Tabs ───────────────────────────────────────────────────────────────
+   Accessible, horizontally scrollable tab strip. Controlled by the parent
+   (active key + onChange) so panels can be rendered wherever the page needs
+   them. Roving tabindex + arrow/Home/End keys follow the WAI-ARIA tabs
+   pattern; render each panel with id=`panel-<key>`, role="tabpanel" and
+   aria-labelledby=`tab-<key>` to complete the relationship. */
+
+export interface TabItem {
+  key: string;
+  label: string;
+}
+
+export function Tabs({
+  tabs,
+  active,
+  onChange,
+  label,
+  className = "",
+}: {
+  tabs: readonly TabItem[];
+  active: string;
+  onChange: (key: string) => void;
+  label: string;
+  className?: string;
+}) {
+  function handleKey(e: KeyboardEvent<HTMLButtonElement>, idx: number) {
+    let next = idx;
+    if (e.key === "ArrowRight") next = (idx + 1) % tabs.length;
+    else if (e.key === "ArrowLeft") next = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    onChange(tabs[next].key);
+    const list = e.currentTarget.parentElement;
+    (list?.children[next] as HTMLElement | undefined)?.focus();
+  }
+
+  return (
+    <div
+      role="tablist"
+      aria-label={label}
+      className={`mb-6 flex gap-1 overflow-x-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1 ${className}`}
+    >
+      {tabs.map((t, i) => {
+        const selected = t.key === active;
+        return (
+          <button
+            key={t.key}
+            role="tab"
+            id={`tab-${t.key}`}
+            type="button"
+            aria-selected={selected}
+            aria-controls={`panel-${t.key}`}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onChange(t.key)}
+            onKeyDown={(e) => handleKey(e, i)}
+            className={`min-h-[40px] whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] ${
+              selected
+                ? "bg-[var(--color-accent)] text-[var(--color-base)]"
+                : "text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+            }`}
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Disclosure ─────────────────────────────────────────────────────────
+   Progressive-disclosure wrapper built on native <details>/<summary>, so
+   expanded/collapsed state is exposed to assistive tech and keyboard-
+   operable for free. Used to demote technical detail (chunk IDs, long
+   evidence) out of the primary hierarchy without hiding it permanently. */
+
+export function Disclosure({
+  summary,
+  children,
+  defaultOpen = false,
+  className = "",
+}: {
+  summary: ReactNode;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  className?: string;
+}) {
+  return (
+    <details open={defaultOpen} className={`group/disclosure ${className}`}>
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-[var(--color-accent)] outline-none marker:hidden hover:underline focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] [&::-webkit-details-marker]:hidden">
+        <ChevronDownIcon className="h-3.5 w-3.5 shrink-0 transition-transform group-open/disclosure:rotate-180" />
+        {summary}
+      </summary>
+      <div className="mt-2">{children}</div>
+    </details>
   );
 }
