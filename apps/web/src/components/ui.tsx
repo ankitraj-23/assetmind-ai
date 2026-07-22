@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import type { Risk } from "@/lib/mock-data";
 
 export function Card({
@@ -59,6 +60,69 @@ export function StatCard({
         {hint && <span className="text-[var(--color-muted)]">{hint}</span>}
       </div>
     </Card>
+  );
+}
+
+/* ── Priority metric ───────────────────────────────────────────────────
+   A single dashboard metric with two emphasis levels so the layout can
+   distinguish one or two primary operational signals from demoted
+   secondary counts, instead of showing every metric with equal weight.
+   `tone` colours only the primary value, and only for real status. */
+
+const metricToneText: Record<"neutral" | "critical" | "warning" | "positive", string> = {
+  neutral: "text-[var(--color-fg)]",
+  critical: "text-red-300",
+  warning: "text-amber-300",
+  positive: "text-emerald-300",
+};
+
+export function Metric({
+  label,
+  value,
+  hint,
+  icon,
+  href,
+  tone = "neutral",
+  emphasis = "secondary",
+}: {
+  label: string;
+  value: ReactNode;
+  hint?: string;
+  icon?: ReactNode;
+  href?: string;
+  tone?: "neutral" | "critical" | "warning" | "positive";
+  emphasis?: "primary" | "secondary";
+}) {
+  const primary = emphasis === "primary";
+  const body = (
+    <div
+      className={`flex h-full min-w-0 flex-col rounded-xl border bg-[var(--color-surface)] p-4 ${
+        primary ? "border-[var(--color-border)]" : "border-[var(--color-border)]/70"
+      }`}
+    >
+      <div className="flex items-center gap-1.5 text-[var(--color-muted)]">
+        {icon && <span className="shrink-0">{icon}</span>}
+        <p className="truncate text-xs font-medium uppercase tracking-wide">{label}</p>
+      </div>
+      <p
+        className={`mt-2 font-semibold tracking-tight ${
+          primary ? `text-3xl ${metricToneText[tone]}` : "text-2xl text-[var(--color-fg)]"
+        }`}
+      >
+        {value}
+      </p>
+      {hint && <p className="mt-1 truncate text-xs text-[var(--color-muted)]">{hint}</p>}
+    </div>
+  );
+
+  if (!href) return body;
+  return (
+    <Link
+      href={href}
+      className="block rounded-xl outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] hover:[&>div]:border-[var(--color-accent)]"
+    >
+      {body}
+    </Link>
   );
 }
 
