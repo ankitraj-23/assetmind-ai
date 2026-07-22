@@ -280,7 +280,7 @@ export default function RcaPage() {
                           {t.title}
                         </p>
                         {t.filename && (
-                          <p className="text-[10px] text-[var(--color-muted)] mt-0.5">
+                          <p className="wrap-anywhere text-[10px] text-[var(--color-muted)] mt-0.5">
                             Source:{" "}
                             {t.document_id ? (
                               <Link
@@ -453,7 +453,7 @@ export default function RcaPage() {
                                     key={evIdx}
                                     className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg p-3 text-xs space-y-2.5"
                                   >
-                                    <p className="italic leading-relaxed text-[var(--color-fg)]/90 relative pl-4">
+                                    <p className="wrap-anywhere italic leading-relaxed text-[var(--color-fg)]/90 relative pl-4">
                                       <span className="absolute left-0 top-0 text-sm font-serif text-[var(--color-accent)] opacity-60">
                                         &ldquo;
                                       </span>
@@ -463,8 +463,8 @@ export default function RcaPage() {
                                       </span>
                                     </p>
 
-                                    <div className="flex items-center justify-between gap-2 text-[10px] text-[var(--color-muted)] pt-1.5 border-t border-[var(--color-border)]/40 font-mono">
-                                      <span>
+                                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[10px] text-[var(--color-muted)] pt-1.5 border-t border-[var(--color-border)]/40 font-mono">
+                                      <span className="min-w-0 wrap-anywhere">
                                         📁 Source:{" "}
                                         {linkId ? (
                                           <Link

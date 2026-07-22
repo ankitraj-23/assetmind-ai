@@ -24,3 +24,19 @@ body {
 * {
   border-color: var(--color-border);
 }
+
+/* ── Content-safety utilities ─────────────────────────────────────────
+   Applied to filenames, identifiers, evidence and citation text so long
+   unbroken strings wrap instead of widening the page. Deliberately scoped
+   — not applied globally, so ordinary prose stays readable. */
+
+/* Breaks anywhere as a last resort (long tokens with no spaces). */
+@utility wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+/* Horizontal-scroll regions get a subtle affordance and keyboard focus ring. */
+@utility scroll-region {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

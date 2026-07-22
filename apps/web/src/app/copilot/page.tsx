@@ -275,7 +275,7 @@ export default function CopilotPage() {
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[88%] rounded-lg border px-4 py-3 ${
+                      className={`min-w-0 max-w-[88%] rounded-lg border px-4 py-3 ${
                         message.role === "user"
                           ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-base)]"
                           : "border-[var(--color-border)] bg-[var(--color-base)]"
@@ -290,12 +290,12 @@ export default function CopilotPage() {
                           <Badge tone="ok">confidence: {message.result.confidence}</Badge>
                         )}
                       </div>
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                      <p className="wrap-anywhere whitespace-pre-wrap text-sm leading-relaxed">
                         {message.content}
                       </p>
                       {message.result?.standalone_question &&
                         message.result.standalone_question !== message.result.question && (
-                          <p className="mt-2 text-xs text-[var(--color-muted)]">
+                          <p className="mt-2 wrap-anywhere text-xs text-[var(--color-muted)]">
                             Search query: {message.result.standalone_question}
                           </p>
                         )}
@@ -317,7 +317,7 @@ export default function CopilotPage() {
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
                   placeholder="e.g. What could be possible reasons for P-101 to fail?"
-                  className="flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] px-4 py-2.5 text-sm outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)]"
+                  className="min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] px-4 py-2.5 text-sm outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)]"
                 />
                 <div className="flex shrink-0 items-center gap-2">
                   <label
@@ -486,7 +486,7 @@ export default function CopilotPage() {
                       )}
                       <span> · score {citation.score.toFixed(2)}</span>
                     </p>
-                    <p className="mt-1.5 rounded bg-[var(--color-surface-2)] p-2 text-xs leading-relaxed text-[var(--color-muted)]">
+                    <p className="mt-1.5 wrap-anywhere rounded bg-[var(--color-surface-2)] p-2 text-xs leading-relaxed text-[var(--color-muted)]">
                       "{citation.text_preview}"
                     </p>
                   </li>

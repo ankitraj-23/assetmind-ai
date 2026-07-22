@@ -279,7 +279,7 @@ export default function CompliancePage() {
                       key={evIdx}
                       className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 text-xs"
                     >
-                      <p className="italic leading-relaxed text-[var(--color-fg)]/90">
+                      <p className="wrap-anywhere italic leading-relaxed text-[var(--color-fg)]/90">
                         &ldquo;{ev.text}&rdquo;
                       </p>
                       <p className="mt-2 border-t border-[var(--color-border)]/40 pt-1.5 font-mono text-[10px] text-[var(--color-muted)]">
@@ -404,7 +404,7 @@ export default function CompliancePage() {
               </div>
             </div>
 
-            <p className="font-mono text-[10px] text-[var(--color-muted)]">
+            <p className="wrap-anywhere font-mono text-[10px] text-[var(--color-muted)]">
               Package ID: {pkg.package_id}
             </p>
           </div>

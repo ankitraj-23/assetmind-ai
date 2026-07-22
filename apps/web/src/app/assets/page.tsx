@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, PageHeader, Badge, RiskBadge } from "@/components/ui";
+import { Card, PageHeader, Badge, RiskBadge, ErrorState, EmptyState } from "@/components/ui";
 import {
   listAssets,
   getAssetRiskSummary,
@@ -50,15 +50,7 @@ export default function AssetsPage() {
 
       {error ? (
         <Card>
-          <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <div className="rounded-full bg-red-500/10 p-3">
-              <svg className="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-red-400">Backend Connection Error</p>
-            <p className="max-w-md text-sm text-[var(--color-muted)]">{error}</p>
-          </div>
+          <ErrorState title="Backend Connection Error" detail={error} />
         </Card>
       ) : loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -75,18 +67,18 @@ export default function AssetsPage() {
         </div>
       ) : assets !== null && assets.length === 0 ? (
         <Card>
-          <div className="px-1 py-10 text-center">
-            <p className="text-sm font-medium">No assets found</p>
-            <p className="mt-1 text-xs text-[var(--color-muted)]">
-              Upload industrial documents to extract equipment tags.
-            </p>
-            <Link
-              href="/upload"
-              className="mt-4 inline-block rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-base)] hover:opacity-90"
-            >
-              + Upload Document
-            </Link>
-          </div>
+          <EmptyState
+            title="No assets found"
+            description="Upload industrial documents to extract equipment tags."
+            action={
+              <Link
+                href="/upload"
+                className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-base)] hover:opacity-90"
+              >
+                + Upload Document
+              </Link>
+            }
+          />
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

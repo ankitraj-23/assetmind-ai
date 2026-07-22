@@ -3,7 +3,18 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Card, PageHeader, Badge, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
+import {
+  Card,
+  PageHeader,
+  Badge,
+  RiskBadge,
+  SectionTitle,
+  StatCard,
+  TableScrollRegion,
+  MobileDataCard,
+  DataRow,
+  ErrorState,
+} from "@/components/ui";
 import {
   getAsset,
   getAssetMentions,
@@ -178,15 +189,7 @@ export default function AssetDetailPage() {
       <div>
         <PageHeader title="Asset" action={backLink} />
         <Card>
-          <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <div className="rounded-full bg-red-500/10 p-3">
-              <svg className="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-red-400">Backend Connection Error</p>
-            <p className="max-w-md text-sm text-[var(--color-muted)]">{error}</p>
-          </div>
+          <ErrorState title="Backend Connection Error" detail={error} />
         </Card>
       </div>
     );
@@ -380,28 +383,47 @@ export default function AssetDetailPage() {
           {!documents || documents.length === 0 ? (
             <p className="py-6 text-center text-sm text-[var(--color-muted)]">No related documents found.</p>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
-                  <tr>
-                    <th className="px-4 py-2 font-medium">Document</th>
-                    <th className="px-4 py-2 font-medium">Type</th>
-                    <th className="px-4 py-2 font-medium">Chunks</th>
-                    <th className="px-4 py-2 font-medium">When</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents.map((d) => (
-                    <tr key={d.id} className="border-t border-[var(--color-border)]">
-                      <td className="px-4 py-2.5">{d.filename}</td>
-                      <td className="px-4 py-2.5 text-[var(--color-muted)]">{d.content_type?.split("/").pop() ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-[var(--color-muted)]">{d.chunk_count}</td>
-                      <td className="px-4 py-2.5 text-[var(--color-muted)]">{timeAgo(d.created_at)}</td>
+            <>
+              {/* Desktop / tablet: table (md+) */}
+              <TableScrollRegion label={`Documents mentioning ${asset.tag}`} className="hidden md:block">
+                <table className="w-full text-sm">
+                  <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">Document</th>
+                      <th className="px-4 py-2 font-medium">Type</th>
+                      <th className="px-4 py-2 font-medium">Chunks</th>
+                      <th className="px-4 py-2 font-medium">When</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {documents.map((d) => (
+                      <tr key={d.id} className="border-t border-[var(--color-border)]">
+                        <td className="max-w-[20rem] truncate px-4 py-2.5" title={d.filename}>
+                          <Link href={`/documents/${d.id}`} className="hover:underline">{d.filename}</Link>
+                        </td>
+                        <td className="px-4 py-2.5 text-[var(--color-muted)]">{d.content_type?.split("/").pop() ?? "—"}</td>
+                        <td className="px-4 py-2.5 text-[var(--color-muted)]">{d.chunk_count}</td>
+                        <td className="px-4 py-2.5 text-[var(--color-muted)]">{timeAgo(d.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableScrollRegion>
+
+              {/* Mobile: stacked cards (below md) */}
+              <div className="space-y-3 md:hidden">
+                {documents.map((d) => (
+                  <MobileDataCard key={d.id}>
+                    <Link href={`/documents/${d.id}`} className="block truncate font-medium text-[var(--color-accent)] hover:underline" title={d.filename}>
+                      {d.filename}
+                    </Link>
+                    <DataRow label="Type">{d.content_type?.split("/").pop() ?? "—"}</DataRow>
+                    <DataRow label="Chunks">{d.chunk_count}</DataRow>
+                    <DataRow label="When">{timeAgo(d.created_at)}</DataRow>
+                  </MobileDataCard>
+                ))}
+              </div>
+            </>
           )}
         </Card>
       )}
@@ -446,7 +468,7 @@ export default function AssetDetailPage() {
 
                     {/* Evidence text preview */}
                     {e.text_preview && (
-                      <p className="mt-2 rounded-md bg-[var(--color-surface-2)] px-3 py-2 text-xs leading-relaxed text-[var(--color-muted)]">
+                      <p className="mt-2 wrap-anywhere rounded-md bg-[var(--color-surface-2)] px-3 py-2 text-xs leading-relaxed text-[var(--color-muted)]">
                         &ldquo;{e.text_preview}&rdquo;
                       </p>
                     )}
@@ -553,7 +575,7 @@ export default function AssetDetailPage() {
                           ))}
                         </div>
                         {e.text_preview && (
-                          <p className="mt-2 rounded-md bg-[var(--color-surface-2)] px-3 py-2 text-xs leading-relaxed text-[var(--color-muted)]">
+                          <p className="mt-2 wrap-anywhere rounded-md bg-[var(--color-surface-2)] px-3 py-2 text-xs leading-relaxed text-[var(--color-muted)]">
                             &ldquo;{e.text_preview}&rdquo;
                           </p>
                         )}
@@ -638,7 +660,7 @@ export default function AssetDetailPage() {
                     <span className="text-xs text-[var(--color-muted)]">— chunk {m.chunk_index ?? "?"}</span>
                   </div>
                   {m.text && (
-                    <p className="mt-2 rounded-md bg-[var(--color-surface-2)] px-3 py-2 text-sm leading-relaxed text-[var(--color-muted)]">
+                    <p className="mt-2 wrap-anywhere rounded-md bg-[var(--color-surface-2)] px-3 py-2 text-sm leading-relaxed text-[var(--color-muted)]">
                       &ldquo;{m.text}&rdquo;
                     </p>
                   )}
@@ -927,7 +949,7 @@ export default function AssetDetailPage() {
                       {node.type === "document" && node.document_id && (
                         <div className="pt-2">
                           <dt className="text-[var(--color-muted)] font-medium">Document ID</dt>
-                          <dd className="font-mono text-xs">{node.document_id}</dd>
+                          <dd className="break-all font-mono text-xs">{node.document_id}</dd>
                           
                           <Link
                             href={`/documents/${node.document_id}`}
@@ -990,11 +1012,11 @@ export default function AssetDetailPage() {
                                 </div>
                                 <div>
                                   <dt className="text-[var(--color-muted)] font-medium">Raw value</dt>
-                                  <dd className="font-mono bg-[var(--color-surface-2)] px-2 py-1 rounded inline-block mt-0.5">{details.raw_value}</dd>
+                                  <dd className="mt-0.5 inline-block max-w-full wrap-anywhere rounded bg-[var(--color-surface-2)] px-2 py-1 font-mono">{details.raw_value}</dd>
                                 </div>
                                 <div>
                                   <dt className="text-[var(--color-muted)] font-medium">Normalized value</dt>
-                                  <dd className="font-mono bg-[var(--color-surface-2)] px-2 py-1 rounded inline-block mt-0.5">{details.normalized_value}</dd>
+                                  <dd className="mt-0.5 inline-block max-w-full wrap-anywhere rounded bg-[var(--color-surface-2)] px-2 py-1 font-mono">{details.normalized_value}</dd>
                                 </div>
                                 {details.confidence !== null && (
                                   <div>
@@ -1063,30 +1085,50 @@ export default function AssetDetailPage() {
                 {facts.entities.length === 0 ? (
                   <p className="py-6 text-center text-sm text-[var(--color-muted)]">No entities extracted.</p>
                 ) : (
-                  <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
-                    <table className="w-full text-sm">
-                      <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
-                        <tr>
-                          <th className="px-4 py-2 font-medium">Type</th>
-                          <th className="px-4 py-2 font-medium">Value</th>
-                          <th className="px-4 py-2 font-medium">Normalized</th>
-                          <th className="px-4 py-2 font-medium">Confidence</th>
-                          <th className="px-4 py-2 font-medium">Method</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {facts.entities.map((e) => (
-                          <tr key={e.id} className="border-t border-[var(--color-border)]">
-                            <td className="px-4 py-2.5"><Badge>{e.entity_type}</Badge></td>
-                            <td className="px-4 py-2.5">{e.raw_value}</td>
-                            <td className="px-4 py-2.5 font-medium">{e.normalized_value}</td>
-                            <td className="px-4 py-2.5 text-[var(--color-muted)]">{e.confidence !== null ? e.confidence.toFixed(2) : "—"}</td>
-                            <td className="px-4 py-2.5 text-xs text-[var(--color-muted)]">{e.extraction_method ?? "—"}</td>
+                  <>
+                    {/* Desktop / tablet: table (md+) */}
+                    <TableScrollRegion label={`Extracted entities for ${asset.tag}`} className="hidden md:block">
+                      <table className="w-full text-sm">
+                        <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
+                          <tr>
+                            <th className="px-4 py-2 font-medium">Type</th>
+                            <th className="px-4 py-2 font-medium">Value</th>
+                            <th className="px-4 py-2 font-medium">Normalized</th>
+                            <th className="px-4 py-2 font-medium">Confidence</th>
+                            <th className="px-4 py-2 font-medium">Method</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {facts.entities.map((e) => (
+                            <tr key={e.id} className="border-t border-[var(--color-border)]">
+                              <td className="px-4 py-2.5"><Badge>{e.entity_type}</Badge></td>
+                              <td className="wrap-anywhere px-4 py-2.5">{e.raw_value}</td>
+                              <td className="wrap-anywhere px-4 py-2.5 font-medium">{e.normalized_value}</td>
+                              <td className="px-4 py-2.5 text-[var(--color-muted)]">{e.confidence !== null ? e.confidence.toFixed(2) : "—"}</td>
+                              <td className="px-4 py-2.5 text-xs text-[var(--color-muted)]">{e.extraction_method ?? "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </TableScrollRegion>
+
+                    {/* Mobile: stacked cards (below md) */}
+                    <div className="space-y-3 md:hidden">
+                      {facts.entities.map((e) => (
+                        <MobileDataCard key={e.id}>
+                          <div className="flex items-center justify-between gap-2">
+                            <Badge>{e.entity_type}</Badge>
+                            <span className="text-xs text-[var(--color-muted)]">
+                              {e.confidence !== null ? `conf ${e.confidence.toFixed(2)}` : "—"}
+                            </span>
+                          </div>
+                          <DataRow label="Value">{e.raw_value}</DataRow>
+                          <DataRow label="Normalized">{e.normalized_value}</DataRow>
+                          <DataRow label="Method">{e.extraction_method ?? "—"}</DataRow>
+                        </MobileDataCard>
+                      ))}
+                    </div>
+                  </>
                 )}
               </Card>
 
@@ -1120,19 +1162,19 @@ export default function AssetDetailPage() {
           />
 
           {/* Input */}
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <input
               type="text"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAsk()}
               placeholder={`e.g. "What maintenance was done on ${asset.tag}?"`}
-              className="flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--color-accent)]"
+              className="min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--color-accent)]"
             />
             <button
               onClick={handleAsk}
               disabled={asking || !question.trim()}
-              className="rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-[var(--color-base)] transition hover:opacity-90 disabled:opacity-50"
+              className="shrink-0 rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-[var(--color-base)] transition hover:opacity-90 disabled:opacity-50"
             >
               {asking ? "Asking…" : "Ask"}
             </button>

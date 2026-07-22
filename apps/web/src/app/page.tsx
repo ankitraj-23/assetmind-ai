@@ -2,7 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, PageHeader, RiskBadge, SectionTitle, StatCard } from "@/components/ui";
+import {
+  Card,
+  PageHeader,
+  RiskBadge,
+  SectionTitle,
+  StatCard,
+  TableScrollRegion,
+  MobileDataCard,
+  DataRow,
+  ErrorState,
+} from "@/components/ui";
 import type { ApiDashboardSummary } from "@/lib/api";
 import { getDashboardSummary } from "@/lib/api";
 import type { Risk } from "@/lib/mock-data";
@@ -49,25 +59,19 @@ export default function DashboardPage() {
           subtitle="Unified view of indexed knowledge, asset health, and compliance posture."
         />
         <Card>
-          <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <div className="rounded-full bg-red-500/10 p-3">
-              <svg className="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-red-400">Backend Connection Error</p>
-            <p className="max-w-md text-sm text-[var(--color-muted)]">
-              Could not load dashboard data from the backend API. Make sure the
-              FastAPI backend is reachable from the configured API base URL.
-            </p>
-            <p className="text-xs text-[var(--color-muted)]">{error}</p>
-            <button
-              onClick={() => { setLoading(true); setError(null); getDashboardSummary().then(setData).catch((e) => setError(e instanceof Error ? e.message : String(e))).finally(() => setLoading(false)); }}
-              className="mt-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-2 text-sm transition hover:border-[var(--color-accent)]"
-            >
-              Retry
-            </button>
-          </div>
+          <ErrorState
+            title="Backend Connection Error"
+            description="Could not load dashboard data from the backend API. Make sure the FastAPI backend is reachable from the configured API base URL."
+            detail={error}
+            onRetry={() => {
+              setLoading(true);
+              setError(null);
+              getDashboardSummary()
+                .then(setData)
+                .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+                .finally(() => setLoading(false));
+            }}
+          />
         </Card>
       </div>
     );
@@ -291,36 +295,59 @@ export default function DashboardPage() {
               No documents ingested yet. Upload files via the Documents page.
             </p>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
-                  <tr>
-                    <th className="px-4 py-2 font-medium">Document</th>
-                    <th className="px-4 py-2 font-medium">Type</th>
-                    <th className="px-4 py-2 font-medium">Status</th>
-                    <th className="px-4 py-2 font-medium">Chunks</th>
-                    <th className="px-4 py-2 font-medium">When</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.recent_documents.map((d) => (
-                    <tr key={d.id} className="border-t border-[var(--color-border)]">
-                      <td className="px-4 py-2.5">{d.filename}</td>
-                      <td className="px-4 py-2.5 text-[var(--color-muted)]">
-                        {typeLabel(d.content_type)}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={d.status === "processed" || d.status === "extracted" ? "text-emerald-300" : "text-amber-300"}>
-                          {d.status === "processed" || d.status === "extracted" ? "Indexed" : d.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-[var(--color-muted)]">{d.chunk_count}</td>
-                      <td className="px-4 py-2.5 text-[var(--color-muted)]">{timeAgo(d.created_at)}</td>
+            <>
+              {/* Desktop / tablet: table (md+) */}
+              <TableScrollRegion label="Recent uploads" className="hidden md:block">
+                <table className="w-full text-sm">
+                  <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">Document</th>
+                      <th className="px-4 py-2 font-medium">Type</th>
+                      <th className="px-4 py-2 font-medium">Status</th>
+                      <th className="px-4 py-2 font-medium">Chunks</th>
+                      <th className="px-4 py-2 font-medium">When</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {data.recent_documents.map((d) => (
+                      <tr key={d.id} className="border-t border-[var(--color-border)]">
+                        <td className="max-w-[18rem] truncate px-4 py-2.5" title={d.filename}>{d.filename}</td>
+                        <td className="px-4 py-2.5 text-[var(--color-muted)]">
+                          {typeLabel(d.content_type)}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className={d.status === "processed" || d.status === "extracted" ? "text-emerald-300" : "text-amber-300"}>
+                            {d.status === "processed" || d.status === "extracted" ? "Indexed" : d.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-[var(--color-muted)]">{d.chunk_count}</td>
+                        <td className="px-4 py-2.5 text-[var(--color-muted)]">{timeAgo(d.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableScrollRegion>
+
+              {/* Mobile: stacked cards (below md) */}
+              <div className="space-y-3 md:hidden">
+                {data.recent_documents.map((d) => {
+                  const indexed = d.status === "processed" || d.status === "extracted";
+                  return (
+                    <MobileDataCard key={d.id}>
+                      <p className="truncate font-medium" title={d.filename}>{d.filename}</p>
+                      <DataRow label="Type">{typeLabel(d.content_type)}</DataRow>
+                      <DataRow label="Status">
+                        <span className={indexed ? "text-emerald-300" : "text-amber-300"}>
+                          {indexed ? "Indexed" : d.status}
+                        </span>
+                      </DataRow>
+                      <DataRow label="Chunks">{d.chunk_count}</DataRow>
+                      <DataRow label="When">{timeAgo(d.created_at)}</DataRow>
+                    </MobileDataCard>
+                  );
+                })}
+              </div>
+            </>
           )}
         </Card>
 
@@ -369,30 +396,46 @@ export default function DashboardPage() {
               title="Top Assets by Mentions"
               subtitle="Most frequently referenced equipment across all documents"
             />
-            <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
-                  <tr>
-                    <th className="px-4 py-2 font-medium">Asset Tag</th>
-                    <th className="px-4 py-2 font-medium">Type</th>
-                    <th className="px-4 py-2 font-medium text-right">Mentions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.top_assets_by_mentions.map((a) => (
-                    <tr key={a.asset_tag} className="border-t border-[var(--color-border)]">
-                      <td className="px-4 py-2.5">
-                        <Link href={`/assets/${a.asset_tag}`} className="text-[var(--color-accent)] hover:underline">
-                          {a.asset_tag}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-2.5 text-[var(--color-muted)]">{a.asset_type ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-right">{a.mention_count}</td>
+            <>
+              {/* Desktop / tablet: table (sm+) */}
+              <TableScrollRegion label="Top assets by mentions" className="hidden sm:block">
+                <table className="w-full text-sm">
+                  <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">Asset Tag</th>
+                      <th className="px-4 py-2 font-medium">Type</th>
+                      <th className="px-4 py-2 font-medium text-right">Mentions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {data.top_assets_by_mentions.map((a) => (
+                      <tr key={a.asset_tag} className="border-t border-[var(--color-border)]">
+                        <td className="px-4 py-2.5">
+                          <Link href={`/assets/${a.asset_tag}`} className="text-[var(--color-accent)] hover:underline">
+                            {a.asset_tag}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-2.5 text-[var(--color-muted)]">{a.asset_type ?? "—"}</td>
+                        <td className="px-4 py-2.5 text-right">{a.mention_count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableScrollRegion>
+
+              {/* Mobile: stacked cards (below sm) */}
+              <div className="space-y-3 sm:hidden">
+                {data.top_assets_by_mentions.map((a) => (
+                  <MobileDataCard key={a.asset_tag}>
+                    <Link href={`/assets/${a.asset_tag}`} className="font-medium text-[var(--color-accent)] hover:underline">
+                      {a.asset_tag}
+                    </Link>
+                    <DataRow label="Type">{a.asset_type ?? "—"}</DataRow>
+                    <DataRow label="Mentions">{a.mention_count}</DataRow>
+                  </MobileDataCard>
+                ))}
+              </div>
+            </>
           </Card>
         </div>
       )}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Card, PageHeader, Badge, StatCard } from "@/components/ui";
+import { Card, PageHeader, Badge, StatCard, LoadingState, EmptyState, ErrorState } from "@/components/ui";
 import {
   listDocuments,
   getDocumentChunks,
@@ -72,7 +72,7 @@ export default function DocumentDetailPage() {
       <div>
         <div className="mb-4">{backLink}</div>
         <Card>
-          <p className="px-1 py-6 text-center text-sm text-red-400">{error}</p>
+          <ErrorState title="Could not load document" detail={error} />
         </Card>
       </div>
     );
@@ -83,12 +83,10 @@ export default function DocumentDetailPage() {
       <div>
         <div className="mb-4">{backLink}</div>
         <Card>
-          <div className="px-1 py-10 text-center">
-            <p className="text-sm font-medium">Document not found</p>
-            <p className="mt-1 text-xs text-[var(--color-muted)]">
-              No document matches this id. It may have been removed.
-            </p>
-          </div>
+          <EmptyState
+            title="Document not found"
+            description="No document matches this id. It may have been removed."
+          />
         </Card>
       </div>
     );
@@ -99,9 +97,7 @@ export default function DocumentDetailPage() {
       <div>
         <div className="mb-4">{backLink}</div>
         <Card>
-          <p className="px-1 py-6 text-center text-sm text-[var(--color-muted)]">
-            Loading document…
-          </p>
+          <LoadingState label="Loading document…" />
         </Card>
       </div>
     );
@@ -192,7 +188,7 @@ export default function DocumentDetailPage() {
                       {chunk.char_end.toLocaleString()}
                     </span>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                  <p className="wrap-anywhere whitespace-pre-wrap text-sm leading-relaxed">
                     {chunk.text}
                   </p>
                   {preview && preview.preview.length > 0 && (
@@ -200,13 +196,15 @@ export default function DocumentDetailPage() {
                       <p className="mb-1 text-xs uppercase tracking-wide text-[var(--color-muted)]">
                         Embedding preview · dim {preview.dimension}
                       </p>
-                      <p className="font-mono text-xs text-[var(--color-muted)]">
-                        [
-                        {preview.preview
-                          .map((v) => v.toFixed(4))
-                          .join(", ")}
-                        , …]
-                      </p>
+                      <div className="scroll-region rounded bg-[var(--color-base)] p-2">
+                        <p className="whitespace-nowrap font-mono text-xs text-[var(--color-muted)]">
+                          [
+                          {preview.preview
+                            .map((v) => v.toFixed(4))
+                            .join(", ")}
+                          , …]
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>

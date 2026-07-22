@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, PageHeader, Badge, SectionTitle, StatCard } from "@/components/ui";
+import {
+  Card,
+  PageHeader,
+  Badge,
+  SectionTitle,
+  StatCard,
+  TableScrollRegion,
+  MobileDataCard,
+} from "@/components/ui";
 import Link from "next/link";
 import {
   getLatestEvaluation,
@@ -104,7 +112,7 @@ export default function EvaluationPage() {
           <span className="flex items-center gap-1.5">
             <Badge tone="ok">LIVE</Badge>
             <span className="text-[var(--color-muted)]">
-              from <code className="font-mono">{data.source_file}</code>
+              from <code className="wrap-anywhere font-mono">{data.source_file}</code>
             </span>
           </span>
           <span className="text-[var(--color-muted)]">
@@ -187,7 +195,8 @@ export default function EvaluationPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <SectionTitle title="Per-question results" subtitle="Click a row to compare expected source and actual citations" />
-          <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
+          {/* Desktop / tablet: results table (md+) */}
+          <TableScrollRegion label="Per-question results" className="hidden md:block">
             <table className="w-full text-sm">
               <thead className="bg-[var(--color-surface-2)] text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
                 <tr>
@@ -225,6 +234,33 @@ export default function EvaluationPage() {
                 ))}
               </tbody>
             </table>
+          </TableScrollRegion>
+
+          {/* Mobile: result cards (below md) */}
+          <div className="space-y-3 md:hidden">
+            {results.map((r) => (
+              <MobileDataCard
+                key={r.id}
+                onClick={() => setSelectedId(r.id)}
+                className={selectedId === r.id ? "border-[var(--color-accent)]" : ""}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-sm font-medium">{r.id}</span>
+                  <Badge tone={r.status === "passed" ? "ok" : "bad"}>{r.status}</Badge>
+                </div>
+                <p className="wrap-anywhere text-xs text-[var(--color-muted)]">
+                  <span className="text-[var(--color-fg)]">{r.expected_doc}</span>
+                  {!r.expected_source_in_corpus && (
+                    <span className="ml-1 rounded bg-amber-500/10 px-1 text-[9px] text-amber-400">absent</span>
+                  )}
+                </p>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-muted)]">
+                  <span>T1 {r.top1_hit ? "✅" : "❌"}</span>
+                  <span>T3 {r.top3_hit ? "✅" : "❌"}</span>
+                  <span>Asset {r.asset_hit ? "✅" : "❌"}</span>
+                </div>
+              </MobileDataCard>
+            ))}
           </div>
         </Card>
 
@@ -256,7 +292,7 @@ export default function EvaluationPage() {
 
                 <div>
                   <dt className="font-medium text-[var(--color-muted)]">Expected Source</dt>
-                  <dd className="mt-0.5 font-mono">
+                  <dd className="mt-0.5 wrap-anywhere font-mono">
                     {selected.expected_doc}
                     {!selected.expected_source_in_corpus && (
                       <span className="ml-1 text-amber-400">(absent from corpus)</span>

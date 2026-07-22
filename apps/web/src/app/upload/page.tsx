@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, PageHeader, SectionTitle, Badge } from "@/components/ui";
+import { Card, PageHeader, SectionTitle, Badge, TableScrollRegion, MobileDataCard, DataRow } from "@/components/ui";
 import {
   uploadDocument,
   listAssets,
@@ -151,8 +151,8 @@ export default function UploadPage() {
                     </dd>
                   </div>
                   <div className="flex justify-between border-b border-[var(--color-border)]/50 pb-1">
-                    <dt className="text-[var(--color-muted)]">Content Type</dt>
-                    <dd className="text-[var(--color-fg)]">{result.content_type}</dd>
+                    <dt className="shrink-0 text-[var(--color-muted)]">Content Type</dt>
+                    <dd className="min-w-0 wrap-anywhere text-right text-[var(--color-fg)]">{result.content_type}</dd>
                   </div>
                   <div className="flex justify-between border-b border-[var(--color-border)]/50 pb-1">
                     <dt className="text-[var(--color-muted)]">Indexed On</dt>
@@ -160,8 +160,8 @@ export default function UploadPage() {
                   </div>
                   {(result.embedding_provider || result.embedding_model) && (
                     <div className="flex justify-between border-b border-[var(--color-border)]/50 pb-1 col-span-2">
-                      <dt className="text-[var(--color-muted)]">Embeddings</dt>
-                      <dd className="font-mono text-[var(--color-fg)]">
+                      <dt className="shrink-0 text-[var(--color-muted)]">Embeddings</dt>
+                      <dd className="min-w-0 wrap-anywhere text-right font-mono text-[var(--color-fg)]">
                         {result.embedding_provider} · {result.embedding_model}
                       </dd>
                     </div>
@@ -172,7 +172,7 @@ export default function UploadPage() {
                     {result.warnings.map((w) => (
                       <li
                         key={w}
-                        className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-300"
+                        className="wrap-anywhere rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-300"
                       >
                         {w}
                       </li>
@@ -224,30 +224,48 @@ export default function UploadPage() {
                     No matching facts extracted from this document.
                   </p>
                 ) : (
-                  <div className="overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-base)]">
-                    <table className="w-full text-[11px]">
-                      <thead className="bg-[var(--color-surface-2)] text-left uppercase tracking-wide text-[var(--color-muted)] text-[10px]">
-                        <tr>
-                          <th className="px-3 py-1.5 font-medium">Type</th>
-                          <th className="px-3 py-1.5 font-medium">Value</th>
-                          <th className="px-3 py-1.5 font-medium">Normalized</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {extractedFacts.map((fact) => (
-                          <tr key={fact.id} className="border-t border-[var(--color-border)]">
-                            <td className="px-3 py-2 font-mono text-[var(--color-muted)]">
-                              {fact.entity_type}
-                            </td>
-                            <td className="px-3 py-2">{fact.raw_value}</td>
-                            <td className="px-3 py-2 font-semibold text-[var(--color-accent-2)]">
-                              {fact.normalized_value}
-                            </td>
+                  <>
+                    {/* Desktop / tablet: table (sm+) */}
+                    <TableScrollRegion label="Extracted facts" className="hidden bg-[var(--color-base)] sm:block">
+                      <table className="w-full text-[11px]">
+                        <thead className="bg-[var(--color-surface-2)] text-left uppercase tracking-wide text-[var(--color-muted)] text-[10px]">
+                          <tr>
+                            <th className="px-3 py-1.5 font-medium">Type</th>
+                            <th className="px-3 py-1.5 font-medium">Value</th>
+                            <th className="px-3 py-1.5 font-medium">Normalized</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {extractedFacts.map((fact) => (
+                            <tr key={fact.id} className="border-t border-[var(--color-border)]">
+                              <td className="px-3 py-2 font-mono text-[var(--color-muted)]">
+                                {fact.entity_type}
+                              </td>
+                              <td className="wrap-anywhere px-3 py-2">{fact.raw_value}</td>
+                              <td className="wrap-anywhere px-3 py-2 font-semibold text-[var(--color-accent-2)]">
+                                {fact.normalized_value}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </TableScrollRegion>
+
+                    {/* Mobile: stacked cards (below sm) */}
+                    <div className="space-y-2 sm:hidden">
+                      {extractedFacts.map((fact) => (
+                        <MobileDataCard key={fact.id} className="bg-[var(--color-base)]">
+                          <DataRow label="Type">
+                            <span className="font-mono text-[var(--color-muted)]">{fact.entity_type}</span>
+                          </DataRow>
+                          <DataRow label="Value">{fact.raw_value}</DataRow>
+                          <DataRow label="Normalized">
+                            <span className="font-semibold text-[var(--color-accent-2)]">{fact.normalized_value}</span>
+                          </DataRow>
+                        </MobileDataCard>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
 
