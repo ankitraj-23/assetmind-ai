@@ -225,7 +225,7 @@ export default function AssetsPage() {
             action={
               <Link
                 href="/upload"
-                className="inline-flex h-10 items-center rounded-lg bg-[var(--color-accent)] px-4 text-sm font-medium text-[var(--color-base)] transition hover:opacity-90"
+                className="inline-flex h-10 items-center rounded-lg bg-[var(--color-accent)] px-4 text-sm font-medium text-[var(--color-accent-fg)] transition hover:bg-[var(--color-accent-hover)]"
               >
                 Upload document
               </Link>

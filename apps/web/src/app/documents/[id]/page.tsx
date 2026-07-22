@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Card, PageHeader, Badge, StatCard, LoadingState, EmptyState, ErrorState } from "@/components/ui";
+import { Card, PageHeader, Badge, StatCard, LoadingState, EmptyState, ErrorState, Disclosure } from "@/components/ui";
+import { ArrowLeftIcon } from "@/components/icons";
 import {
   listDocuments,
   getDocumentChunks,
@@ -61,9 +62,10 @@ export default function DocumentDetailPage() {
   const backLink = (
     <Link
       href="/documents"
-      className="text-sm text-[var(--color-accent)] hover:opacity-90"
+      className="inline-flex items-center gap-1.5 text-sm text-[var(--color-accent)] hover:underline"
     >
-      ← Back to Documents
+      <ArrowLeftIcon className="h-4 w-4" />
+      Back to Documents
     </Link>
   );
 
@@ -193,18 +195,17 @@ export default function DocumentDetailPage() {
                   </p>
                   {preview && preview.preview.length > 0 && (
                     <div className="mt-3 border-t border-[var(--color-border)] pt-3">
-                      <p className="mb-1 text-xs uppercase tracking-wide text-[var(--color-muted)]">
-                        Embedding preview · dim {preview.dimension}
-                      </p>
-                      <div className="scroll-region rounded bg-[var(--color-base)] p-2">
-                        <p className="whitespace-nowrap font-mono text-xs text-[var(--color-muted)]">
-                          [
-                          {preview.preview
-                            .map((v) => v.toFixed(4))
-                            .join(", ")}
-                          , …]
-                        </p>
-                      </div>
+                      <Disclosure summary={`Embedding inspector · dim ${preview.dimension}`}>
+                        <div className="scroll-region rounded border border-[var(--color-border)] bg-[var(--color-surface-3)] p-2">
+                          <p className="whitespace-nowrap font-mono text-xs text-[var(--color-muted)]">
+                            [
+                            {preview.preview
+                              .map((v) => v.toFixed(4))
+                              .join(", ")}
+                            , …]
+                          </p>
+                        </div>
+                      </Disclosure>
                     </div>
                   )}
                 </div>

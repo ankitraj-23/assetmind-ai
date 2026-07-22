@@ -482,16 +482,16 @@ export default function CopilotPage() {
           {status === "error" && error && (
             <div
               role="alert"
-              className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3"
+              className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="min-w-0 wrap-anywhere text-sm text-red-300">
+                <p className="min-w-0 wrap-anywhere text-sm text-red-700">
                   Copilot couldn’t answer that.
                 </p>
                 <button
                   type="button"
                   onClick={retryLast}
-                  className="min-h-9 shrink-0 rounded-lg border border-red-500/40 px-3 py-1 text-xs text-red-200 outline-none hover:bg-red-500/10 focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
+                  className="min-h-9 shrink-0 rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 outline-none hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
                 >
                   Retry
                 </button>

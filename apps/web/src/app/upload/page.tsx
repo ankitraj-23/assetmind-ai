@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Card, PageHeader, SectionTitle, Badge, TableScrollRegion, MobileDataCard, DataRow } from "@/components/ui";
+import { Card, PageHeader, SectionTitle, Badge, TableScrollRegion, MobileDataCard, DataRow, Disclosure } from "@/components/ui";
+import { UploadIcon } from "@/components/icons";
 import {
   uploadDocument,
   listAssets,
@@ -75,8 +76,8 @@ export default function UploadPage() {
         subtitle="Add manuals, SOPs, work orders, or spreadsheets. Files are chunked and embedded for semantic search."
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="space-y-6">
+        <Card>
           <SectionTitle
             title="New Upload"
             subtitle="PDF, TXT, CSV, or XLSX up to 50 MB"
@@ -84,16 +85,16 @@ export default function UploadPage() {
 
           <label
             htmlFor="file"
-            className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-base)] px-6 py-14 text-center transition hover:border-[var(--color-accent)]"
+            className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface-2)] px-6 py-14 text-center transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]"
           >
-            <span className="text-3xl text-[var(--color-accent)]">↥</span>
+            <UploadIcon className="h-8 w-8 text-[var(--color-accent)]" />
             <p className="mt-3 text-sm font-medium">
               {file?.name ?? "Drag & drop a file here, or click to browse"}
             </p>
             <p className="mt-2 text-xs text-[var(--color-muted)] max-w-sm">
               Upload industrial PDFs, text notes, work order CSVs, and spreadsheet records.
             </p>
-            <p className="mt-1 text-[10px] text-[var(--color-muted)] font-mono">
+            <p className="mt-1 text-[11px] text-[var(--color-muted)] font-mono">
               Supported: .pdf, .txt, .csv, .xlsx
             </p>
             <input
@@ -116,17 +117,17 @@ export default function UploadPage() {
             type="button"
             disabled={!file || status === "uploading"}
             onClick={handleUpload}
-            className="mt-5 rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-[var(--color-base)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-5 rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-[var(--color-accent-fg)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {status === "uploading" ? "Indexing…" : "Index Document"}
           </button>
 
           {status === "error" && error && (
-            <p className="mt-3 text-sm text-red-400">{error}</p>
+            <p className="mt-3 text-sm text-red-600">{error}</p>
           )}
 
           {status === "done" && result && (
-            <div className="mt-6 space-y-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/20 p-5">
+            <div className="mt-6 space-y-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-5">
               
               {/* Document Metadata section */}
               <div>
@@ -172,7 +173,7 @@ export default function UploadPage() {
                     {result.warnings.map((w) => (
                       <li
                         key={w}
-                        className="wrap-anywhere rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-300"
+                        className="wrap-anywhere rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] text-amber-700"
                       >
                         {w}
                       </li>
@@ -228,7 +229,7 @@ export default function UploadPage() {
                     {/* Desktop / tablet: table (sm+) */}
                     <TableScrollRegion label="Extracted facts" className="hidden bg-[var(--color-base)] sm:block">
                       <table className="w-full text-[11px]">
-                        <thead className="bg-[var(--color-surface-2)] text-left uppercase tracking-wide text-[var(--color-muted)] text-[10px]">
+                        <thead className="bg-[var(--color-surface-2)] text-left uppercase tracking-wide text-[var(--color-muted)] text-[11px]">
                           <tr>
                             <th className="px-3 py-1.5 font-medium">Type</th>
                             <th className="px-3 py-1.5 font-medium">Value</th>
@@ -273,28 +274,29 @@ export default function UploadPage() {
           )}
         </Card>
 
-        <Card>
-          <SectionTitle title="Ingestion Pipeline" />
-          <ol className="space-y-4 text-sm">
-            {[
-              { step: "Upload", desc: "Original stored securely" },
-              { step: "Parse", desc: "Text extracted from PDF/TXT/CSV/XLSX" },
-              { step: "Chunk", desc: "Split into semantic segments" },
-              { step: "Embed", desc: "Vectors generated for search" },
-              { step: "Index", desc: "Available to Copilot & RCA" },
-            ].map((s, i) => (
-              <li key={s.step} className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-2)] text-xs text-[var(--color-accent)]">
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="font-medium">{s.step}</p>
-                  <p className="text-xs text-[var(--color-muted)]">{s.desc}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </Card>
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+          <Disclosure summary="How ingestion works">
+            <ol className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                { step: "Upload", desc: "Original stored securely" },
+                { step: "Parse", desc: "Text extracted from PDF/TXT/CSV/XLSX" },
+                { step: "Chunk", desc: "Split into semantic segments" },
+                { step: "Embed", desc: "Vectors generated for search" },
+                { step: "Index", desc: "Available to Copilot & RCA" },
+              ].map((s, i) => (
+                <li key={s.step} className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-xs font-medium text-[var(--color-accent)]">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium">{s.step}</p>
+                    <p className="text-xs text-[var(--color-muted)]">{s.desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </Disclosure>
+        </div>
       </div>
     </div>
   );

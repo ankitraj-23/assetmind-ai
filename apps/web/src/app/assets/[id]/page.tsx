@@ -144,7 +144,7 @@ function HeaderAction({
   const base =
     "inline-flex min-h-[40px] items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]";
   const variants = {
-    primary: "bg-[var(--color-accent)] text-[var(--color-base)] hover:opacity-90",
+    primary: "bg-[var(--color-accent)] text-[var(--color-accent-fg)] hover:bg-[var(--color-accent-hover)]",
     secondary: "border border-[var(--color-border)] hover:border-[var(--color-accent)]",
     ghost: "border border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-fg)]",
   } as const;
@@ -315,7 +315,7 @@ function NodeInspector({
         {node.type === "document" && node.document_id && (
           <Link
             href={`/documents/${node.document_id}`}
-            className="inline-flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-2 text-xs font-semibold text-[var(--color-base)] transition hover:opacity-90"
+            className="inline-flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-2 text-xs font-semibold text-[var(--color-accent-fg)] transition hover:bg-[var(--color-accent-hover)]"
           >
             <DocumentIcon className="h-4 w-4" />
             View document
@@ -677,7 +677,7 @@ export default function AssetDetailPage() {
                     className="flex items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] px-3 py-2.5"
                   >
                     <span className="flex min-w-0 items-center gap-2">
-                      {row.repeated && <RepeatIcon className="h-4 w-4 shrink-0 text-amber-300" />}
+                      {row.repeated && <RepeatIcon className="h-4 w-4 shrink-0 text-amber-700" />}
                       <span className="truncate text-sm font-medium capitalize">{row.mode.replace(/_/g, " ")}</span>
                     </span>
                     <span className="flex shrink-0 items-center gap-2 text-xs text-[var(--color-muted)]">

@@ -122,7 +122,7 @@ export function AssetGraph({
             markerHeight="6"
             orient="auto-start-reverse"
           >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--color-border)" />
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--color-border-strong)" />
           </marker>
         </defs>
 
@@ -138,7 +138,7 @@ export function AssetGraph({
               y1={s.y}
               x2={t.x}
               y2={t.y}
-              stroke="var(--color-border)"
+              stroke="var(--color-border-strong)"
               strokeWidth="1.5"
               strokeDasharray={edge.relation_type === "supported_by_chunk" ? "4" : undefined}
               markerEnd="url(#graph-arrow)"
@@ -175,8 +175,8 @@ export function AssetGraph({
                   x="0"
                   y={style.labelDy}
                   textAnchor="middle"
-                  className="fill-white text-[10px] font-bold"
-                  stroke="var(--color-surface)"
+                  className="fill-[var(--color-fg)] text-[11px] font-semibold"
+                  stroke="var(--color-base)"
                   strokeWidth="3px"
                   paintOrder="stroke"
                   strokeLinejoin="round"

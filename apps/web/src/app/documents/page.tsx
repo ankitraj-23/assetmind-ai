@@ -39,7 +39,7 @@ export default function DocumentsPage() {
         action={
           <Link
             href="/upload"
-            className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-base)] hover:opacity-90"
+            className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-accent-fg)] hover:bg-[var(--color-accent-hover)]"
           >
             + Upload Document
           </Link>
@@ -58,7 +58,7 @@ export default function DocumentsPage() {
             action={
               <Link
                 href="/upload"
-                className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-base)] hover:opacity-90"
+                className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-accent-fg)] hover:bg-[var(--color-accent-hover)]"
               >
                 + Upload Document
               </Link>

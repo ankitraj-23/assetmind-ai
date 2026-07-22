@@ -11,6 +11,7 @@ import {
   MobileDataCard,
 } from "@/components/ui";
 import Link from "next/link";
+import { CheckIcon, CloseIcon, DocumentIcon } from "@/components/icons";
 import {
   getLatestEvaluation,
   listDocuments,
@@ -19,6 +20,20 @@ import {
 } from "@/lib/api";
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+
+/* Pass/fail indicator — a coloured stroke icon instead of an emoji so it
+   inherits the restrained local icon treatment. */
+function HitMark({ hit, label }: { hit: boolean; label: string }) {
+  return (
+    <span role="img" aria-label={`${label}: ${hit ? "hit" : "miss"}`} className="inline-flex">
+      {hit ? (
+        <CheckIcon className="h-4 w-4 text-emerald-600" />
+      ) : (
+        <CloseIcon className="h-4 w-4 text-[var(--color-subtle)]" />
+      )}
+    </span>
+  );
+}
 
 export default function EvaluationPage() {
   const [data, setData] = useState<ApiEvaluationResponse | null>(null);
@@ -64,7 +79,7 @@ export default function EvaluationPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="RAG Evaluation" subtitle="Genuine benchmark results" />
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-amber-300">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-700">
           <p className="text-sm font-semibold">
             {isMissing ? "No benchmark results yet" : "Could not load evaluation"}
           </p>
@@ -74,7 +89,7 @@ export default function EvaluationPage() {
               : `Backend error: ${error}`}
           </p>
           {isMissing && (
-            <pre className="mt-2 rounded bg-black/30 px-2 py-1 font-mono text-[11px]">
+            <pre className="mt-2 overflow-x-auto rounded border border-amber-200 bg-[var(--color-surface)] px-2 py-1 font-mono text-[11px] text-[var(--color-fg)]">
               cd apps/api && python -m scripts.run_benchmark
             </pre>
           )}
@@ -129,7 +144,7 @@ export default function EvaluationPage() {
           </span>
         </div>
         {deterministic && (
-          <p className="mt-2 text-[11px] leading-relaxed text-amber-300/90">
+          <p className="mt-2 text-[11px] leading-relaxed text-amber-700">
             Running in deterministic local mode (hashing embeddings, extractive answers, no Gemini call).
             Scores reflect the offline fallback, not live Gemini performance.
           </p>
@@ -166,7 +181,7 @@ export default function EvaluationPage() {
           />
         </div>
         {summary.absent_corpus_count > 0 && (
-          <p className="mt-2 text-[11px] text-amber-300/90">
+          <p className="mt-2 text-[11px] text-amber-700">
             {summary.absent_corpus_count} question(s) reference a document not in the corpus and cannot be answered — counted as failures above, not hidden.
           </p>
         )}
@@ -181,8 +196,8 @@ export default function EvaluationPage() {
               key={cat}
               className={`rounded-full border px-3 py-1 text-xs ${
                 cat === "pass"
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                  : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-rose-200 bg-rose-50 text-rose-700"
               }`}
             >
               {cat.replace(/_/g, " ")}: <span className="font-semibold">{count}</span>
@@ -221,12 +236,12 @@ export default function EvaluationPage() {
                     <td className="max-w-[160px] truncate px-3 py-3 text-xs" title={r.expected_doc}>
                       {r.expected_doc}
                       {!r.expected_source_in_corpus && (
-                        <span className="ml-1 rounded bg-amber-500/10 px-1 text-[9px] text-amber-400">absent</span>
+                        <span className="ml-1 rounded bg-amber-50 px-1 text-[11px] text-amber-600">absent</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-center">{r.top1_hit ? "✅" : "❌"}</td>
-                    <td className="px-3 py-3 text-center">{r.top3_hit ? "✅" : "❌"}</td>
-                    <td className="px-3 py-3 text-center">{r.asset_hit ? "✅" : "❌"}</td>
+                    <td className="px-3 py-3 text-center"><HitMark hit={r.top1_hit} label="Top-1" /></td>
+                    <td className="px-3 py-3 text-center"><HitMark hit={r.top3_hit} label="Top-3" /></td>
+                    <td className="px-3 py-3 text-center"><HitMark hit={r.asset_hit} label="Asset" /></td>
                     <td className="px-3 py-3 text-center">
                       <Badge tone={r.status === "passed" ? "ok" : "bad"}>{r.status}</Badge>
                     </td>
@@ -251,13 +266,13 @@ export default function EvaluationPage() {
                 <p className="wrap-anywhere text-xs text-[var(--color-muted)]">
                   <span className="text-[var(--color-fg)]">{r.expected_doc}</span>
                   {!r.expected_source_in_corpus && (
-                    <span className="ml-1 rounded bg-amber-500/10 px-1 text-[9px] text-amber-400">absent</span>
+                    <span className="ml-1 rounded bg-amber-50 px-1 text-[11px] text-amber-600">absent</span>
                   )}
                 </p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-muted)]">
-                  <span>T1 {r.top1_hit ? "✅" : "❌"}</span>
-                  <span>T3 {r.top3_hit ? "✅" : "❌"}</span>
-                  <span>Asset {r.asset_hit ? "✅" : "❌"}</span>
+                  <span className="inline-flex items-center gap-1">T1 <HitMark hit={r.top1_hit} label="Top-1" /></span>
+                  <span className="inline-flex items-center gap-1">T3 <HitMark hit={r.top3_hit} label="Top-3" /></span>
+                  <span className="inline-flex items-center gap-1">Asset <HitMark hit={r.asset_hit} label="Asset" /></span>
                 </div>
               </MobileDataCard>
             ))}
@@ -267,8 +282,8 @@ export default function EvaluationPage() {
         <Card className="flex flex-col">
           <SectionTitle title="Run inspector" subtitle="Expected vs actual retrieval" />
           {!selected ? (
-            <div className="mt-2 flex flex-1 flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-2)]/20 px-4 py-12 text-center text-[var(--color-muted)]">
-              <span className="mb-2 text-2xl">📋</span>
+            <div className="mt-2 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface-2)] px-4 py-12 text-center text-[var(--color-muted)]">
+              <DocumentIcon className="mb-2 h-7 w-7 text-[var(--color-subtle)]" />
               <p className="text-xs">Select a question to inspect its expected source, expected answer, and actual citations.</p>
             </div>
           ) : (
@@ -277,7 +292,7 @@ export default function EvaluationPage() {
                 <div className="mb-1.5 flex items-center gap-2">
                   <Badge tone={selected.status === "passed" ? "ok" : "bad"}>{selected.status}</Badge>
                   <span className="font-mono text-[var(--color-muted)]">{selected.id}</span>
-                  <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] uppercase text-[var(--color-muted)]">
+                  <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[11px] uppercase text-[var(--color-muted)]">
                     {selected.category.replace(/_/g, " ")}
                   </span>
                 </div>
@@ -295,7 +310,7 @@ export default function EvaluationPage() {
                   <dd className="mt-0.5 wrap-anywhere font-mono">
                     {selected.expected_doc}
                     {!selected.expected_source_in_corpus && (
-                      <span className="ml-1 text-amber-400">(absent from corpus)</span>
+                      <span className="ml-1 text-amber-600">(absent from corpus)</span>
                     )}
                   </dd>
                 </div>
@@ -309,20 +324,20 @@ export default function EvaluationPage() {
                       const isTarget = c.file_name === selected.expected_doc;
                       return (
                         <div key={`${c.chunk_id}-${i}`} className="flex items-center gap-1.5">
-                          <span className="font-mono text-[10px] text-[var(--color-muted)]">[{i + 1}]</span>
+                          <span className="font-mono text-[11px] text-[var(--color-muted)]">[{i + 1}]</span>
                           {match ? (
                             <Link
                               href={`/documents/${match.id}`}
-                              className={`hover:underline ${isTarget ? "font-semibold text-emerald-300" : "text-[var(--color-accent)]"}`}
+                              className={`hover:underline ${isTarget ? "font-semibold text-emerald-700" : "text-[var(--color-accent)]"}`}
                             >
                               {c.file_name}
                             </Link>
                           ) : (
-                            <span className={isTarget ? "font-semibold text-emerald-300" : ""}>{c.file_name}</span>
+                            <span className={isTarget ? "font-semibold text-emerald-700" : ""}>{c.file_name}</span>
                           )}
-                          {c.page != null && <span className="text-[10px] text-[var(--color-muted)]">p{c.page}</span>}
+                          {c.page != null && <span className="text-[11px] text-[var(--color-muted)]">p{c.page}</span>}
                           {isTarget && (
-                            <span className="rounded border border-emerald-500/20 bg-emerald-500/10 px-1 text-[9px] text-emerald-400">target</span>
+                            <span className="rounded border border-emerald-200 bg-emerald-50 px-1 text-[11px] text-emerald-700">target</span>
                           )}
                         </div>
                       );

@@ -237,7 +237,7 @@ export function CitationItem({
           {tags.map((tag) => (
             <span
               key={tag}
-              className="rounded border border-emerald-500/20 bg-emerald-500/10 px-1 font-mono text-[9px] uppercase text-emerald-300"
+              className="rounded border border-emerald-200 bg-emerald-50 px-1 font-mono text-[11px] uppercase text-emerald-700"
             >
               {tag}
             </span>
@@ -349,7 +349,7 @@ export function ChatComposer({
           type="submit"
           disabled={loading || !value.trim()}
           aria-label="Send message"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--color-accent)] text-[var(--color-base)] outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--color-accent)] text-[var(--color-accent-fg)] outline-none transition hover:bg-[var(--color-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ArrowRightIcon className="h-5 w-5" />
         </button>

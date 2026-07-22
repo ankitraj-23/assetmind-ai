@@ -72,9 +72,9 @@ export function StatCard({
 
 const metricToneText: Record<"neutral" | "critical" | "warning" | "positive", string> = {
   neutral: "text-[var(--color-fg)]",
-  critical: "text-red-300",
-  warning: "text-amber-300",
-  positive: "text-emerald-300",
+  critical: "text-red-600",
+  warning: "text-amber-600",
+  positive: "text-emerald-600",
 };
 
 export function Metric({
@@ -128,10 +128,10 @@ export function Metric({
 }
 
 const riskStyles: Record<Risk, string> = {
-  low: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
-  medium: "bg-amber-500/10 text-amber-300 border-amber-500/30",
-  high: "bg-orange-500/10 text-orange-300 border-orange-500/30",
-  critical: "bg-red-500/10 text-red-300 border-red-500/30",
+  low: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  medium: "bg-amber-50 text-amber-700 border-amber-200",
+  high: "bg-orange-50 text-orange-700 border-orange-200",
+  critical: "bg-red-50 text-red-700 border-red-200",
 };
 
 export function RiskBadge({ risk }: { risk: Risk }) {
@@ -152,10 +152,10 @@ export function Badge({
   tone?: "neutral" | "ok" | "warn" | "bad";
 }) {
   const tones = {
-    neutral: "bg-[var(--color-surface-2)] text-[var(--color-muted)] border-[var(--color-border)]",
-    ok: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
-    warn: "bg-amber-500/10 text-amber-300 border-amber-500/30",
-    bad: "bg-red-500/10 text-red-300 border-red-500/30",
+    neutral: "bg-[var(--color-surface-3)] text-[var(--color-muted)] border-[var(--color-border)]",
+    ok: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    warn: "bg-amber-50 text-amber-700 border-amber-200",
+    bad: "bg-red-50 text-red-700 border-red-200",
   };
   return (
     <span
@@ -318,10 +318,10 @@ export function ErrorState({
       role="alert"
       className={`flex flex-col items-center gap-3 px-4 py-8 text-center ${className}`}
     >
-      <div className="rounded-full bg-red-500/10 p-3">
+      <div className="rounded-full bg-red-50 p-3">
         <svg
           aria-hidden="true"
-          className="h-6 w-6 text-red-400"
+          className="h-6 w-6 text-red-600"
           fill="none"
           viewBox="0 0 24 24"
           strokeWidth={1.5}
@@ -334,7 +334,7 @@ export function ErrorState({
           />
         </svg>
       </div>
-      <p className="text-sm font-medium text-red-400">{title}</p>
+      <p className="text-sm font-medium text-red-600">{title}</p>
       {description && (
         <p className="max-w-md text-sm text-[var(--color-muted)]">{description}</p>
       )}
@@ -344,7 +344,7 @@ export function ErrorState({
       {onRetry && (
         <button
           onClick={onRetry}
-          className="mt-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-2 text-sm transition hover:border-[var(--color-accent)]"
+          className="mt-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm text-[var(--color-fg)] transition-colors hover:bg-[var(--color-surface-2)] hover:border-[var(--color-border-strong)]"
         >
           {retryLabel}
         </button>
@@ -417,7 +417,7 @@ export function Tabs({
     <div
       role="tablist"
       aria-label={label}
-      className={`mb-6 flex gap-1 overflow-x-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1 ${className}`}
+      className={`mb-6 flex gap-1 overflow-x-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-1 ${className}`}
     >
       {tabs.map((t, i) => {
         const selected = t.key === active;
@@ -432,9 +432,9 @@ export function Tabs({
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(t.key)}
             onKeyDown={(e) => handleKey(e, i)}
-            className={`min-h-[40px] whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] ${
+            className={`min-h-[40px] whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] ${
               selected
-                ? "bg-[var(--color-accent)] text-[var(--color-base)]"
+                ? "bg-[var(--color-surface)] text-[var(--color-accent)] shadow-sm"
                 : "text-[var(--color-muted)] hover:text-[var(--color-fg)]"
             }`}
           >

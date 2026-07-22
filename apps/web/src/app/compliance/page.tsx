@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Card, PageHeader, SectionTitle, Badge, StatCard } from "@/components/ui";
+import { Card, PageHeader, SectionTitle, Badge, StatCard, Disclosure } from "@/components/ui";
+import { AlertIcon, CheckIcon, DocumentIcon, DownloadIcon } from "@/components/icons";
 import {
   getComplianceGaps,
   listAssets,
@@ -218,13 +219,13 @@ export default function CompliancePage() {
       )}
 
       {status === "error" && (
-        <Card className="border-red-500/30 bg-red-500/5 py-10 text-center">
-          <p className="text-lg">⚠️</p>
-          <h3 className="mt-2 text-sm font-semibold text-red-300">Could not load compliance gaps</h3>
+        <Card className="border-red-200 bg-red-50 py-10 text-center">
+          <AlertIcon className="mx-auto h-7 w-7 text-red-600" />
+          <h3 className="mt-2 text-sm font-semibold text-red-700">Could not load compliance gaps</h3>
           <p className="mx-auto mt-1 max-w-md text-xs text-[var(--color-muted)]">{error}</p>
           <button
             onClick={() => loadGaps(assetScope)}
-            className="mt-4 rounded border border-red-500/30 bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/30"
+            className="mt-4 rounded-lg border border-red-200 bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
           >
             Retry
           </button>
@@ -233,7 +234,9 @@ export default function CompliancePage() {
 
       {status === "done" && visibleGaps.length === 0 && (
         <Card className="py-14 text-center">
-          <p className="text-2xl">✅</p>
+          <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+            <CheckIcon className="h-6 w-6" />
+          </span>
           <p className="mt-2 text-sm font-semibold">No compliance gaps for this view</p>
           <p className="mx-auto mt-1 max-w-sm text-xs text-[var(--color-muted)]">
             {gaps.length === 0
@@ -262,53 +265,53 @@ export default function CompliancePage() {
                 </div>
                 {gap.standard_or_policy && (
                   <span className="text-xs text-[var(--color-muted)]">
-                    📑 {gap.standard_or_policy}
+                    {gap.standard_or_policy}
                   </span>
                 )}
               </div>
 
               <p className="text-sm leading-relaxed text-[var(--color-fg)]">{gap.reason}</p>
 
-              {gap.evidence.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">
-                    Evidence ({gap.evidence.length})
-                  </p>
-                  {gap.evidence.map((ev, evIdx) => (
-                    <div
-                      key={evIdx}
-                      className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 text-xs"
-                    >
-                      <p className="wrap-anywhere italic leading-relaxed text-[var(--color-fg)]/90">
-                        &ldquo;{ev.text}&rdquo;
-                      </p>
-                      <p className="mt-2 border-t border-[var(--color-border)]/40 pt-1.5 font-mono text-[10px] text-[var(--color-muted)]">
-                        📁 Source:{" "}
-                        {ev.document_id ? (
-                          <Link
-                            href={`/documents/${ev.document_id}`}
-                            className="text-[var(--color-accent)] hover:underline"
-                          >
-                            {ev.source ?? ev.document_id}
-                          </Link>
-                        ) : (
-                          <span>{ev.source ?? "—"}</span>
-                        )}
-                        {ev.chunk_id && <span> · chunk {ev.chunk_id.slice(0, 12)}…</span>}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="rounded-lg border border-[var(--color-accent)]/20 bg-[var(--color-accent)]/5 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
+              <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-accent-soft)] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-accent)]">
                   Recommended Action
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-[var(--color-fg)]">
                   {gap.recommended_action}
                 </p>
               </div>
+
+              {gap.evidence.length > 0 && (
+                <Disclosure summary={`Evidence & citations (${gap.evidence.length})`}>
+                  <div className="space-y-2">
+                    {gap.evidence.map((ev, evIdx) => (
+                      <div
+                        key={evIdx}
+                        className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 text-xs"
+                      >
+                        <p className="wrap-anywhere italic leading-relaxed text-[var(--color-fg)]">
+                          &ldquo;{ev.text}&rdquo;
+                        </p>
+                        <p className="mt-2 flex flex-wrap items-center gap-1 border-t border-[var(--color-border)] pt-1.5 font-mono text-[11px] text-[var(--color-muted)]">
+                          <DocumentIcon className="h-3 w-3 shrink-0" />
+                          Source:{" "}
+                          {ev.document_id ? (
+                            <Link
+                              href={`/documents/${ev.document_id}`}
+                              className="text-[var(--color-accent)] hover:underline"
+                            >
+                              {ev.source ?? ev.document_id}
+                            </Link>
+                          ) : (
+                            <span>{ev.source ?? "—"}</span>
+                          )}
+                          {ev.chunk_id && <span> · chunk {ev.chunk_id.slice(0, 12)}…</span>}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </Disclosure>
+              )}
             </Card>
           ))}
         </div>
@@ -349,15 +352,15 @@ export default function CompliancePage() {
           <button
             onClick={handleGenerate}
             disabled={pkgStatus === "loading" || !pkgAsset}
-            className="rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-[#0b0f17] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent-fg)] transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {pkgStatus === "loading" ? "Generating…" : "📦 Generate Evidence Package"}
+            {pkgStatus === "loading" ? "Generating…" : "Generate Evidence Package"}
           </button>
         </div>
 
         {pkgStatus === "error" && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
-            <p className="text-sm text-red-300">{pkgError}</p>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+            <p className="text-sm text-red-700">{pkgError}</p>
           </div>
         )}
 
@@ -365,7 +368,7 @@ export default function CompliancePage() {
           <div className="space-y-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
                   Package Generated
                 </p>
                 <h4 className="mt-0.5 text-sm font-semibold">
@@ -377,9 +380,10 @@ export default function CompliancePage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 download
-                className="rounded-lg border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/15"
               >
-                ⬇ Download Markdown
+                <DownloadIcon className="h-3.5 w-3.5" />
+                Download Markdown
               </a>
             </div>
 
@@ -388,30 +392,30 @@ export default function CompliancePage() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] py-3 text-center">
                 <p className="text-xl font-semibold">{pkg.included_documents.length}</p>
-                <p className="text-[10px] text-[var(--color-muted)]">Documents</p>
+                <p className="text-[11px] text-[var(--color-muted)]">Documents</p>
               </div>
               <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] py-3 text-center">
                 <p className="text-xl font-semibold">{pkg.compliance_gaps.length}</p>
-                <p className="text-[10px] text-[var(--color-muted)]">Compliance Gaps</p>
+                <p className="text-[11px] text-[var(--color-muted)]">Compliance Gaps</p>
               </div>
               <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] py-3 text-center">
                 <p className="text-xl font-semibold">{pkg.inspection_findings.length}</p>
-                <p className="text-[10px] text-[var(--color-muted)]">Inspection Findings</p>
+                <p className="text-[11px] text-[var(--color-muted)]">Inspection Findings</p>
               </div>
               <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-base)] py-3 text-center">
                 <p className="text-xl font-semibold">{pkg.maintenance_evidence.length}</p>
-                <p className="text-[10px] text-[var(--color-muted)]">Maintenance Records</p>
+                <p className="text-[11px] text-[var(--color-muted)]">Maintenance Records</p>
               </div>
             </div>
 
-            <p className="wrap-anywhere font-mono text-[10px] text-[var(--color-muted)]">
+            <p className="wrap-anywhere font-mono text-[11px] text-[var(--color-muted)]">
               Package ID: {pkg.package_id}
             </p>
           </div>
         )}
       </Card>
 
-      <p className="text-center text-[10px] text-[var(--color-muted)]">
+      <p className="text-center text-[11px] text-[var(--color-muted)]">
         Findings are automated decision support and require review by an authorised competent
         person before any compliance action.
       </p>

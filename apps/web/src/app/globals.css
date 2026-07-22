@@ -1,15 +1,45 @@
 @import "tailwindcss";
 
+/* ── Design tokens ─────────────────────────────────────────────────────
+   Light-first industrial B2B surface. The application canvas is a cool
+   neutral, work surfaces are white, and the primary accent is a restrained
+   blue. The sidebar keeps its own dark-navy token set so navigation stays
+   dark against the light content — the two are intentional, not a mixed
+   light/dark accident. */
+
 @theme {
-  --color-base: #0b0f17;
-  --color-surface: #111826;
-  --color-surface-2: #161f30;
-  --color-border: #1f2a3d;
-  --color-fg: #e6edf7;
-  --color-muted: #8a99b3;
-  --color-accent: #2dd4bf;
-  --color-accent-2: #38bdf8;
-  --color-ring: #2dd4bf;
+  /* Application canvas + work surfaces */
+  --color-base: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #f8fafc;
+  --color-surface-3: #f1f5f9;
+
+  /* Text */
+  --color-fg: #0f172a;
+  --color-muted: #64748b;
+  --color-subtle: #94a3b8;
+
+  /* Borders */
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+
+  /* Primary accent (blue) */
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-2: #3b82f6;
+  --color-accent-soft: #eff6ff;
+  --color-accent-fg: #ffffff;
+
+  /* Focus ring */
+  --color-ring: #2563eb;
+
+  /* Sidebar — deliberately dark navy against the light content area */
+  --color-sidebar: #0f172a;
+  --color-sidebar-2: #1e293b;
+  --color-sidebar-fg: #e2e8f0;
+  --color-sidebar-muted: #94a3b8;
+  --color-sidebar-border: #1e293b;
+  --color-sidebar-accent: #60a5fa;
 }
 
 html,

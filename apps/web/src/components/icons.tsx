@@ -142,3 +142,89 @@ export function ExpandIcon({ className }: IconProps) {
     </Svg>
   );
 }
+
+export function DashboardIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="3" y="3" width="7" height="9" rx="1.5" />
+      <rect x="14" y="3" width="7" height="5" rx="1.5" />
+      <rect x="14" y="12" width="7" height="9" rx="1.5" />
+      <rect x="3" y="16" width="7" height="5" rx="1.5" />
+    </Svg>
+  );
+}
+
+export function UploadIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M12 15V3" />
+      <path d="m7 8 5-5 5 5" />
+      <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+    </Svg>
+  );
+}
+
+export function TargetIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1" />
+    </Svg>
+  );
+}
+
+export function ChartIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M3 3v18h18" />
+      <path d="M7 15v3" />
+      <path d="M12 10v8" />
+      <path d="M17 6v12" />
+    </Svg>
+  );
+}
+
+export function SparkleIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
+      <path d="m6.5 6.5 3 3M14.5 14.5l3 3M17.5 6.5l-3 3M9.5 14.5l-3 3" />
+    </Svg>
+  );
+}
+
+export function MenuIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </Svg>
+  );
+}
+
+export function CheckIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="m5 12 5 5L20 6" />
+    </Svg>
+  );
+}
+
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+    </Svg>
+  );
+}
+
+export function ArrowLeftIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M19 12H5" />
+      <path d="m11 6-6 6 6 6" />
+    </Svg>
+  );
+}

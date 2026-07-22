@@ -305,7 +305,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     <span
-                      className={`shrink-0 text-xs ${indexed ? "text-emerald-300" : "text-amber-300"}`}
+                      className={`shrink-0 text-xs ${indexed ? "text-emerald-700" : "text-amber-700"}`}
                     >
                       {indexed ? "Indexed" : d.status}
                     </span>
